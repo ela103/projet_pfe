@@ -1,0 +1,4 @@
+<h2>Espace Admin</h2>
+<p>Bienvenue Admin : {{ request.user.email }}</p>
+<a href="{% url 'dashboard' %}">Aller au dashboard</a> |
+<a href="{% url 'logout' %}">Déconnexion</a>

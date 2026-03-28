@@ -1,0 +1,13 @@
+<form method="post">
+  {% csrf_token %}
+
+  {{ form.first_name.label_tag }} {{ form.first_name }} <br>
+  {{ form.last_name.label_tag }} {{ form.last_name }} <br>
+  {{ form.phone_number.label_tag }} {{ form.phone_number }} <br>
+  {{ form.email.label_tag }} {{ form.email }} <br>
+
+  {{ form.password1.label_tag }} {{ form.password1 }} <br>
+  {{ form.password2.label_tag }} {{ form.password2 }} <br>
+
+  <button type="submit">Créer un compte</button>
+</form> 

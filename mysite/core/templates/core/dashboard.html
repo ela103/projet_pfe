@@ -1,0 +1,6 @@
+<h2>Dashboard (commun)</h2>
+<p>Bienvenue {{ request.user.email }}</p>
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">Déconnexion</button>
+</form>

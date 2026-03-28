@@ -1,0 +1,27 @@
+# Python / Django
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+
+# Environment variables
+.env
+mysite/.env
+
+# Credentials / secrets
+credentials/
+mysite/credentials/
+
+# Node.js / Next.js
+node_modules/
+mysite/frontend/node_modules/
+.next/
+mysite/frontend/.next/
+dist/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
