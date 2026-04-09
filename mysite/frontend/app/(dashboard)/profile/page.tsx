@@ -2,11 +2,70 @@
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+
+type UserProfile = {
+  authenticated: boolean
+  email: string
+  first_name: string
+  last_name: string
+  phone_number: string
+}
 
 export default function ProfilePage() {
   const [notifications, setNotifications] = useState(true)
   const [energySaving, setEnergySaving] = useState(false)
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/me/", {
+          method: "GET",
+          credentials: "include",
+           
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || "Impossible de charger le profil.")
+        }
+
+        setUser(data)
+      } catch (err: any) {
+        setError(err.message || "Une erreur est survenue.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [])
+
+  const initials =
+    `${user?.first_name?.[0] || ""}${user?.last_name?.[0] || ""}`.toUpperCase() || "U"
+
+  const fullName =
+    `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Utilisateur"
+
+  if (loading) {
+    return (
+      <section className="rounded-2xl bg-card p-6 md:p-8 shadow-sm ring-1 ring-border">
+        <p className="text-foreground">Chargement du profil...</p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="rounded-2xl bg-card p-6 md:p-8 shadow-sm ring-1 ring-border">
+        <p className="text-red-500">{error}</p>
+      </section>
+    )
+  }
 
   return (
     <section className="rounded-2xl bg-card p-6 md:p-8 shadow-sm ring-1 ring-border">
@@ -17,11 +76,12 @@ export default function ProfilePage() {
         <div className="rounded-xl bg-background p-4 ring-1 ring-border">
           <div className="flex items-center gap-3">
             <Avatar className="size-12">
-              <AvatarFallback className="text-lg">JR</AvatarFallback>
+              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium text-foreground">Jennifer Rhodes</p>
-              <p className="text-sm text-muted-foreground">jennifer@example.com</p>
+              <p className="font-medium text-foreground">{fullName}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <p className="text-sm text-muted-foreground">{user?.phone_number}</p>
             </div>
           </div>
         </div>

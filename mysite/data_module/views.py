@@ -2,6 +2,7 @@ import os
 from django.http import JsonResponse
 from django.shortcuts import redirect
 
+
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -9,10 +10,14 @@ from googleapiclient.discovery import build
 from .google_analytics import get_ga4_kpis
 from .search_console import get_gsc_kpis, get_gsc_daily
 from django.views.decorators.http import require_http_methods
+from django.db.models import Sum
 
 from .google_analytics import get_ga4_daily
 from .search_console import get_gsc_daily
-from .models import Website, GAMetrics, GSCMetrics
+from .models import Website, GAMetrics, GSCMetrics,GAEvent
+from .google_analytics import get_ga4_realtime,get_ga4_events
+from django.http import JsonResponse
+from .models import GAEvent
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -27,8 +32,8 @@ CLIENT_SECRETS_FILE = os.path.join(
 # GSC DAILY (liste par jour)
 # -------------------------------
 def gsc_daily(request):
-    site_url = "https://wondrous-starlight-2cf138.netlify.app/"
-    days = 7
+    site_url = "https://chipper-creponne-32db5f.netlify.app/"
+    days = 28
     data = get_gsc_daily(site_url, days=days)
     return JsonResponse({"response": data})
 
@@ -37,7 +42,7 @@ def gsc_daily(request):
 # TEST GA4
 # -------------------------------
 def ga4_test(request):
-    property_id = "524853110"
+    property_id = "530546383"
     data = get_ga4_kpis(property_id)
     return JsonResponse({"response": data})
 
@@ -46,7 +51,7 @@ def ga4_test(request):
 # TEST GSC
 # -------------------------------
 def gsc_test(request):
-    site_url = "https://wondrous-starlight-2cf138.netlify.app/"
+    site_url = "https://chipper-creponne-32db5f.netlify.app/"
     data = get_gsc_kpis(site_url)
     return JsonResponse({"response": data})
 
@@ -114,7 +119,7 @@ def ga4_dashboard(request):
     creds = Credentials(**request.session["credentials"])
     service = build("analyticsdata", "v1beta", credentials=creds)
 
-    property_id = "524853110"
+    property_id = "530546383"
 
     request_body = {
         "dateRanges": [{"startDate": "7daysAgo", "endDate": "today"}],
@@ -137,7 +142,7 @@ def ga4_dashboard(request):
 # GSC DASHBOARD (simple)
 # -------------------------------
 def gsc_dashboard(request):
-    site_url = "https://wondrous-starlight-2cf138.netlify.app/"
+    site_url = "https://chipper-creponne-32db5f.netlify.app/"
     data = get_gsc_kpis(site_url)
     return JsonResponse({
         "clicks": data["total_clicks"],
@@ -148,7 +153,7 @@ def gsc_dashboard(request):
 
 
 def test_gsc(request):
-    site_url = "https://wondrous-starlight-2cf138.netlify.app/"
+    site_url = "https://chipper-creponne-32db5f.netlify.app/"
     data = get_gsc_kpis(site_url)
     return JsonResponse(data)
 
@@ -161,8 +166,8 @@ def import_metrics(request):
     """
     # 1) Paramètres (pour l’instant en dur, tu peux les mettre dans Website ensuite)
     website_name = "site_test"
-    property_id = "524853110"
-    site_url = "https://wondrous-starlight-2cf138.netlify.app/"
+    property_id = "530546383"
+    site_url = "https://chipper-creponne-32db5f.netlify.app/"
     days = 7
 
     # 2) Website (1 seul site pour l’instant)
@@ -186,6 +191,11 @@ def import_metrics(request):
                 "active_users": r["active_users"],
                 "sessions": r["sessions"],
                 "page_views": r["page_views"],
+                
+                "engaged_sessions": r["engaged_sessions"],
+                "engagement_rate": r["engagement_rate"],
+                "average_session_duration": r["average_session_duration"],
+                "screen_page_views_per_user": r["screen_page_views_per_user"],
             },
         )
         ga_saved += 1
@@ -196,6 +206,7 @@ def import_metrics(request):
             website=website,
             date=r["date"],
             page=r["page"],
+            query=r["query"],
             defaults={
                 "clicks": r["clicks"],
                 "impressions": r["impressions"],
@@ -211,3 +222,113 @@ def import_metrics(request):
         "ga_rows_saved": ga_saved,
         "gsc_rows_saved": gsc_saved
     })
+@require_http_methods(["POST", "GET"])
+def import_ga_events(request):
+    website_name = "site_test"
+    property_id = "530546383"
+    site_url = "https://chipper-creponne-32db5f.netlify.app/"
+    days = 7
+
+    website, _ = Website.objects.get_or_create(
+        name=website_name,
+        defaults={"ga4_property_id": property_id, "gsc_site_url": site_url},
+    )
+
+    event_rows = get_ga4_events(property_id, days=days)
+
+    events_saved = 0
+    for r in event_rows:
+        GAEvent.objects.update_or_create(
+            website=website,
+            date=r["date"],
+            page_path=r["page_path"],
+            event_name=r["event_name"],
+            defaults={
+                "event_count": r["event_count"],
+                "users": r["users"],
+                "event_count_per_user": r["event_count_per_user"],
+                "total_revenue": r["total_revenue"],
+            },
+        )
+        events_saved += 1
+
+    return JsonResponse({
+        "status": "success",
+        "website_id": website.id,
+        "ga_events_saved": events_saved,
+    })
+from .google_analytics import get_ga4_realtime
+
+def ga4_realtime(request):
+    property_id = "530546383"
+
+    data = get_ga4_realtime(property_id)
+    return JsonResponse(data)
+
+from django.db.models import Sum
+from .models import GAMetrics, GSCMetrics
+
+def dashboard_stats(request):
+    ga_data = (
+        GAMetrics.objects
+        .filter(page_path__isnull=False)
+        .values("date")
+        .annotate(
+            users=Sum("active_users"),
+            sessions=Sum("sessions"),
+            page_views=Sum("page_views"),
+        )
+        .order_by("date")
+    )
+
+    gsc_data = (
+        GSCMetrics.objects
+        .filter(page__isnull=False)
+        .values("date")
+        .annotate(
+            clicks=Sum("clicks"),
+            impressions=Sum("impressions"),
+        )
+        .order_by("date")
+    )
+
+    return JsonResponse({
+        "ga_chart": list(ga_data),
+        "gsc_chart": list(gsc_data),
+    })
+def gsc_page_distribution(request):
+    data = (
+        GSCMetrics.objects
+        .filter(page__isnull=False)
+        .values("page")
+        .annotate(
+            total_clicks=Sum("clicks"),
+            total_impressions=Sum("impressions"),
+        )
+        .order_by("-total_clicks")[:5]  # 🔥 top 5
+    )
+
+    return JsonResponse({
+        "pages": list(data)
+    })
+
+
+def ga_events_chart(request):
+    try:
+        events = list(
+            GAEvent.objects.filter(page_path__isnull=False)
+            .order_by("-date")
+            .values(
+                "date",
+                "page_path",
+                "event_name",
+                "event_count",
+            )[:200]
+        )
+
+        return JsonResponse({
+            "events": events
+        })
+
+    except Exception as e:
+        return JsonResponse({"message": str(e)}, status=500)

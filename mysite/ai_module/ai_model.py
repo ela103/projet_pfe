@@ -48,8 +48,12 @@ def load_ga_dataset_from_db():
 def load_pages_content_dataset():
 
     pages = [
-        "https://wondrous-starlight-2cf138.netlify.app/",
-        "https://wondrous-starlight-2cf138.netlify.app/generic.html",
+        "https://clever-taffy-6e70c6.netlify.app/",
+        "https://clever-taffy-6e70c6.netlify.app/page2.html",
+        "https://clever-taffy-6e70c6.netlify.app/page3.html",
+        "https://clever-taffy-6e70c6.netlify.app/page4.html",
+        "https://clever-taffy-6e70c6.netlify.app/page5.html",
+
         
     ]
 

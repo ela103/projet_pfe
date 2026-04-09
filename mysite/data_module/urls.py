@@ -14,4 +14,9 @@ urlpatterns = [
     path("gsc/", views.gsc_dashboard, name="gsc_dashboard"),
     path("test-gsc/", views.test_gsc, name="test_gsc"),
     path("import/", views.import_metrics, name="import_metrics"),
+    path("ga4/realtime/", views.ga4_realtime, name="ga4_realtime"),
+    path("dashboard/stats/", views.dashboard_stats, name="dashboard_stats"),
+    path("dashboard/gsc-pages/", views.gsc_page_distribution, name="gsc_page_distribution"),
+    path("ga4/events/import/", views.import_ga_events, name="import_ga_events"),
+    path("dashboard/ga-events/", views.ga_events_chart, name="ga_events_chart"),
 ]

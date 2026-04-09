@@ -60,3 +60,16 @@ def api_logout(request):
         "success": True,
         "message": "Déconnexion réussie."
     })
+def api_me(request):
+    if request.user.is_authenticated:
+        return JsonResponse({
+            "authenticated": True,
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "phone_number": request.user.phone_number,
+        })
+
+    return JsonResponse({
+        "authenticated": False
+    }, status=401)
