@@ -40,7 +40,54 @@ type EventChartItem = {
   user_engagement: number
 }
 
+type SeoPageItem = {
+  url: string
+  seo_score: number
+  title: string
+  issues: string[]
+  recommendations: string[]
+}
+
+type SeoResponse = {
+  site_score: number
+  total_pages: number
+  pages: SeoPageItem[]
+}
+
 const PIE_COLORS = ["#6D4DFF", "#FF7A00", "#FF3D71", "#00C49F", "#0088FE"]
+
+function getSeoScoreBadge(score: number) {
+  if (score >= 90) return "bg-green-100 text-green-700"
+  if (score >= 70) return "bg-orange-100 text-orange-700"
+  return "bg-red-100 text-red-700"
+}
+
+function getSeoBarColor(score: number) {
+  if (score >= 90) return "bg-green-500"
+  if (score >= 70) return "bg-orange-500"
+  return "bg-red-500"
+}
+
+function getPriorityLabel(score: number, issuesCount: number) {
+  if (score < 60 || issuesCount >= 4) {
+    return {
+      label: "Priorité haute",
+      className: "bg-red-100 text-red-700",
+    }
+  }
+
+  if (score < 80 || issuesCount >= 2) {
+    return {
+      label: "Priorité moyenne",
+      className: "bg-orange-100 text-orange-700",
+    }
+  }
+
+  return {
+    label: "Priorité faible",
+    className: "bg-green-100 text-green-700",
+  }
+}
 
 export default function StatisticsPage() {
   const [data, setData] = useState<ChartItem[]>([])
@@ -55,7 +102,60 @@ export default function StatisticsPage() {
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [recommendationsLoading, setRecommendationsLoading] = useState(false)
 
+  const [seoData, setSeoData] = useState<SeoResponse | null>(null)
+  const [seoUrl, setSeoUrl] = useState("")
+  const [seoLoading, setSeoLoading] = useState(false)
+  const [seoMessage, setSeoMessage] = useState("")
+  const [seoError, setSeoError] = useState("")
+  const [seoInsight, setSeoInsight] = useState<any>(null)
+
   const aiBusy = analysisLoading || recommendationsLoading
+  const WEBSITE_ID = 1
+
+  const fetchSeoData = async () => {
+    try {
+      setSeoError("")
+      const response = await fetch(
+        `http://127.0.0.1:8000/data/scraped-pages/?website_id=${WEBSITE_ID}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Impossible de charger les données SEO.")
+      }
+
+      setSeoData(result)
+    } catch (err: any) {
+      setSeoError(err.message || "Erreur lors du chargement SEO.")
+    }
+  }
+
+  const fetchSeoInsight = async () => {
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:8000/api/gemini/seo-global-insight/?website_id=${WEBSITE_ID}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error || "Erreur SEO Insight")
+      }
+
+      setSeoInsight(json)
+    } catch (err) {
+      console.error("Erreur SEO Insight :", err)
+    }
+  }
 
   useEffect(() => {
     const fetchAllStats = async () => {
@@ -142,6 +242,8 @@ export default function StatisticsPage() {
     }
 
     fetchAllStats()
+    fetchSeoData()
+    fetchSeoInsight()
   }, [])
 
   const callGemini = async (mode: "analysis" | "recommendations") => {
@@ -173,7 +275,6 @@ export default function StatisticsPage() {
       })
 
       const text = await response.text()
-      console.log("Réponse brute AI =", text)
 
       let result: any = {}
       try {
@@ -190,7 +291,7 @@ export default function StatisticsPage() {
         setAnalysisResult(result.analysis || "Analyse terminée.")
       } else {
         setRecommendationsResult(
-           result.recommendations || "Recommandations générées."
+          result.recommendations || "Recommandations générées."
         )
       }
     } catch (err: any) {
@@ -208,6 +309,67 @@ export default function StatisticsPage() {
       }
     }
   }
+
+  const handleSeoCrawl = async () => {
+    if (!seoUrl.trim()) {
+      setSeoMessage("")
+      setSeoError("Veuillez saisir une URL.")
+      return
+    }
+
+    try {
+      setSeoLoading(true)
+      setSeoMessage("")
+      setSeoError("")
+
+      const response = await fetch("http://127.0.0.1:8000/data/crawl-website/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          website_id: WEBSITE_ID,
+          start_url: seoUrl,
+          max_pages: 10,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erreur lors du crawl SEO.")
+      }
+
+      setSeoMessage("Analyse SEO terminée avec succès.")
+      await fetchSeoData()
+      await fetchSeoInsight()
+    } catch (err: any) {
+      setSeoError(err.message || "Erreur lors du crawl SEO.")
+    } finally {
+      setSeoLoading(false)
+    }
+  }
+
+  const criticalSeoPages = seoData?.pages
+    ? [...seoData.pages]
+        .sort((a, b) => {
+          if (a.seo_score !== b.seo_score) {
+            return a.seo_score - b.seo_score
+          }
+          return b.issues.length - a.issues.length
+        })
+        .slice(0, 3)
+    : []
+
+  const remainingSeoPages = seoData?.pages
+    ? seoData.pages.filter(
+        (page) =>
+          !criticalSeoPages.some(
+            (criticalPage) => criticalPage.url === page.url
+          )
+      )
+    : []
 
   return (
     <section className="rounded-2xl bg-card p-6 md:p-8 shadow-sm ring-1 ring-border">
@@ -367,6 +529,274 @@ export default function StatisticsPage() {
           </div>
         </>
       )}
+
+      <div className="mt-10 rounded-2xl bg-background p-6 ring-1 ring-border">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">
+              SEO Crawling & Audit
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Lance une analyse SEO automatique du site et affiche les pages auditées.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 md:flex-row">
+          <input
+            type="text"
+            placeholder="https://example.com"
+            value={seoUrl}
+            onChange={(e) => setSeoUrl(e.target.value)}
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-0"
+          />
+
+          <button
+            onClick={handleSeoCrawl}
+            disabled={seoLoading}
+            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {seoLoading ? "Analyse..." : "Analyser"}
+          </button>
+        </div>
+
+        {seoMessage && (
+          <p className="mt-4 text-sm text-green-600">{seoMessage}</p>
+        )}
+
+        {seoError && (
+          <p className="mt-4 text-sm text-red-500">{seoError}</p>
+        )}
+
+        {seoData && (
+          <>
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl bg-card p-4 ring-1 ring-border">
+                <p className="text-sm text-muted-foreground">Score global SEO</p>
+                <p className="mt-2 text-3xl font-bold text-foreground">
+                  {seoData.site_score}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-card p-4 ring-1 ring-border">
+                <p className="text-sm text-muted-foreground">Pages auditées</p>
+                <p className="mt-2 text-3xl font-bold text-foreground">
+                  {seoData.total_pages}
+                </p>
+              </div>
+            </div>
+
+          {seoInsight && (
+  <div className="mt-8 rounded-xl bg-card p-5 ring-1 ring-border">
+    <h3 className="text-lg font-semibold text-foreground">
+      SEO Global Insight (AI)
+    </h3>
+
+    <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+      <p>
+        <strong>Total problèmes :</strong> {seoInsight.total_issues}
+      </p>
+
+      <p>
+        <strong>Problème dominant :</strong>{" "}
+        {seoInsight.most_common_issue || "N/A"}
+      </p>
+
+      <p>
+        <strong>Source :</strong> {seoInsight.source}
+      </p>
+    </div>
+
+    {seoInsight.top_recommendations?.length > 0 && (
+      <div className="mt-4">
+        <h4 className="text-sm font-semibold text-foreground">
+          Actions prioritaires globales
+        </h4>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          {seoInsight.top_recommendations.map((rec: string, idx: number) => (
+            <li key={idx}>{rec}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    <div className="mt-4 whitespace-pre-line text-sm text-foreground">
+      {seoInsight.ai_summary}
+    </div>
+  </div>
+)}
+
+            {criticalSeoPages.length > 0 && (
+              <div className="mt-8 rounded-xl bg-card p-5 ring-1 ring-border">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Top pages critiques
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Pages à corriger en priorité pour améliorer le score global du site.
+                </p>
+
+                <div className="mt-5 grid gap-4">
+                  {criticalSeoPages.map((page, index) => {
+                    const priority = getPriorityLabel(page.seo_score, page.issues.length)
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-border bg-background p-4"
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0">
+                            <h4 className="text-base font-semibold text-foreground">
+                              {page.title || "Sans titre"}
+                            </h4>
+                            <p className="mt-1 break-all text-sm text-muted-foreground">
+                              {page.url}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getSeoScoreBadge(page.seo_score)}`}
+                            >
+                              Score : {page.seo_score}
+                            </span>
+
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${priority.className}`}
+                            >
+                              {priority.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 h-2 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-2 rounded-full ${getSeoBarColor(page.seo_score)}`}
+                            style={{ width: `${page.seo_score}%` }}
+                          />
+                        </div>
+
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">
+                              Problèmes détectés ({page.issues.length})
+                            </p>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                              {page.issues.slice(0, 3).map((issue, idx) => (
+                                <li key={idx}>{issue}</li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">
+                              Action prioritaire
+                            </p>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                              {page.recommendations.slice(0, 2).map((rec, idx) => (
+                                <li key={idx}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {remainingSeoPages.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Autres pages auditées
+                </h3>
+
+                <div className="mt-4 grid gap-4">
+                  {remainingSeoPages.map((page, index) => {
+                    const priority = getPriorityLabel(page.seo_score, page.issues.length)
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-xl bg-card p-5 ring-1 ring-border"
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0">
+                            <h3 className="text-lg font-semibold text-foreground">
+                              {page.title || "Sans titre"}
+                            </h3>
+                            <p className="mt-1 break-all text-sm text-muted-foreground">
+                              {page.url}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getSeoScoreBadge(page.seo_score)}`}
+                            >
+                              Score SEO : {page.seo_score}
+                            </span>
+
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${priority.className}`}
+                            >
+                              {priority.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 h-2 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-2 rounded-full ${getSeoBarColor(page.seo_score)}`}
+                            style={{ width: `${page.seo_score}%` }}
+                          />
+                        </div>
+
+                        <div className="mt-5 grid gap-4 md:grid-cols-2">
+                          <div>
+                            <h4 className="text-sm font-semibold text-foreground">
+                              Problèmes détectés
+                            </h4>
+                            {page.issues?.length > 0 ? (
+                              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                {page.issues.map((issue, idx) => (
+                                  <li key={idx}>{issue}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="mt-2 text-sm text-muted-foreground">
+                                Aucun problème détecté.
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-semibold text-foreground">
+                              Recommandations
+                            </h4>
+                            {page.recommendations?.length > 0 ? (
+                              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                {page.recommendations.map((rec, idx) => (
+                                  <li key={idx}>{rec}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="mt-2 text-sm text-muted-foreground">
+                                Aucune recommandation.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </section>
   )
 }

@@ -1,6 +1,8 @@
 # data_module/urls.py
 from django.urls import path
 from . import views
+from .views import scrape_pages
+from .views import scrape_pages, crawl_website ,get_scraped_pages
 
 urlpatterns = [
     path("ga4/test/", views.ga4_test, name="ga4_test"),
@@ -19,4 +21,8 @@ urlpatterns = [
     path("dashboard/gsc-pages/", views.gsc_page_distribution, name="gsc_page_distribution"),
     path("ga4/events/import/", views.import_ga_events, name="import_ga_events"),
     path("dashboard/ga-events/", views.ga_events_chart, name="ga_events_chart"),
+    path("scrape-pages/", scrape_pages, name="scrape_pages"),
+    path("crawl-website/", crawl_website, name="crawl_website"),
+    path("scraped-pages/", get_scraped_pages, name="get_scraped_pages"),
+
 ]

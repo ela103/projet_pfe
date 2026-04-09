@@ -18,6 +18,16 @@ from .models import Website, GAMetrics, GSCMetrics,GAEvent
 from .google_analytics import get_ga4_realtime,get_ga4_events
 from django.http import JsonResponse
 from .models import GAEvent
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from data_module.models import Website, ScrapedPage
+from data_module.scraper.services import scrape_and_save_page
+from data_module.scraper.services import scrape_and_save_page, crawl_and_scrape_website
+from django.views.decorators.http import require_GET
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -332,3 +342,115 @@ def ga_events_chart(request):
 
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
+@csrf_exempt
+@require_POST
+def scrape_pages(request):
+    try:
+        body = json.loads(request.body)
+        website_id = body.get("website_id")
+        urls = body.get("urls", [])
+
+        if not website_id:
+            return JsonResponse({"error": "website_id est obligatoire."}, status=400)
+
+        if not urls or not isinstance(urls, list):
+            return JsonResponse({"error": "La liste des URLs est obligatoire."}, status=400)
+
+        website = Website.objects.get(id=website_id)
+
+        results = []
+        for url in urls:
+            page = scrape_and_save_page(website, url)
+            results.append({
+                "url": page.url,
+                "status_code": page.status_code,
+                "title": page.title,
+                "seo_score": page.seo_score,
+                "issues": page.issues,
+                "recommendations": page.recommendations,
+            })
+
+        return JsonResponse({
+            "message": "Scraping terminé avec succès.",
+            "results": results
+        }, status=200)
+
+    except Website.DoesNotExist:
+        return JsonResponse({"error": "Website introuvable."}, status=404)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON invalide."}, status=400)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+@csrf_exempt
+@require_POST
+def crawl_website(request):
+    try:
+        body = json.loads(request.body)
+        website_id = body.get("website_id")
+        start_url = body.get("start_url")
+        max_pages = body.get("max_pages", 10)
+
+        if not website_id:
+            return JsonResponse({"error": "website_id est obligatoire."}, status=400)
+
+        if not start_url:
+            return JsonResponse({"error": "start_url est obligatoire."}, status=400)
+
+        website = Website.objects.get(id=website_id)
+
+        crawl_result = crawl_and_scrape_website(
+            website=website,
+            start_url=start_url,
+            max_pages=max_pages
+        )
+
+        return JsonResponse({
+            "message": "Crawling et scraping terminés avec succès.",
+            "start_url": crawl_result["start_url"],
+            "total_discovered": crawl_result["total_discovered"],
+            "results": crawl_result["results"]
+        }, status=200)
+
+    except Website.DoesNotExist:
+        return JsonResponse({"error": "Website introuvable."}, status=404)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON invalide."}, status=400)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+@require_GET
+def get_scraped_pages(request):
+    try:
+        website_id = request.GET.get("website_id")
+
+        if not website_id:
+            return JsonResponse({"error": "website_id est requis"}, status=400)
+
+        pages = ScrapedPage.objects.filter(website_id=website_id)
+
+        data = []
+        total_score = 0
+
+        for p in pages:
+            data.append({
+                "url": p.url,
+                "seo_score": p.seo_score,
+                "title": p.title,
+                "issues": p.issues,
+                "recommendations": p.recommendations,
+            })
+            total_score += p.seo_score
+
+        site_score = round(total_score / len(data), 2) if data else 0
+
+        return JsonResponse({
+            "site_score": site_score,
+            "total_pages": len(data),
+            "pages": data
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

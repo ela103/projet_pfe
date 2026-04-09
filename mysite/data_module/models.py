@@ -22,15 +22,14 @@ class GAMetrics(models.Model):
     sessions = models.IntegerField(default=0)
     page_views = models.IntegerField(default=0)
 
-    
     engaged_sessions = models.IntegerField(default=0)
     engagement_rate = models.FloatField(default=0.0)
     average_session_duration = models.FloatField(default=0.0)
-    screen_page_views_per_user = models.FloatField(default=0.0) 
+    screen_page_views_per_user = models.FloatField(default=0.0)
 
     class Meta:
         db_table = "ga_metrics"
-        unique_together = ("website", "date","page_path")
+        unique_together = ("website", "date", "page_path")
 
     def __str__(self):
         return f"{self.website.name} - {self.date}"
@@ -48,16 +47,16 @@ class GSCMetrics(models.Model):
 
     class Meta:
         db_table = "gsc_metrics"
-        unique_together = ("website", "date","page","query")
+        unique_together = ("website", "date", "page", "query")
 
     def __str__(self):
         return f"{self.website.name} - {self.date}"
-    
+
+
 class GAEvent(models.Model):
     website = models.ForeignKey(Website, on_delete=models.CASCADE)
     date = models.DateField()
     page_path = models.TextField(blank=True, null=True)
-
     event_name = models.CharField(max_length=100)
     event_count = models.IntegerField(default=0)
     users = models.IntegerField(default=0)
@@ -70,3 +69,48 @@ class GAEvent(models.Model):
 
     def __str__(self):
         return f"{self.website.name} - {self.date} - {self.event_name}"
+
+
+class ScrapedPage(models.Model):
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="scraped_pages")
+    url = models.URLField(max_length=1000)
+
+    status_code = models.IntegerField(blank=True, null=True)
+    response_time_ms = models.IntegerField(blank=True, null=True)
+
+    title = models.CharField(max_length=300, blank=True)
+    title_length = models.IntegerField(default=0)
+
+    meta_description = models.TextField(blank=True)
+    meta_description_length = models.IntegerField(default=0)
+
+    canonical = models.URLField(max_length=1000, blank=True)
+    robots_meta = models.CharField(max_length=255, blank=True)
+
+    h1_text = models.TextField(blank=True)
+    h1_count = models.IntegerField(default=0)
+    h2_count = models.IntegerField(default=0)
+
+    paragraph_count = models.IntegerField(default=0)
+    word_count = models.IntegerField(default=0)
+
+    images_count = models.IntegerField(default=0)
+    images_without_alt = models.IntegerField(default=0)
+
+    internal_links_count = models.IntegerField(default=0)
+    external_links_count = models.IntegerField(default=0)
+
+    seo_score = models.IntegerField(default=0)
+    issues = models.JSONField(default=list, blank=True)
+    recommendations = models.JSONField(default=list, blank=True)
+
+    raw_text_excerpt = models.TextField(blank=True)
+    last_scraped_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "scraped_pages"
+        unique_together = ("website", "url")
+
+    def __str__(self):
+        return f"{self.website.name} - {self.url}"

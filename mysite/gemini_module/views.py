@@ -1,24 +1,27 @@
 from django.http import JsonResponse
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from collections import Counter
+import json
 
 from data_module.google_analytics import get_ga4_kpis, get_ga4_daily
 from data_module.search_console import get_gsc_kpis, get_gsc_daily
+from data_module.models import GAEvent, ScrapedPage
+
 from .gemini_service import GeminiService
-from .prompt_builder import build_seo_prediction_prompt,build_stats_analysis_prompt,build_recommendations_prompt
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from data_module.models import GAEvent
+from .prompt_builder import (
+    build_seo_prediction_prompt,
+    build_stats_analysis_prompt,
+    build_recommendations_prompt,
+)
 
 
 def gemini_test(request):
     try:
-        # Données GA4
         ga_kpis = get_ga4_kpis(settings.GA4_PROPERTY_ID)
         ga_daily = get_ga4_daily(settings.GA4_PROPERTY_ID, days=30)
 
-        # Données GSC
         gsc_kpis = get_gsc_kpis(settings.GSC_SITE_URL, days=30)
         gsc_daily = get_gsc_daily(settings.GSC_SITE_URL, days=30)
 
@@ -35,15 +38,13 @@ def gemini_test(request):
             )[:100]
         )
 
-        # Construire le prompt avec GA4 + GSC
         prompt = build_seo_prediction_prompt(
             ga_kpis=ga_kpis,
             ga_daily=ga_daily,
             gsc_kpis=gsc_kpis,
-            gsc_daily=gsc_daily
+            gsc_daily=gsc_daily,
         )
 
-        # Appel Gemini
         gemini = GeminiService()
         response = gemini.generate_text(prompt)
 
@@ -54,15 +55,16 @@ def gemini_test(request):
             "gsc_kpis": gsc_kpis,
             "gsc_daily": gsc_daily,
             "ga_events": ga_events,
-            "ai_response": response
-            
+            "ai_response": response,
         })
 
     except Exception as e:
         return JsonResponse({
             "success": False,
             "error": str(e)
-        })
+        }, status=500)
+
+
 @csrf_exempt
 @require_POST
 def analyze_stats(request):
@@ -84,17 +86,8 @@ def analyze_stats(request):
         else:
             prompt = build_stats_analysis_prompt(chart_data, gsc_data, events_data)
 
-        print("🔥 GEMINI APPELÉ DANS analyze_stats")
-        print("MODE =", mode)
-        print("CHART DATA =", chart_data)
-        print("GSC DATA =", gsc_data)
-        print("EVENTS DATA =", events_data)
-        print("PROMPT =", prompt)
-
         gemini = GeminiService()
         result_text = gemini.generate_text(prompt)
-
-        print("REPONSE GEMINI =", result_text)
 
         if mode == "recommendations":
             return JsonResponse({
@@ -108,9 +101,78 @@ def analyze_stats(request):
         })
 
     except json.JSONDecodeError:
-        print("ERREUR ANALYZE_STATS = JSON invalide")
         return JsonResponse({"message": "JSON invalide."}, status=400)
 
     except Exception as e:
-        print("ERREUR ANALYZE_STATS =", str(e))
         return JsonResponse({"message": str(e)}, status=500)
+
+
+def seo_global_insight(request):
+    website_id = request.GET.get("website_id")
+
+    pages = ScrapedPage.objects.filter(website_id=website_id)
+
+    if not pages.exists():
+        return JsonResponse({"error": "No data"}, status=404)
+
+    all_issues = []
+    all_recommendations = []
+
+    for page in pages:
+        all_issues.extend(page.issues or [])
+        all_recommendations.extend(page.recommendations or [])
+
+    total_issues = len(all_issues)
+
+    most_common_issue = None
+    if all_issues:
+        most_common_issue = Counter(all_issues).most_common(1)[0][0]
+
+    top_recommendations = []
+    if all_recommendations:
+        top_recommendations = [
+            item[0] for item in Counter(all_recommendations).most_common(3)
+        ]
+
+    fallback_summary = (
+        f"Le site présente actuellement {total_issues} problème(s) SEO détecté(s). "
+        f"Le problème le plus fréquent est : {most_common_issue or 'aucun problème dominant identifié'}. "
+        f"Les actions prioritaires recommandées sont : "
+        f"{'; '.join(top_recommendations) if top_recommendations else 'aucune recommandation disponible'}."
+    )
+
+    prompt = f"""
+    Voici un audit SEO global d’un site web.
+
+    Nombre total de problèmes : {total_issues}
+    Problème le plus fréquent : {most_common_issue}
+
+    Recommandations détectées :
+    {chr(10).join(f"- {rec}" for rec in top_recommendations)}
+
+    Génère :
+    1. Un résumé professionnel du SEO du site en 4 à 5 lignes.
+    2. Trois actions prioritaires globales, claires et concrètes.
+    """
+
+    try:
+        gemini = GeminiService()
+        ai_result = gemini.generate_text(prompt)
+
+        return JsonResponse({
+            "total_issues": total_issues,
+            "most_common_issue": most_common_issue,
+            "top_recommendations": top_recommendations,
+            "ai_summary": ai_result,
+            "source": "gemini"
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "total_issues": total_issues,
+            "most_common_issue": most_common_issue,
+            "top_recommendations": top_recommendations,
+            "ai_summary": fallback_summary,
+            "source": "fallback",
+            "ai_error": str(e)
+        }, status=200)
