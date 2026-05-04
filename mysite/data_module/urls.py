@@ -24,5 +24,6 @@ urlpatterns = [
     path("scrape-pages/", scrape_pages, name="scrape_pages"),
     path("crawl-website/", crawl_website, name="crawl_website"),
     path("scraped-pages/", get_scraped_pages, name="get_scraped_pages"),
+    path("websites/", views.websites_list, name="websites_list"),
 
 ]

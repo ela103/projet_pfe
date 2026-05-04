@@ -28,6 +28,8 @@ from data_module.models import Website, ScrapedPage
 from data_module.scraper.services import scrape_and_save_page
 from data_module.scraper.services import scrape_and_save_page, crawl_and_scrape_website
 from django.views.decorators.http import require_GET
+from django.http import JsonResponse
+from .models import Website
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -169,103 +171,154 @@ def test_gsc(request):
 
 @require_http_methods(["POST", "GET"])
 def import_metrics(request):
-    """
-    Récupère les données GA4 + GSC (par jour) et les stocke dans PostgreSQL.
-    - GET : pratique pour tester dans le navigateur
-    - POST : plus logique pour un import
-    """
-    # 1) Paramètres (pour l’instant en dur, tu peux les mettre dans Website ensuite)
-    website_name = "site_test"
-    property_id = "530546383"
-    site_url = "https://chipper-creponne-32db5f.netlify.app/"
+    website_id = request.GET.get("website_id")
     days = 7
 
-    # 2) Website (1 seul site pour l’instant)
-    website, _ = Website.objects.get_or_create(
-        name=website_name,
-        defaults={"ga4_property_id": property_id, "gsc_site_url": site_url},
-    )
+    if website_id:
+        try:
+            websites = [Website.objects.get(id=website_id)]
+        except Website.DoesNotExist:
+            return JsonResponse({"error": "Website introuvable"}, status=404)
+    else:
+        websites = Website.objects.all()
 
-    # 3) EXTRACT (API)
-    ga_rows = get_ga4_daily(property_id, days=days)   # [{"date": ..., "active_users": ...}]
-    gsc_rows = get_gsc_daily(site_url, days=days)     # [{"date": ..., "clicks": ...}]
+    results = []
 
-    # 4) LOAD (UPSERT)
-    ga_saved = 0
-    for r in ga_rows:
-        obj, created = GAMetrics.objects.update_or_create(
-            website=website,
-            date=r["date"],
-            page_path=r["page_path"],
-            defaults={
-                "active_users": r["active_users"],
-                "sessions": r["sessions"],
-                "page_views": r["page_views"],
-                
-                "engaged_sessions": r["engaged_sessions"],
-                "engagement_rate": r["engagement_rate"],
-                "average_session_duration": r["average_session_duration"],
-                "screen_page_views_per_user": r["screen_page_views_per_user"],
-            },
-        )
-        ga_saved += 1
+    for website in websites:
+        property_id = website.ga4_property_id
+        site_url = website.gsc_site_url
 
-    gsc_saved = 0
-    for r in gsc_rows:
-        obj, created = GSCMetrics.objects.update_or_create(
-            website=website,
-            date=r["date"],
-            page=r["page"],
-            query=r["query"],
-            defaults={
-                "clicks": r["clicks"],
-                "impressions": r["impressions"],
-                "ctr": r["ctr"],
-                "position": r["position"],
-            },
-        )
-        gsc_saved += 1
+        if not property_id or not site_url:
+            results.append({
+                "website_id": website.id,
+                "website_name": website.name,
+                "status": "skipped",
+                "reason": "ga4_property_id ou gsc_site_url manquant"
+            })
+            continue
+
+        try:
+            ga_rows = get_ga4_daily(property_id, days=days)
+            gsc_rows = get_gsc_daily(site_url, days=days)
+
+            ga_saved = 0
+            for r in ga_rows:
+                GAMetrics.objects.update_or_create(
+                    website=website,
+                    date=r["date"],
+                    page_path=r["page_path"],
+                    defaults={
+                        "active_users": r["active_users"],
+                        "sessions": r["sessions"],
+                        "page_views": r["page_views"],
+                        "engaged_sessions": r["engaged_sessions"],
+                        "engagement_rate": r["engagement_rate"],
+                        "average_session_duration": r["average_session_duration"],
+                        "screen_page_views_per_user": r["screen_page_views_per_user"],
+                    },
+                )
+                ga_saved += 1
+
+            gsc_saved = 0
+            for r in gsc_rows:
+                GSCMetrics.objects.update_or_create(
+                    website=website,
+                    date=r["date"],
+                    page=r["page"],
+                    query=r["query"],
+                    defaults={
+                        "clicks": r["clicks"],
+                        "impressions": r["impressions"],
+                        "ctr": r["ctr"],
+                        "position": r["position"],
+                    },
+                )
+                gsc_saved += 1
+
+            results.append({
+                "website_id": website.id,
+                "website_name": website.name,
+                "status": "success",
+                "ga_rows_saved": ga_saved,
+                "gsc_rows_saved": gsc_saved
+            })
+
+        except Exception as e:
+            results.append({
+                "website_id": website.id,
+                "website_name": website.name,
+                "status": "error",
+                "error": str(e)
+            })
 
     return JsonResponse({
-        "status": "success",
-        "website_id": website.id,
-        "ga_rows_saved": ga_saved,
-        "gsc_rows_saved": gsc_saved
+        "status": "completed",
+        "results": results
     })
 @require_http_methods(["POST", "GET"])
 def import_ga_events(request):
-    website_name = "site_test"
-    property_id = "530546383"
-    site_url = "https://chipper-creponne-32db5f.netlify.app/"
+    website_id = request.GET.get("website_id")
     days = 7
 
-    website, _ = Website.objects.get_or_create(
-        name=website_name,
-        defaults={"ga4_property_id": property_id, "gsc_site_url": site_url},
-    )
+    if website_id:
+        try:
+            websites = [Website.objects.get(id=website_id)]
+        except Website.DoesNotExist:
+            return JsonResponse({"error": "Website introuvable"}, status=404)
+    else:
+        websites = Website.objects.all()
 
-    event_rows = get_ga4_events(property_id, days=days)
+    results = []
 
-    events_saved = 0
-    for r in event_rows:
-        GAEvent.objects.update_or_create(
-            website=website,
-            date=r["date"],
-            page_path=r["page_path"],
-            event_name=r["event_name"],
-            defaults={
-                "event_count": r["event_count"],
-                "users": r["users"],
-                "event_count_per_user": r["event_count_per_user"],
-                "total_revenue": r["total_revenue"],
-            },
-        )
-        events_saved += 1
+    for website in websites:
+        property_id = website.ga4_property_id
+
+        if not property_id:
+            results.append({
+                "website_id": website.id,
+                "website_name": website.name,
+                "status": "skipped",
+                "reason": "ga4_property_id manquant"
+            })
+            continue
+
+        try:
+            event_rows = get_ga4_events(property_id, days=days)
+
+            events_saved = 0
+            for r in event_rows:
+                GAEvent.objects.update_or_create(
+                    website=website,
+                    date=r["date"],
+                    page_path=r["page_path"],
+                    event_name=r["event_name"],
+                    defaults={
+                        "event_count": r["event_count"],
+                        "users": r["users"],
+                        "event_count_per_user": r["event_count_per_user"],
+                        "total_revenue": r["total_revenue"],
+                    },
+                )
+                events_saved += 1
+
+            results.append({
+                "website_id": website.id,
+                "website_name": website.name,
+                "status": "success",
+                "ga_events_saved": events_saved,
+            })
+
+        except Exception as e:
+            results.append({
+                "website_id": website.id,
+                "website_name": website.name,
+                "status": "error",
+                "error": str(e)
+            })
 
     return JsonResponse({
-        "status": "success",
-        "website_id": website.id,
-        "ga_events_saved": events_saved,
+        "status": "completed",
+        "results": results
     })
 from .google_analytics import get_ga4_realtime
 
@@ -279,9 +332,14 @@ from django.db.models import Sum
 from .models import GAMetrics, GSCMetrics
 
 def dashboard_stats(request):
+    website_id = request.GET.get("website_id")
+
+    if not website_id:
+        return JsonResponse({"error": "website_id requis"}, status=400)
+
     ga_data = (
         GAMetrics.objects
-        .filter(page_path__isnull=False)
+        .filter(website_id=website_id, page_path__isnull=False)
         .values("date")
         .annotate(
             users=Sum("active_users"),
@@ -293,7 +351,7 @@ def dashboard_stats(request):
 
     gsc_data = (
         GSCMetrics.objects
-        .filter(page__isnull=False)
+        .filter(website_id=website_id, page__isnull=False)
         .values("date")
         .annotate(
             clicks=Sum("clicks"),
@@ -307,26 +365,35 @@ def dashboard_stats(request):
         "gsc_chart": list(gsc_data),
     })
 def gsc_page_distribution(request):
+    website_id = request.GET.get("website_id")
+
+    if not website_id:
+        return JsonResponse({"error": "website_id requis"}, status=400)
+
     data = (
         GSCMetrics.objects
-        .filter(page__isnull=False)
+        .filter(website_id=website_id, page__isnull=False)
         .values("page")
         .annotate(
             total_clicks=Sum("clicks"),
             total_impressions=Sum("impressions"),
         )
-        .order_by("-total_clicks")[:5]  # 🔥 top 5
+        .order_by("-total_clicks")[:5]
     )
 
     return JsonResponse({
         "pages": list(data)
     })
-
-
 def ga_events_chart(request):
     try:
+        website_id = request.GET.get("website_id")
+
+        if not website_id:
+            return JsonResponse({"error": "website_id requis"}, status=400)
+
         events = list(
-            GAEvent.objects.filter(page_path__isnull=False)
+            GAEvent.objects
+            .filter(website_id=website_id, page_path__isnull=False)
             .order_by("-date")
             .values(
                 "date",
@@ -454,3 +521,8 @@ def get_scraped_pages(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+def websites_list(request):
+    websites = Website.objects.all().values("id", "name")
+    return JsonResponse({
+        "websites": list(websites)
+    })

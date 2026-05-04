@@ -7,7 +7,7 @@ export default function MessagesPage() {
   ]
   return (
     <section className="rounded-2xl bg-card p-6 md:p-8 shadow-sm ring-1 ring-border">
-      <h1 className="text-balance text-2xl font-semibold text-foreground">Messages</h1>
+      <h1 className="text-balance text-2xl font-semibold text-foreground">Notifications</h1>
       <p className="mt-2 text-muted-foreground">Your latest conversations and system alerts.</p>
 
       <ul className="mt-6 divide-y divide-border">

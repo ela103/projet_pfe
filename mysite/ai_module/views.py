@@ -30,7 +30,10 @@ def ai_chat(request):
     if request.method == "POST":
         data = json.loads(request.body.decode("utf-8"))
         question = data.get("question", "")
-        result = ask_ai(question)
+        website_id = data.get("website_id")
+
+        print("website_id reçu :", website_id)
+        result = ask_ai(question,website_id)
         return JsonResponse({"response": result})
 
     return JsonResponse({"error": "POST only"})

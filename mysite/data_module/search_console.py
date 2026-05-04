@@ -15,7 +15,28 @@ def _service():
         service_account_file, scopes=SCOPES
     )
     return build("searchconsole", "v1", credentials=credentials)
+def fetch_gsc_all_rows(service, site_url, request, page_size=1000):
+    all_rows = []
+    start_row = 0
 
+    while True:
+        request["rowLimit"] = page_size
+        request["startRow"] = start_row
+
+        response = service.searchanalytics().query(
+            siteUrl=site_url,
+            body=request
+        ).execute()
+
+        rows = response.get("rows", [])
+        all_rows.extend(rows)
+
+        if len(rows) < page_size:
+            break
+
+        start_row += page_size
+
+    return all_rows
 
 def normalize_gsc_page(page: str | None) -> str | None:
     if not page:
@@ -51,8 +72,7 @@ def get_gsc_kpis(site_url: str, days: int = 7) -> dict:
         "rowLimit": 250,
     }
     
-    response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
-    rows = response.get("rows", [])
+    rows = fetch_gsc_all_rows(service, site_url, request)
 
     total_clicks = sum(int(r.get("clicks", 0)) for r in rows)
     total_impressions = sum(int(r.get("impressions", 0)) for r in rows)
@@ -89,9 +109,7 @@ def get_gsc_daily(site_url: str, days: int = 7) -> list[dict]:
     }
    
 
-    response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
-    
-    rows = response.get("rows", [])
+    rows = fetch_gsc_all_rows(service, site_url, request)
 
     # 2) Si aucune donnée, on revient à date + page seulement
     if not rows:

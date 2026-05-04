@@ -6,64 +6,83 @@ import requests
 from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
+from data_module.models import ScrapedPage
 
 
 # =========================
 # Chargement des datasets
 # =========================
-def load_gsc_dataset_from_db():
-    from data_module.models import GSCMetrics
+def load_gsc_dataset_from_db(website_id=None):
+    import pandas as pd
+    from data_module.models import GSCMetrics, Website
+
+    query = GSCMetrics.objects.all()
+
+    if website_id:
+        query = query.filter(website_id=website_id)
 
     rows = list(
-        GSCMetrics.objects.all().values(
-            "website_id", "date", "clicks", "impressions", "ctr", "position"
+        query.values(
+            "website_id",
+            "date",
+            "clicks",
+            "impressions",
+            "ctr",
+            "position",
         )
     )
 
     df = pd.DataFrame(rows)
 
     if not df.empty:
-        df["entity"] = "website_" + df["website_id"].astype(str)
+        site_map = {w.id: w.name for w in Website.objects.all()}
+        df["entity"] = df["website_id"].map(site_map)
+        df["entity"] = df["entity"].fillna("Site inconnu")
 
     return df
 
+def load_ga_dataset_from_db(website_id=None):
+    import pandas as pd
+    from data_module.models import GAMetrics, Website
 
-def load_ga_dataset_from_db():
-    from data_module.models import GAMetrics
+    query = GAMetrics.objects.all()
+
+    if website_id:
+        query = query.filter(website_id=website_id)
 
     rows = list(
-        GAMetrics.objects.all().values(
-            "website_id", "date", "active_users", "sessions", "page_views"
+        query.values(
+            "website_id",
+            "date",
+            "active_users",
+            "sessions",
+            "page_views",
         )
     )
 
     df = pd.DataFrame(rows)
 
     if not df.empty:
-        df["entity"] = "website_" + df["website_id"].astype(str)
+        site_map = {w.id: w.name for w in Website.objects.all()}
+        df["entity"] = df["website_id"].map(site_map)
+        df["entity"] = df["entity"].fillna("Site inconnu")
 
     return df
 
+def load_pages_content_dataset(website_id=None):
 
-def load_pages_content_dataset():
-
-    pages = [
-        "https://clever-taffy-6e70c6.netlify.app/",
-        "https://clever-taffy-6e70c6.netlify.app/page2.html",
-        "https://clever-taffy-6e70c6.netlify.app/page3.html",
-        "https://clever-taffy-6e70c6.netlify.app/page4.html",
-        "https://clever-taffy-6e70c6.netlify.app/page5.html",
-
-        
-    ]
+    if website_id:
+        pages = ScrapedPage.objects.filter(website_id=website_id)
+    else:
+        pages = ScrapedPage.objects.all()
 
     data = []
 
-    for url in pages:
+    for page in pages:
+        url = page.url
 
         try:
             response = requests.get(url, timeout=10)
-
             soup = BeautifulSoup(response.text, "html.parser")
 
             title = soup.title.string if soup.title else ""
@@ -86,13 +105,12 @@ def load_pages_content_dataset():
             print("Erreur lors de l'analyse de :", url, e)
 
     return pd.DataFrame(data)
-
 # =========================
 # Analyse KPI
 # =========================
-def analyse_data():
-    gsc_df = load_gsc_dataset_from_db()
-    ga_df = load_ga_dataset_from_db()
+def analyse_data(website_id=None):
+    gsc_df = load_gsc_dataset_from_db(website_id)
+    ga_df = load_ga_dataset_from_db(website_id)
 
     seo = {
         "total_clicks": 0,
@@ -127,9 +145,9 @@ def analyse_data():
 # =========================
 # Recommandations SEO
 # =========================
-def generate_recommendations():
-    gsc_df = load_gsc_dataset_from_db()
-    ga_df = load_ga_dataset_from_db()
+def generate_recommendations(website_id=None):
+    gsc_df = load_gsc_dataset_from_db(website_id)
+    ga_df = load_ga_dataset_from_db(website_id)
 
     if gsc_df.empty and ga_df.empty:
         return ["Aucune donnée disponible pour générer des recommandations."]
@@ -226,9 +244,9 @@ def generate_recommendations():
 # =========================
 # Prévision simplifiée
 # =========================
-def predict_traffic(days_ahead=1):
-    gsc_df = load_gsc_dataset_from_db()
-    ga_df = load_ga_dataset_from_db()
+def predict_traffic(days_ahead=1, website_id=None):
+    gsc_df = load_gsc_dataset_from_db(website_id)
+    ga_df = load_ga_dataset_from_db(website_id)
 
     if gsc_df.empty and ga_df.empty:
         return []
@@ -279,8 +297,8 @@ def clean_text(text: str) -> str:
     return text
 
 
-def nlp_analysis():
-    df = load_pages_content_dataset()
+def nlp_analysis(website_id=None):
+    df = load_pages_content_dataset(website_id)
 
     if df.empty:
         return []
@@ -465,9 +483,9 @@ def calculate_ga_score(row):
         score -= 20
 
     return max(score, 0)
-def run_page_ai_analysis():
-    page_kpis = generate_recommendations()  # ton existant
-    nlp_results = nlp_analysis()           # ton existant
+def run_page_ai_analysis(website_id=None):
+    page_kpis = generate_recommendations(website_id)  # ton existant
+    nlp_results = nlp_analysis(website_id)           # ton existant
 
     final_results = []
 
@@ -501,3 +519,74 @@ def run_page_ai_analysis():
         })
 
     return final_results
+# =========================
+# Nouvelles fonctions chatbot
+# =========================
+
+def get_anomalies(website_id=None):
+    results = run_page_ai_analysis(website_id)
+
+    anomalies = []
+
+    for item in results:
+        if item["final_score"] < 50:
+            anomalies.append({
+                "page": item["page"],
+                "message": f"Score faible détecté ({item['final_score']})"
+            })
+
+    return anomalies
+
+
+def get_weak_pages(website_id=None):
+    results = run_page_ai_analysis(website_id)
+
+    weak_pages = sorted(
+        results,
+        key=lambda x: x["final_score"]
+    )[:5]
+
+    return [
+        {
+            "page": item["page"],
+            "score": item["final_score"]
+        }
+        for item in weak_pages
+    ]
+
+
+def get_scores():
+    results = run_page_ai_analysis()
+
+    return [
+        {
+            "page": item["page"],
+            "performance_score": "-",
+            "visibility_score": "-",
+            "technical_score": item["content_score"]
+        }
+        for item in results
+    ]
+
+
+def get_page_detail(question,website_id=None):
+    results = run_page_ai_analysis(website_id)
+
+    page_found = None
+
+    for item in results:
+        if item["page"].lower() in question.lower():
+            page_found = item
+            break
+
+    if not page_found:
+        return []
+
+    return [{
+        "page": page_found["page"],
+        "performance_score": "-",
+        "visibility_score": "-",
+        "technical_score": page_found["content_score"],
+        "score": page_found["final_score"],
+        "recommendations": page_found["recommendations"]
+    }]

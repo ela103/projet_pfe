@@ -114,3 +114,20 @@ class ScrapedPage(models.Model):
 
     def __str__(self):
         return f"{self.website.name} - {self.url}"
+class MLScores(models.Model):
+    website = models.ForeignKey(Website, on_delete=models.CASCADE)
+    page_url = models.URLField(max_length=1000, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
+
+    technical_score = models.FloatField(default=0.0)
+    performance_score = models.FloatField(default=0.0)
+    global_score = models.FloatField(default=0.0)
+
+    model_name = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ml_scores"
+
+    def __str__(self):
+        return f"{self.website.name} - {self.page_url} - {self.global_score}"
