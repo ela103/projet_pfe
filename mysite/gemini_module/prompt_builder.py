@@ -1,6 +1,24 @@
-def build_seo_prediction_prompt(ga_kpis: dict, ga_daily: list, gsc_kpis: dict, gsc_daily: list, ga_events: list) -> str:
+from ai_module.ai_model import detect_seo_issues
+
+def build_seo_prediction_prompt(
+    website_id,
+    ga_kpis: dict,
+    ga_daily: list,
+    gsc_kpis: dict,
+    gsc_daily: list,
+    ga_events: list
+) -> str:
+
+   
+    issues = detect_seo_issues(website_id)
+
     return f"""
 Tu es un expert SEO, web analytics et comportement utilisateur.
+
+Voici les anomalies SEO détectées automatiquement :
+{issues}
+
+Tu dois analyser ces anomalies et expliquer les causes en détail.
 
 Voici les données Google Analytics 4 :
 
@@ -156,3 +174,27 @@ Recommandations trafic / visibilité :
 Priorité :
 ...
 """
+def build_chatbot_prompt(question, context):
+    return f"""
+Tu es un assistant SEO intelligent connecté aux données du site.
+
+Question utilisateur :
+{question}
+
+Données structurées :
+{context.get("context_structuré")}
+
+Informations pertinentes trouvées par le RAG :
+{context.get("documents_rag")}
+
+Ta mission :
+- Répondre uniquement avec les données fournies
+- Ne pas inventer d'informations
+- Expliquer clairement les causes
+- Donner des recommandations concrètes en français
+- Si les données sont insuffisantes, le préciser clairement
+
+Réponse :
+"""
+
+

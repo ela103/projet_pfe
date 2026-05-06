@@ -153,3 +153,10 @@ CSRF_COOKIE_SECURE = False
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 GA4_PROPERTY_ID = config("GA4_PROPERTY_ID", default="")
 GSC_SITE_URL = config("GSC_SITE_URL", default="")
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "elaachagour12@gmail.com"
+EMAIL_HOST_PASSWORD = "fbsn qibp qnhy ckta"
+
+ALERT_EMAIL = "elaachagour12@gmail.com"

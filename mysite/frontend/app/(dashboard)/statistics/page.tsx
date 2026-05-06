@@ -469,7 +469,47 @@ export default function StatisticsPage() {
           )
       )
     : []
+const getRecommendationCardStyle = (text: string) => {
+  const lower = text.toLowerCase()
 
+  if (
+    lower.includes("critique") ||
+    lower.includes("problème") ||
+    lower.includes("faible") ||
+    lower.includes("0 clic") ||
+    lower.includes("urgent")
+  ) {
+    return {
+      label: "Problème critique",
+      className: "border-red-200 bg-red-50 text-red-700",
+    }
+  }
+
+  if (
+    lower.includes("opportunité") ||
+    lower.includes("bon engagement") ||
+    lower.includes("potentiel")
+  ) {
+    return {
+      label: "Opportunité",
+      className: "border-green-200 bg-green-50 text-green-700",
+    }
+  }
+
+  return {
+    label: "À améliorer",
+    className: "border-orange-200 bg-orange-50 text-orange-700",
+  }
+}
+
+const recommendationCards = recommendationsResult
+  ? recommendationsResult
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 5)
+  : []
+
+  
   return (
     <section className="rounded-2xl bg-card p-6 md:p-8 shadow-sm ring-1 ring-border">
       <div>
@@ -535,20 +575,39 @@ export default function StatisticsPage() {
         )}
 
         {(recommendationsLoading || recommendationsResult) && (
-          <div className="mt-6 rounded-xl bg-background p-4 ring-1 ring-border">
-            <h2 className="text-lg font-semibold text-foreground">AI Recommendations</h2>
+  <div className="mt-6 rounded-xl bg-background p-4 ring-1 ring-border">
+    <h2 className="text-lg font-semibold text-foreground">
+      Recommandations IA
+    </h2>
 
-            {recommendationsLoading ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Chargement des recommandations...
+    {recommendationsLoading ? (
+      <p className="mt-2 text-sm text-muted-foreground">
+        Chargement des recommandations...
+      </p>
+    ) : (
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {recommendationCards.map((rec, index) => {
+          const style = getRecommendationCardStyle(rec)
+
+          return (
+            <div
+              key={index}
+              className={`rounded-xl border p-4 ${style.className}`}
+            >
+              <span className="inline-flex rounded-full bg-white/70 px-3 py-1 text-xs font-semibold">
+                {style.label}
+              </span>
+
+              <p className="mt-3 text-sm leading-relaxed">
+                {rec}
               </p>
-            ) : (
-              <p className="mt-2 whitespace-pre-line text-muted-foreground">
-                {recommendationsResult}
-              </p>
-            )}
-          </div>
-        )}
+            </div>
+          )
+        })}
+      </div>
+    )}
+  </div>
+)}
       </div>
 
       {loading && (

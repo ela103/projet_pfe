@@ -10,7 +10,7 @@ from googleapiclient.discovery import build
 from .google_analytics import get_ga4_kpis
 from .search_console import get_gsc_kpis, get_gsc_daily
 from django.views.decorators.http import require_http_methods
-from django.db.models import Sum
+from django.db.models import Sum,Avg
 
 from .google_analytics import get_ga4_daily
 from .search_console import get_gsc_daily
@@ -333,13 +333,28 @@ from .models import GAMetrics, GSCMetrics
 
 def dashboard_stats(request):
     website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
 
     if not website_id:
         return JsonResponse({"error": "website_id requis"}, status=400)
 
+    ga_query = GAMetrics.objects.filter(
+        website_id=website_id,
+        page_path__isnull=False
+    )
+
+    gsc_query = GSCMetrics.objects.filter(
+        website_id=website_id,
+        page__isnull=False
+    )
+
+    if start_date and end_date:
+        ga_query = ga_query.filter(date__range=[start_date, end_date])
+        gsc_query = gsc_query.filter(date__range=[start_date, end_date])
+
     ga_data = (
-        GAMetrics.objects
-        .filter(website_id=website_id, page_path__isnull=False)
+        ga_query
         .values("date")
         .annotate(
             users=Sum("active_users"),
@@ -350,12 +365,13 @@ def dashboard_stats(request):
     )
 
     gsc_data = (
-        GSCMetrics.objects
-        .filter(website_id=website_id, page__isnull=False)
+        gsc_query
         .values("date")
         .annotate(
             clicks=Sum("clicks"),
             impressions=Sum("impressions"),
+            ctr=Avg("ctr"),
+            position=Avg("position"),
         )
         .order_by("date")
     )
@@ -526,3 +542,38 @@ def websites_list(request):
     return JsonResponse({
         "websites": list(websites)
     })
+
+
+def top_pages(request):
+    website_id = request.GET.get("website_id")
+
+    pages = (
+        GSCMetrics.objects
+        .filter(website_id=website_id)
+        .values("page")
+        .annotate(
+            total_clicks=Sum("clicks"),
+            total_impressions=Sum("impressions")
+        )
+        .order_by("-total_clicks")[:10]
+    )
+
+    return JsonResponse({"pages": list(pages)})
+def top_keywords(request):
+    website_id = request.GET.get("website_id")
+
+    keywords = (
+        GSCMetrics.objects
+        .filter(website_id=website_id)
+        .exclude(query__isnull=True)
+        .exclude(query="")
+        .values("query")
+        .annotate(
+            total_clicks=Sum("clicks"),
+            total_impressions=Sum("impressions"),
+            avg_position=Avg("position")
+        )
+        .order_by("-total_clicks")[:10]
+    )
+
+    return JsonResponse({"keywords": list(keywords)})

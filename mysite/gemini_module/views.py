@@ -57,6 +57,7 @@ def gemini_test(request):
         )
 
         prompt = build_seo_prediction_prompt(
+            website_id=website.id,
             ga_kpis=ga_kpis,
             ga_daily=ga_daily,
             gsc_kpis=gsc_kpis,

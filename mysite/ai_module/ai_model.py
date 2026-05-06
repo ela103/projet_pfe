@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from data_module.models import ScrapedPage
+from django.db.models import Sum, Avg
+from data_module.models import GSCMetrics, GAMetrics
 
 
 # =========================
@@ -590,3 +592,64 @@ def get_page_detail(question,website_id=None):
         "score": page_found["final_score"],
         "recommendations": page_found["recommendations"]
     }]
+def detect_seo_issues(website_id):
+    issues = []
+
+    # =========================
+    # 1. Analyse GSC (SEO)
+    # =========================
+    gsc_pages = (
+        GSCMetrics.objects
+        .filter(website_id=website_id)
+        .values("page")
+        .annotate(
+            impressions=Sum("impressions"),
+            clicks=Sum("clicks"),
+            avg_position=Avg("position")
+        )
+    )
+
+    for p in gsc_pages:
+        # 🔴 Règle 1 : impressions élevées + 0 clic
+        if p["impressions"] > 50 and p["clicks"] == 0:
+            issues.append({
+                "type": "SEO",
+                "page": p["page"],
+                "problem": "Beaucoup d’impressions mais aucun clic",
+                "cause": "Title ou meta description non attractif"
+            })
+
+        # 🔴 Règle 2 : position faible
+        if p["avg_position"] and p["avg_position"] > 20:
+            issues.append({
+                "type": "SEO",
+                "page": p["page"],
+                "problem": "Position moyenne faible",
+                "cause": "Contenu non optimisé ou concurrence forte"
+            })
+
+    # =========================
+    # 2. Analyse GA4 (UX)
+    # =========================
+    ga_pages = (
+        GAMetrics.objects
+        .filter(website_id=website_id)
+        .values("page_path")
+        .annotate(
+            avg_engagement=Avg("engagement_rate"),
+            avg_duration=Avg("average_session_duration")
+        )
+    )
+
+    for g in ga_pages:
+        # 🔴 Règle 3 : faible engagement
+        if g["avg_engagement"] is not None and g["avg_duration"] is not None:
+            if g["avg_engagement"] < 0.3 and g["avg_duration"] < 10:
+                issues.append({
+                    "type": "UX",
+                    "page": g["page_path"],
+                    "problem": "Faible engagement utilisateur",
+                    "cause": "Contenu peu pertinent ou mauvaise UX"
+                })
+
+    return issues

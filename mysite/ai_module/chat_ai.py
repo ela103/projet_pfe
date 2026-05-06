@@ -4,6 +4,9 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from data_module.models import Website
+from gemini_module.gemini_service import GeminiService
+from gemini_module.prompt_builder import build_chatbot_prompt
+from .rag_retriever import retrieve_relevant_documents
 
 from .ai_model import (
     analyse_data,
@@ -514,6 +517,26 @@ def format_response(intent: str, data) -> str:
     else:
         return "Je n'ai pas compris la question."
 
+def build_chatbot_context(website_id=None, intent=None):
+    context = {}
+
+    if intent in ["kpi", "traffic"]:
+        context["kpi"] = analyse_data(website_id)
+
+    if intent in ["anomalies", "traffic_diagnosis"]:
+        context["anomalies"] = get_anomalies(website_id)
+
+    if intent in ["pages_faibles", "page_detail"]:
+        context["weak_pages"] = get_weak_pages(website_id)
+
+    if intent in ["recommendations"]:
+        context["recommendations"] = generate_recommendations(website_id)
+
+    # fallback si rien détecté
+    if not context:
+        context["kpi"] = analyse_data(website_id)
+
+    return context
 
 # ============================================================
 # FONCTION PRINCIPALE
@@ -536,7 +559,38 @@ def ask_ai(question: str, website_id=None) -> dict:
         }
 
     intent = detect_intent_nlp(question)
+    if intent in [
+        "traffic_diagnosis",
+        "full_analysis",
+        "recommendations",
+        "anomalies",
+        "pages_faibles",
+        "page_detail",
+    ]:
+        context = build_chatbot_context(website_id, intent)
+        rag_docs = retrieve_relevant_documents(question, website_id, top_k=5)
 
+        prompt = build_chatbot_prompt(
+    question=question,
+    context={
+        "context_structuré": context,
+        "documents_rag": rag_docs,
+    }
+)
+        try:
+            gemini = GeminiService()
+            ai_text = gemini.generate_text(prompt)
+            return {
+                "intent": intent,
+                "text": ai_text,
+                "data": {
+                    "context_structuré": context,
+                    "documents_rag": rag_docs,
+                },
+                "source": "gemini_rag",
+            }
+        except Exception as e:
+            print("Erreur Gemini RAG :", e)
     # CORRECTION 4 — tous les intents sont gérés, y compris ga et gsc
     if intent == "kpi":
         data = analyse_data(website_id)
