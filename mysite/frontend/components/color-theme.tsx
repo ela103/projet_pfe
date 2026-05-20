@@ -2,19 +2,39 @@
 
 import { useEffect, useState } from "react"
 
-const BRANDS = [
-  { key: "purple", label: "Purple", color: "hsl(262, 83%, 58%)" },
-  { key: "blue", label: "Blue", color: "hsl(220, 90%, 56%)" },
-  { key: "teal", label: "Teal", color: "hsl(174, 63%, 45%)" },
-  { key: "orange", label: "Orange", color: "hsl(32, 100%, 50%)" },
-  { key: "pink", label: "Pink", color: "hsl(320, 72%, 66%)" },
+const THEMES = [
+  {
+    key: "mobelite",
+    label: "Mobelite",
+    gradient: "linear-gradient(135deg, #315CFF, #7B5CFF, #F05BD8)",
+  },
+  {
+    key: "ocean",
+    label: "Ocean",
+    gradient: "linear-gradient(135deg, #18C7E8, #315CFF, #7B5CFF)",
+  },
+  {
+    key: "violet",
+    label: "Violet",
+    gradient: "linear-gradient(135deg, #7B5CFF, #A855F7, #F05BD8)",
+  },
+  {
+    key: "rose-green",
+    label: "Rose Green",
+    gradient: "linear-gradient(135deg, #F05BD8, #8EECC8, #18C7E8)",
+  },
+  {
+    key: "mint",
+    label: "Mint",
+    gradient: "linear-gradient(135deg, #14B8A6, #18C7E8, #315CFF)",
+  },
 ] as const
 
 export function ColorThemePicker() {
-  const [current, setCurrent] = useState<string>("purple")
+  const [current, setCurrent] = useState<string>("mobelite")
 
   useEffect(() => {
-    const saved = localStorage.getItem("brand") || "purple"
+    const saved = localStorage.getItem("brand-theme") || "mobelite"
     setCurrent(saved)
     document.documentElement.setAttribute("data-brand", saved)
   }, [])
@@ -22,21 +42,33 @@ export function ColorThemePicker() {
   function setBrand(key: string) {
     setCurrent(key)
     document.documentElement.setAttribute("data-brand", key)
-    localStorage.setItem("brand", key)
+    localStorage.setItem("brand-theme", key)
   }
 
   return (
     <div>
-      <p className="mb-1 text-xs text-muted-foreground">Color theme</p>
+      <p className="mb-2 text-xs font-semibold text-muted-foreground">
+        Thème couleur
+      </p>
+
       <div className="flex items-center gap-2">
-        {BRANDS.map((b) => (
+        {THEMES.map((theme) => (
           <button
-            key={b.key}
-            aria-label={`Use ${b.label} theme`}
-            onClick={() => setBrand(b.key)}
-            className={`size-6 rounded-full ring-2 transition ${current === b.key ? "ring-ring" : "ring-transparent"} outline-none focus-visible:ring-2`}
-            style={{ backgroundColor: b.color }}
-          />
+            key={theme.key}
+            type="button"
+            aria-label={`Utiliser le thème ${theme.label}`}
+            onClick={() => setBrand(theme.key)}
+            className={`relative h-7 w-7 rounded-full transition-all duration-300 ${
+              current === theme.key
+                ? "scale-110 ring-2 ring-white ring-offset-2 ring-offset-background"
+                : "ring-1 ring-border hover:scale-105"
+            }`}
+            style={{ background: theme.gradient }}
+          >
+            {current === theme.key && (
+              <span className="absolute inset-1 rounded-full border-2 border-white/80" />
+            )}
+          </button>
         ))}
       </div>
     </div>

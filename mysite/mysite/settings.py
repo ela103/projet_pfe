@@ -9,9 +9,19 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
+import os
+from dotenv import load_dotenv
+import ssl
+
+import certifi
+
+ssl._create_default_https_context = ssl._create_unverified_context
+
+load_dotenv()
 
 from pathlib import Path
 from decouple import config
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +54,8 @@ INSTALLED_APPS = [
     'data_module',
     "corsheaders",
     "gemini_module",
+    'rest_framework',
+    "competitor_module",
     
 
 ]
@@ -87,13 +99,14 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'seo_analytics',
-        'USER': 'postgres',
-        'PASSWORD': '1234',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
+
 
 
 # Password validation
@@ -154,9 +167,32 @@ GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 GA4_PROPERTY_ID = config("GA4_PROPERTY_ID", default="")
 GSC_SITE_URL = config("GSC_SITE_URL", default="")
 
+import ssl
+import certifi
+
+import os
+import ssl
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
-EMAIL_HOST_USER = "elaachagour12@gmail.com"
-EMAIL_HOST_PASSWORD = "fbsn qibp qnhy ckta"
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+ALERT_EMAIL = os.getenv("ALERT_EMAIL")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-ALERT_EMAIL = "elaachagour12@gmail.com"
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}

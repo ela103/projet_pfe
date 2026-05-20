@@ -18,7 +18,7 @@ export default function SignInPage() {
     setLoading(true)
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/login/", {
+      const response = await fetch("http://127.0.0.1:8000/api/token/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -32,12 +32,18 @@ export default function SignInPage() {
 
       const data = await response.json()
 
-      if (response.ok && data.success) {
-        setMessage("")
-        router.push("/dashboard")
-      } else {
-        setMessage(data.message || "Email ou mot de passe incorrect")
-      }
+      if (response.ok) {
+
+  // stockage JWT
+  localStorage.setItem("access_token", data.access)
+  localStorage.setItem("refresh_token", data.refresh)
+
+  setMessage("")
+  router.push("/dashboard")
+
+} else {
+  setMessage("Email ou mot de passe incorrect")
+}
     } catch (error) {
       setMessage("Erreur serveur")
     } finally {

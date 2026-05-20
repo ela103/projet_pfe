@@ -566,6 +566,7 @@ def ask_ai(question: str, website_id=None) -> dict:
         "anomalies",
         "pages_faibles",
         "page_detail",
+        "scraping",
     ]:
         context = build_chatbot_context(website_id, intent)
         rag_docs = retrieve_relevant_documents(question, website_id, top_k=5)

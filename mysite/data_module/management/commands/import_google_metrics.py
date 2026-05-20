@@ -1,55 +1,96 @@
 from django.core.management.base import BaseCommand
-from data_module.models import Website, GAMetrics, GSCMetrics
-from data_module.google_analytics import get_ga4_daily
+
+from data_module.models import Website, GAMetrics, GSCMetrics, GAEvent
+from data_module.google_analytics import get_ga4_daily, get_ga4_events
 from data_module.search_console import get_gsc_daily
 from data_module.alerts import send_pipeline_error_email
 
 
 class Command(BaseCommand):
-    help = "Importe les données GA4 et GSC"
+    help = "Importe les données GA4, GA Events et GSC"
 
     def handle(self, *args, **kwargs):
         websites = Website.objects.all()
 
         for website in websites:
-            if not website.ga4_property_id or not website.gsc_site_url:
+            if not website.ga4_property_id and not website.gsc_site_url:
                 continue
 
             try:
-                ga_rows = get_ga4_daily(website.ga4_property_id, days=1)
-                gsc_rows = get_gsc_daily(website.gsc_site_url, days=1)
+                # ==========================
+                # 1. Import GA4 Metrics
+                # ==========================
+                if website.ga4_property_id:
+                    ga_rows = get_ga4_daily(website.ga4_property_id, days=7)
 
-                for r in ga_rows:
-                    GAMetrics.objects.update_or_create(
-                        website=website,
-                        date=r["date"],
-                        page_path=r["page_path"],
-                        defaults={
-                            "active_users": r["active_users"],
-                            "sessions": r["sessions"],
-                            "page_views": r["page_views"],
-                        },
-                    )
+                    for r in ga_rows:
+                        GAMetrics.objects.update_or_create(
+                            website=website,
+                            date=r["date"],
+                            page_path=r["page_path"],
+                            defaults={
+                                "active_users": r["active_users"],
+                                "sessions": r["sessions"],
+                                "page_views": r["page_views"],
+                                "engaged_sessions": r.get("engaged_sessions", 0),
+                                "engagement_rate": r.get("engagement_rate", 0),
+                                "average_session_duration": r.get("average_session_duration", 0),
+                                "screen_page_views_per_user": r.get("screen_page_views_per_user", 0),
+                            },
+                        )
 
-                for r in gsc_rows:
-                    GSCMetrics.objects.update_or_create(
-                        website=website,
-                        date=r["date"],
-                        page=r["page"],
-                        query=r["query"],
-                        defaults={
-                            "clicks": r["clicks"],
-                            "impressions": r["impressions"],
-                            "ctr": r["ctr"],
-                            "position": r["position"],
-                        },
-                    )
+                    print(f"GA4 metrics importées pour {website.name} ✔️")
 
-                print(f"{website.name} importé ✔️")
+                    # ==========================
+                    # 2. Import GA4 Events
+                    # ==========================
+                    event_rows = get_ga4_events(website.ga4_property_id, days=7)
+
+                    for event in event_rows:
+                        GAEvent.objects.update_or_create(
+                            website=website,
+                            date=event["date"],
+                            page_path=event["page_path"],
+                            event_name=event["event_name"],
+                            defaults={
+                                "event_count": event["event_count"],
+                                "users": event["users"],
+                                "event_count_per_user": event["event_count_per_user"],
+                                "total_revenue": event["total_revenue"],
+                            },
+                        )
+
+                    print(f"GA events importés pour {website.name} ✔️")
+
+                # ==========================
+                # 3. Import GSC Metrics
+                # ==========================
+                if website.gsc_site_url:
+                    gsc_rows = get_gsc_daily(website.gsc_site_url, days=7)
+
+                    for r in gsc_rows:
+                        GSCMetrics.objects.update_or_create(
+                            website=website,
+                            date=r["date"],
+                            page=r["page"],
+                            query=r["query"],
+                            defaults={
+                                "clicks": r["clicks"],
+                                "impressions": r["impressions"],
+                                "ctr": r["ctr"],
+                                "position": r["position"],
+                            },
+                        )
+
+                    print(f"GSC metrics importées pour {website.name} ✔️")
+
+                print(f"{website.name} importé complètement ✔️")
 
             except Exception as e:
                 error_message = f"Erreur pour {website.name} : {e}"
                 print(error_message)
 
-                # Monitoring
-                send_pipeline_error_email(error_message)
+                try:
+                    send_pipeline_error_email(error_message)
+                except Exception as mail_error:
+                    print(f"Email d'alerte non envoyé : {mail_error}")

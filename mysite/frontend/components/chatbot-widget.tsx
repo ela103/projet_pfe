@@ -51,9 +51,10 @@ export function ChatbotWidget() {
     setInput("")
 
     try {
-      console.log("Website ID envoyé :", websiteId)
+      const currentWebsiteId = localStorage.getItem("websiteId")
+      console.log("Website ID envoyé :", currentWebsiteId)
 
-      const response = await fetch("http://127.0.0.1:8000/ai/chat/", {
+  const response = await fetch("http://127.0.0.1:8000/ai/chat/", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -61,7 +62,7 @@ export function ChatbotWidget() {
   credentials: "include",
   body: JSON.stringify({
     question: currentInput,
-    website_id: websiteId,
+    website_id: currentWebsiteId,
    
   }),
 })

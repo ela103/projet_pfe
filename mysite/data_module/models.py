@@ -131,3 +131,20 @@ class MLScores(models.Model):
 
     def __str__(self):
         return f"{self.website.name} - {self.page_url} - {self.global_score}"
+class Notification(models.Model):
+    LEVEL_CHOICES = [
+        ("info", "Info"),
+        ("success", "Success"),
+        ("warning", "Warning"),
+        ("error", "Error"),
+    ]
+
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="info")
+    source = models.CharField(max_length=100, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.level} - {self.title}"

@@ -18,7 +18,10 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import include
 from django.views.generic import RedirectView
-
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,5 +33,8 @@ urlpatterns = [
     path('data/', include('data_module.urls')),
     path("", RedirectView.as_view(url="/dashboard/", permanent=False)),
     path("api/gemini/", include("gemini_module.urls")),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path("competitor/api/", include("competitor_module.urls")),
 
 ]

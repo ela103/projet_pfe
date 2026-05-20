@@ -26,11 +26,23 @@ type UserProfile = {
   last_name: string
   phone_number: string
 }
+type AppNotification = {
+  id: number
+  title: string
+  message: string
+  level: "info" | "success" | "warning" | "error"
+  source?: string | null
+  is_read: boolean
+  created_at: string
+}
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const [q, setQ] = useState("")
   const [user, setUser] = useState<UserProfile | null>(null)
   const router = useRouter()
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -79,6 +91,35 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const signedInName =
     `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Utilisateur"
 
+
+useEffect(() => {
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true)
+
+      const response = await fetch("http://127.0.0.1:8000/data/notifications/", {
+        method: "GET",
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Erreur lors du chargement des notifications")
+      }
+
+      const data = await response.json()
+
+      setUnreadCount(data.unread_count || 0)
+      setNotifications(data.notifications || [])
+    } catch (error) {
+      console.error("Erreur notifications :", error)
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
+
+  fetchNotifications()
+}, [])
+
   return (
     <header className="lg:-mx-7 sticky top-0 z-30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border mb-6 rounded-xl lg:rounded-none">
       <div className="h-16 px-4 md:px-7 flex items-center justify-between gap-3">
@@ -107,23 +148,87 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         <div className="flex items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger className="relative rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2">
-              <Bell className="size-5" aria-hidden />
-              <span className="sr-only">Open notifications</span>
-              <span className="absolute right-1 top-1 inline-flex items-center justify-center text-[10px] bg-red-500 text-white rounded-full h-4 min-w-4 px-1">
-                3
+  <DropdownMenuTrigger className="relative rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2">
+    <Bell className="size-5" aria-hidden />
+    <span className="sr-only">Open notifications</span>
+
+    {unreadCount > 0 && (
+      <span className="absolute right-1 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+        {unreadCount}
+      </span>
+    )}
+  </DropdownMenuTrigger>
+
+  <DropdownMenuContent align="end" className="w-80">
+    <DropdownMenuLabel className="flex items-center justify-between">
+      <span>Notifications</span>
+
+      {unreadCount > 0 && (
+        <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500">
+          {unreadCount} nouvelle{unreadCount > 1 ? "s" : ""}
+        </span>
+      )}
+    </DropdownMenuLabel>
+
+    <DropdownMenuSeparator />
+
+    {notificationsLoading ? (
+      <div className="px-3 py-3 text-sm text-muted-foreground">
+        Chargement...
+      </div>
+    ) : notifications.length === 0 ? (
+      <div className="px-3 py-3 text-sm text-muted-foreground">
+        Aucune notification disponible.
+      </div>
+    ) : (
+      <div className="max-h-80 overflow-y-auto">
+        {notifications.map((notification) => {
+          const levelClass =
+            notification.level === "error"
+              ? "border-l-red-500"
+              : notification.level === "warning"
+              ? "border-l-orange-500"
+              : notification.level === "success"
+              ? "border-l-emerald-500"
+              : "border-l-blue-500"
+
+          return (
+            <DropdownMenuItem
+              key={notification.id}
+              className={`flex cursor-default flex-col items-start gap-1 border-l-4 ${levelClass} px-3 py-3`}
+            >
+              <div className="flex w-full items-center justify-between gap-2">
+                <span className="text-sm font-semibold">
+                  {notification.title}
+                </span>
+
+                {!notification.is_read && (
+                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    Nouveau
+                  </span>
+                )}
+              </div>
+
+              <span className="text-xs text-muted-foreground">
+                {notification.message}
               </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Washer cycle completed</DropdownMenuItem>
-              <DropdownMenuItem>Front door locked</DropdownMenuItem>
-              <DropdownMenuItem>HVAC filter reminder</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-muted-foreground">View all</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(notification.created_at).toLocaleString("fr-FR")}
+              </span>
+            </DropdownMenuItem>
+          )
+        })}
+      </div>
+    )}
+
+    <DropdownMenuSeparator />
+
+    <DropdownMenuItem className="text-muted-foreground">
+      Voir toutes les notifications
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2">

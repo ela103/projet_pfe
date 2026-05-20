@@ -31,6 +31,8 @@ from django.views.decorators.http import require_GET
 from django.http import JsonResponse
 from .models import Website
 
+from .models import Notification
+
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 CLIENT_SECRETS_FILE = os.path.join(
@@ -172,7 +174,7 @@ def test_gsc(request):
 @require_http_methods(["POST", "GET"])
 def import_metrics(request):
     website_id = request.GET.get("website_id")
-    days = 7
+    days = int(request.GET.get("days", 7))
 
     if website_id:
         try:
@@ -360,9 +362,33 @@ def dashboard_stats(request):
             users=Sum("active_users"),
             sessions=Sum("sessions"),
             page_views=Sum("page_views"),
+            engagement_rate=Avg("engagement_rate"),
         )
         .order_by("date")
     )
+
+    ga_chart = []
+
+    for item in ga_data:
+        engagement_rate = float(item.get("engagement_rate") or 0)
+
+        # Chez toi, engagement_rate semble être stocké entre 0 et 1.
+        # Exemple : 0.65 = 65 %
+        if engagement_rate <= 1:
+            engagement_rate_percent = round(engagement_rate * 100, 2)
+            bounce_rate = round((1 - engagement_rate) * 100, 2)
+        else:
+            engagement_rate_percent = round(engagement_rate, 2)
+            bounce_rate = round(100 - engagement_rate, 2)
+
+        ga_chart.append({
+            "date": item["date"],
+            "users": item["users"] or 0,
+            "sessions": item["sessions"] or 0,
+            "page_views": item["page_views"] or 0,
+            "engagement_rate": engagement_rate_percent,
+            "bounce_rate": bounce_rate,
+        })
 
     gsc_data = (
         gsc_query
@@ -377,7 +403,7 @@ def dashboard_stats(request):
     )
 
     return JsonResponse({
-        "ga_chart": list(ga_data),
+        "ga_chart": ga_chart,
         "gsc_chart": list(gsc_data),
     })
 def gsc_page_distribution(request):
@@ -538,7 +564,14 @@ def get_scraped_pages(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 def websites_list(request):
-    websites = Website.objects.all().values("id", "name")
+    websites = Website.objects.all().values(
+        "id",
+        "name",
+        "ga4_property_id",
+        "gsc_site_url",
+        "created_at",
+    )
+
     return JsonResponse({
         "websites": list(websites)
     })
@@ -573,7 +606,29 @@ def top_keywords(request):
             total_impressions=Sum("impressions"),
             avg_position=Avg("position")
         )
-        .order_by("-total_clicks")[:10]
+        .order_by("-total_clicks", "-total_impressions")[:10]
     )
 
     return JsonResponse({"keywords": list(keywords)})
+def notifications_list(request):
+    notifications = Notification.objects.order_by("-created_at")[:20]
+
+    data = []
+
+    for notification in notifications:
+        data.append({
+            "id": notification.id,
+            "title": notification.title,
+            "message": notification.message,
+            "level": notification.level,
+            "source": notification.source,
+            "is_read": notification.is_read,
+            "created_at": notification.created_at,
+        })
+
+    unread_count = Notification.objects.filter(is_read=False).count()
+
+    return JsonResponse({
+        "unread_count": unread_count,
+        "notifications": data,
+    })

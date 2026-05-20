@@ -15,8 +15,62 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-violet-50 via-pink-50 to-blue-50">
-      
+    <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Arrière-plan global adaptable au thème */}
+      <div className="absolute inset-0 bg-[#F5F7FB]" />
+
+      <div
+        className="absolute inset-0 hidden dark:block"
+        style={{
+          background:
+            "linear-gradient(135deg, #050816 0%, #071126 35%, #081936 70%, #0A2244 100%)",
+        }}
+      />
+
+      <div
+        className="pointer-events-none fixed -left-28 -top-28 h-[380px] w-[380px] rounded-full blur-3xl"
+        style={{
+          background: "var(--brand-primary)",
+          opacity: 0.18,
+        }}
+      />
+
+      <div
+        className="pointer-events-none fixed -right-28 top-10 h-[340px] w-[340px] rounded-full blur-3xl"
+        style={{
+          background: "var(--brand-secondary)",
+          opacity: 0.14,
+        }}
+      />
+
+      <div
+        className="pointer-events-none fixed bottom-[-140px] left-1/3 h-[380px] w-[380px] rounded-full blur-3xl"
+        style={{
+          background: "var(--brand-accent)",
+          opacity: 0.12,
+        }}
+      />
+
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), transparent 34%)",
+        }}
+      />
+
+      {/* Petites bulles décoratives */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <span className="absolute left-[9%] top-[7%] h-3 w-3 rounded-full bg-white/40 dark:bg-white/10" />
+        <span className="absolute left-[27%] top-[12%] h-2 w-2 rounded-full bg-white/50 dark:bg-white/10" />
+        <span className="absolute right-[18%] top-[10%] h-4 w-4 rounded-full bg-white/40 dark:bg-white/10" />
+        <span className="absolute right-[8%] top-[28%] h-2.5 w-2.5 rounded-full bg-white/40 dark:bg-white/10" />
+        <span className="absolute left-[14%] bottom-[20%] h-3 w-3 rounded-full bg-white/30 dark:bg-white/10" />
+        <span className="absolute right-[22%] bottom-[13%] h-4 w-4 rounded-full bg-white/30 dark:bg-white/10" />
+      </div>
+
+      <div className="absolute inset-0 bg-white/20 dark:bg-black/10" />
+
       {/* Overlay mobile */}
       {sidebarOpen && (
         <div
@@ -25,8 +79,7 @@ export default function DashboardLayout({
         />
       )}
 
-      <div className="flex min-h-screen w-full">
-
+      <div className="relative z-10 flex min-h-screen w-full">
         {/* Sidebar */}
         <div
           className={`
@@ -43,21 +96,13 @@ export default function DashboardLayout({
         </div>
 
         {/* Main content */}
-        <main className="flex-1 min-h-screen overflow-auto p-6">
-          
-          {/* Topbar */}
+        <main className="min-h-screen flex-1 overflow-auto p-6 text-slate-900 dark:text-white">
           <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
-          {/* Page content */}
-          <div className="mt-6">
-            {children}
-          </div>
+          <div className="mt-6">{children}</div>
 
-          {/* Chatbot */}
           <ChatbotWidget />
-
         </main>
-
       </div>
     </div>
   )

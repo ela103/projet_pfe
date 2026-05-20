@@ -104,7 +104,7 @@ def get_gsc_daily(site_url: str, days: int = 7) -> list[dict]:
     request = {
         "startDate": start_date.isoformat(),
         "endDate": end_date.isoformat(),
-        "dimensions": ["date", "page"],
+        "dimensions": ["date", "page","query"],
         "rowLimit": 1000,
     }
    
