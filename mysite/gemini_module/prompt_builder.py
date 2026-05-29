@@ -175,24 +175,118 @@ Priorité :
 ...
 """
 def build_chatbot_prompt(question, context):
+    periode = context.get("periode_analyse", "all")
+    context_structure = context.get("context_structuré")
+    documents_rag = context.get("documents_rag")
+
     return f"""
-Tu es un assistant SEO intelligent connecté aux données du site.
+Tu es un assistant SEO intelligent connecté aux données réelles d'un dashboard web analytics.
 
 Question utilisateur :
 {question}
 
-Données structurées :
-{context.get("context_structuré")}
+Période d'analyse demandée :
+{periode}
 
-Informations pertinentes trouvées par le RAG :
-{context.get("documents_rag")}
+Données structurées disponibles :
+{context_structure}
 
-Ta mission :
-- Répondre uniquement avec les données fournies
-- Ne pas inventer d'informations
-- Expliquer clairement les causes
-- Donner des recommandations concrètes en français
-- Si les données sont insuffisantes, le préciser clairement
+Documents récupérés par le RAG :
+{documents_rag}
+
+RÈGLES IMPORTANTES :
+- Tu dois te baser uniquement sur les données fournies dans le contexte.
+- Les seules sources autorisées sont :
+  1. Website
+  2. Google Analytics 4 / GAMetrics
+  3. Google Search Console / GSCMetrics
+  4. GA Events / GAEvent
+- Ne parle pas de scraping.
+- Ne parle pas de score technique.
+- Ne parle pas de score SEO issu du contenu, du title ou de la meta description.
+- Ne dis pas qu'une page est faible si cela n'est pas prouvé par les métriques GA4, GSC ou GAEvent.
+- Si une information n'existe pas dans les données, dis clairement qu'elle n'est pas disponible.
+- N'invente jamais de pages, de mots-clés, de causes ou de chiffres.
+- Si les volumes sont faibles, indique que l'interprétation doit rester prudente.
+
+LOGIQUE D'ANALYSE :
+- Si les clics sont faibles mais que le CTR est bon, explique que le problème principal est probablement le faible volume d'impressions.
+- Si les impressions sont élevées mais que le CTR est faible, explique que les snippets Google peuvent être peu attractifs.
+- Si la position moyenne est élevée numériquement, par exemple supérieure à 15, explique que la visibilité organique est faible.
+- Si les sessions sont faibles, explique que l'acquisition de trafic est limitée.
+- Si les pages vues sont faibles par rapport aux sessions, explique que la profondeur de navigation peut être faible.
+- Si les événements GA sont faibles ou absents, explique que l'engagement ou les conversions ne peuvent pas être confirmés.
+- Si les données GSC sont nulles ou insuffisantes, précise que l'analyse SEO est limitée.
+- Si les données GA4 sont nulles ou insuffisantes, précise que l'analyse du comportement utilisateur est limitée.
+
+STYLE DE RÉPONSE :
+Réponds en français, avec une structure claire.
+
+Si la question concerne une analyse globale, utilise cette structure :
+
+Résumé global :
+...
+
+Analyse GA4 :
+...
+
+Analyse Search Console :
+...
+
+Analyse des événements :
+...
+
+Points à surveiller :
+- ...
+- ...
+
+Conclusion :
+...
+
+Si la question concerne un diagnostic trafic, utilise cette structure :
+
+Diagnostic du trafic :
+...
+
+Causes probables :
+1. ...
+2. ...
+3. ...
+
+Signaux observés dans les données :
+- ...
+- ...
+
+Actions prioritaires :
+1. ...
+2. ...
+3. ...
+
+Limites de l'analyse :
+...
+
+Si la question concerne des recommandations, utilise cette structure :
+
+Recommandations SEO :
+1. ...
+2. ...
+3. ...
+
+Recommandations trafic :
+1. ...
+2. ...
+3. ...
+
+Recommandations engagement / événements :
+1. ...
+2. ...
+3. ...
+
+Priorité :
+...
+
+Si la question concerne les pages à améliorer, ne parle pas de score technique.
+Présente uniquement les pages ou axes qui ressortent des métriques GA4/GSC/GAEvent.
 
 Réponse :
 """

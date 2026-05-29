@@ -195,7 +195,7 @@ def import_metrics(request):
                 "website_id": website.id,
                 "website_name": website.name,
                 "status": "skipped",
-                "reason": "ga4_property_id ou gsc_site_url manquant"
+                "reason": "ga4_property_id ou gsc_site_url manquant",
             })
             continue
 
@@ -204,6 +204,7 @@ def import_metrics(request):
             gsc_rows = get_gsc_daily(site_url, days=days)
 
             ga_saved = 0
+
             for r in ga_rows:
                 GAMetrics.objects.update_or_create(
                     website=website,
@@ -219,22 +220,40 @@ def import_metrics(request):
                         "screen_page_views_per_user": r["screen_page_views_per_user"],
                     },
                 )
+
                 ga_saved += 1
 
             gsc_saved = 0
+
             for r in gsc_rows:
-                GSCMetrics.objects.update_or_create(
+                query_value = r.get("query") or ""
+
+                existing_rows = GSCMetrics.objects.filter(
                     website=website,
                     date=r["date"],
                     page=r["page"],
-                    query=r["query"],
-                    defaults={
-                        "clicks": r["clicks"],
-                        "impressions": r["impressions"],
-                        "ctr": r["ctr"],
-                        "position": r["position"],
-                    },
+                    query=query_value,
                 )
+
+                if existing_rows.exists():
+                    existing_rows.update(
+                        clicks=r["clicks"],
+                        impressions=r["impressions"],
+                        ctr=r["ctr"],
+                        position=r["position"],
+                    )
+                else:
+                    GSCMetrics.objects.create(
+                        website=website,
+                        date=r["date"],
+                        page=r["page"],
+                        query=query_value,
+                        clicks=r["clicks"],
+                        impressions=r["impressions"],
+                        ctr=r["ctr"],
+                        position=r["position"],
+                    )
+
                 gsc_saved += 1
 
             results.append({
@@ -242,7 +261,7 @@ def import_metrics(request):
                 "website_name": website.name,
                 "status": "success",
                 "ga_rows_saved": ga_saved,
-                "gsc_rows_saved": gsc_saved
+                "gsc_rows_saved": gsc_saved,
             })
 
         except Exception as e:
@@ -250,12 +269,12 @@ def import_metrics(request):
                 "website_id": website.id,
                 "website_name": website.name,
                 "status": "error",
-                "error": str(e)
+                "error": str(e),
             })
 
     return JsonResponse({
         "status": "completed",
-        "results": results
+        "results": results,
     })
 @require_http_methods(["POST", "GET"])
 def import_ga_events(request):
@@ -564,17 +583,83 @@ def get_scraped_pages(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 def websites_list(request):
-    websites = Website.objects.all().values(
-        "id",
-        "name",
-        "ga4_property_id",
-        "gsc_site_url",
-        "created_at",
-    )
+    websites = Website.objects.select_related("added_by").all()
+
+    data = []
+
+    for website in websites:
+        added_by_name = "Non renseigné"
+
+        if website.added_by:
+            added_by_name = (
+                website.added_by.get_full_name()
+                or website.added_by.email
+                or website.added_by.username
+            )
+
+        data.append({
+            "id": website.id,
+            "name": website.name,
+            "ga4_property_id": website.ga4_property_id,
+            "gsc_site_url": website.gsc_site_url,
+            "created_at": website.created_at,
+            "added_by": website.added_by_id,
+            "added_by_name": added_by_name,
+        })
 
     return JsonResponse({
-        "websites": list(websites)
+        "websites": data
     })
+
+@csrf_exempt
+@require_POST
+def add_website(request):
+    try:
+        body = json.loads(request.body)
+
+        name = body.get("name")
+        ga4_property_id = body.get("ga4_property_id")
+        gsc_site_url = body.get("gsc_site_url")
+
+        if not name:
+            return JsonResponse({"error": "Le nom du site est obligatoire."}, status=400)
+
+        added_by = request.user if request.user.is_authenticated else None
+
+        website = Website.objects.create(
+            name=name,
+            ga4_property_id=ga4_property_id,
+            gsc_site_url=gsc_site_url,
+            added_by=added_by,
+        )
+
+        added_by_name = "Non renseigné"
+
+        if website.added_by:
+            added_by_name = (
+                website.added_by.get_full_name()
+                or website.added_by.email
+                or website.added_by.username
+            )
+
+        return JsonResponse({
+            "message": "Site ajouté avec succès.",
+            "website": {
+                "id": website.id,
+                "name": website.name,
+                "ga4_property_id": website.ga4_property_id,
+                "gsc_site_url": website.gsc_site_url,
+                "created_at": website.created_at,
+                "added_by": website.added_by_id,
+                "added_by_name": added_by_name,
+            }
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON invalide."}, status=400)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 def top_pages(request):
@@ -632,3 +717,74 @@ def notifications_list(request):
         "unread_count": unread_count,
         "notifications": data,
     })
+
+def dashboard_events(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse({
+            "error": "website_id est obligatoire."
+        }, status=400)
+
+    query = GAEvent.objects.filter(website_id=website_id)
+
+    if start_date:
+        query = query.filter(date__gte=start_date)
+
+    if end_date:
+        query = query.filter(date__lte=end_date)
+
+    total_events = query.aggregate(total=Sum("event_count"))["total"] or 0
+    total_users = query.aggregate(total=Sum("users"))["total"] or 0
+
+    top_event_row = (
+        query.values("event_name")
+        .annotate(total=Sum("event_count"))
+        .order_by("-total")
+        .first()
+    )
+
+    top_event = top_event_row["event_name"] if top_event_row else ""
+
+    return JsonResponse({
+        "total_events": int(total_events),
+        "total_users": int(total_users),
+        "top_event": top_event,
+    })
+def top_visited_pages(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id est obligatoire"},
+            status=400
+        )
+
+    queryset = GAMetrics.objects.filter(website_id=website_id)
+
+    if start_date:
+        queryset = queryset.filter(date__gte=start_date)
+
+    if end_date:
+        queryset = queryset.filter(date__lte=end_date)
+
+    pages = (
+        queryset
+        .values("page_path")
+        .annotate(page_views=Sum("page_views"))
+        .order_by("-page_views")[:10]
+    )
+
+    data = [
+        {
+            "page": item["page_path"] or "Page inconnue",
+            "page_views": item["page_views"] or 0,
+        }
+        for item in pages
+    ]
+
+    return JsonResponse({"pages": data})

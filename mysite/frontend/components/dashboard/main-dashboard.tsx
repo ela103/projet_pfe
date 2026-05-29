@@ -65,6 +65,101 @@ type TopKeyword = {
   avg_ctr?: number
   avg_position: number
 }
+ type EventStats = {
+  total_events: number
+  total_users: number
+  top_event: string
+}
+
+type UserProfile = {
+  authenticated: boolean
+  email: string
+  first_name?: string
+  last_name?: string
+  username?: string
+}
+
+function KeywordsTable({
+  keywords,
+  loading,
+  error,
+}: {
+  keywords: TopKeyword[]
+  loading: boolean
+  error: string
+}) {
+
+
+  return (
+    <Card className="p-5 xl:col-span-2">
+      <SectionTitle title="Tableau des requêtes GSC" rightText="Trié par clics" />
+
+      {loading ? (
+        <div className="flex h-[220px] items-center justify-center text-sm font-semibold text-slate-500">
+          Chargement des requêtes...
+        </div>
+      ) : error ? (
+        <div className="flex h-[220px] items-center justify-center text-sm font-semibold text-red-400">
+          {error}
+        </div>
+      ) : keywords.length === 0 ? (
+        <div className="flex h-[220px] items-center justify-center text-sm font-semibold text-slate-500">
+          Aucune requête GSC disponible.
+        </div>
+      ) : (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[620px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--dashboard-border)] text-[11px] uppercase tracking-[0.16em] text-[var(--dashboard-muted)]">
+                <th className="py-3 pr-4 font-black">Mot-clé</th>
+                <th className="py-3 px-4 text-right font-black">Clics</th>
+                <th className="py-3 px-4 text-right font-black">Impressions</th>
+                <th className="py-3 px-4 text-right font-black">CTR</th>
+                <th className="py-3 pl-4 text-right font-black">Position</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {keywords.map((keyword) => {
+                const ctr =
+                  keyword.total_impressions > 0
+                    ? (keyword.total_clicks / keyword.total_impressions) * 100
+                    : 0
+
+                return (
+                  <tr
+                    key={keyword.query}
+                    className="border-b border-[var(--dashboard-border)]/70 text-[var(--dashboard-text)] last:border-0"
+                  >
+                    <td className="py-3 pr-4 font-bold">
+                      {keyword.query || "Non défini"}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-semibold">
+                      {keyword.total_clicks}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-semibold">
+                      {keyword.total_impressions}
+                    </td>
+
+                    <td className="py-3 px-4 text-right font-semibold">
+                      {ctr.toFixed(2)}%
+                    </td>
+
+                    <td className="py-3 pl-4 text-right font-semibold">
+                      {Number(keyword.avg_position || 0).toFixed(1)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  )
+}
 function TopKeywordsCard({
   keywords,
   loading,
@@ -76,7 +171,7 @@ function TopKeywordsCard({
 }) {
   return (
     <Card className="p-4">
-      <SectionTitle title="Mots-clés performants" rightText="Top 5" />
+      <SectionTitle title="Requêtes Search Console" rightText="Triées par clics" />
 
       {loading ? (
         <p className="text-sm text-slate-500">Chargement...</p>
@@ -97,41 +192,56 @@ function TopKeywordsCard({
             return (
               <div
                 key={`${item.query}-${index}`}
-                className="grid grid-cols-[32px_minmax(0,1fr)_70px_80px_60px] items-center gap-3 border-b border-white/5 pb-2 last:border-b-0"
+                className="grid grid-cols-[32px_minmax(0,1fr)_60px_70px_60px_55px] items-center gap-3 border-b pb-2 last:border-b-0"
+style={{ borderColor: "var(--dashboard-border)" }}
               >
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#ff4fb8]/15 text-[11px] font-black text-[#ff4fb8]">
+                <div className="grid h-8 w-8 place-items-center rounded-xl text-[11px] font-black"
+style={{
+  backgroundColor: "color-mix(in srgb, var(--brand-secondary) 18%, transparent)",
+  color: "var(--brand-secondary)",
+}}>
                   {index + 1}
                 </div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-[12px] font-bold text-white">
-                    {item.query}
-                  </p>
+                  <p className="truncate text-[12px] font-bold text-[var(--dashboard-text)]">
+  {item.query}
+</p>
                   <p className="text-[10px] text-slate-500">
-                    Position moy. : {Number(item.avg_position || 0).toFixed(1)}
-                  </p>
+  Depuis Google Search Console
+</p>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[11px] font-black text-white">
-                    {item.total_clicks}
-                  </p>
+                  <p className="text-[11px] font-black text-[var(--dashboard-text)]">
+  {item.total_clicks}
+</p>
                   <p className="text-[9px] text-slate-500">clics</p>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[11px] font-black text-white">
-                    {item.total_impressions}
-                  </p>
+                  <p className="text-[11px] font-black text-[var(--dashboard-text)]">
+  {item.total_impressions}
+</p>
                   <p className="text-[9px] text-slate-500">impr.</p>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[11px] font-black text-[#a78bfa]">
-                    {ctr}%
-                  </p>
+                  <p
+  className="text-[11px] font-black"
+  style={{ color: "var(--brand-tertiary)" }}
+>
+  {ctr}%
+</p>
+
                   <p className="text-[9px] text-slate-500">CTR</p>
                 </div>
+                <div className="text-right">
+  <p className="text-[11px] font-black text-[var(--dashboard-text)]">
+    {formatPosition(item.avg_position)}
+  </p>
+  <p className="text-[9px] text-slate-500">pos.</p>
+</div>
               </div>
             )
           })}
@@ -141,12 +251,102 @@ function TopKeywordsCard({
   )
 }
 
+function EngagementCircleCard({
+  value,
+  loading,
+}: {
+  value: number
+  loading: boolean
+}) {
+  const radius = 50
+  const circumference = 2 * Math.PI * radius
+  const progress = Math.min(Math.max(value, 0), 100)
+  const offset = circumference - (progress / 100) * circumference
+
+  return (
+    <Card className="h-[232px] p-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[13px] font-bold text-slate-400">
+            Taux d’engagement
+          </p>
+
+          <p className="mt-2 text-[12px] font-semibold text-slate-500">
+            Sessions engagées
+          </p>
+        </div>
+
+        <span className="rounded-full bg-[var(--brand-primary)]/10 px-2 py-1 text-[10px] font-bold text-[var(--brand-primary)]">
+          GA4
+        </span>
+      </div>
+
+      <div className="mt-5 flex items-center justify-center">
+        <div className="relative h-[118px] w-[118px]">
+          <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
+            <circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke="#2a2d4b"
+              strokeWidth="14"
+            />
+
+            <circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke="var(--brand-primary)"
+              strokeWidth="14"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+            />
+          </svg>
+
+          <div className="absolute inset-0 grid place-items-center text-center">
+            <div>
+              <p className="text-[28px] font-black leading-none text-[var(--dashboard-text)]">
+                {loading ? "..." : `${progress}%`}
+              </p>
+
+              <p className="mt-1 text-[10px] font-bold text-slate-500">
+                engagé
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function buildMiniTrendFromValue(value: number, points = 7) {
+  if (!value || value <= 0) return []
+
+  return Array.from({ length: points }, (_, index) => {
+    const variation = Math.sin(index + 1) * 0.12
+    const y = Math.max(0, Math.round(value + value * variation))
+
+    return {
+      x: String(index + 1),
+      y,
+    }
+  })
+}
 
 function formatCompact(value: number) {
   if (!value) return "0"
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
   return value.toLocaleString()
+}
+function formatPosition(value: number) {
+  const position = Number(value || 0)
+
+  return position % 1 === 0 ? position.toFixed(0) : position.toFixed(1)
 }
 
 function formatDateShort(date: string) {
@@ -165,7 +365,8 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-[18px] border border-white/5 bg-[#17182d] shadow-[0_18px_40px_rgba(0,0,0,0.20)] ${className}`}
+      className={`min-w-0 overflow-hidden rounded-[18px] border bg-[var(--dashboard-card)] shadow-[var(--dashboard-shadow)] ${className}`}
+      style={{ borderColor: "var(--dashboard-border)" }}
     >
       {children}
     </div>
@@ -181,16 +382,17 @@ function SectionTitle({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h3 className="text-[13px] font-extrabold text-white">{title}</h3>
+      <h3 className="text-[13px] font-extrabold text-[var(--dashboard-text)]">
+        {title}
+      </h3>
       {rightText ? (
-        <span className="text-[10px] font-semibold text-slate-500">
+        <span className="text-[10px] font-semibold text-[var(--dashboard-muted)]">
           {rightText}
         </span>
       ) : null}
     </div>
   )
 }
-
 function StatCard({
   title,
   value,
@@ -198,6 +400,8 @@ function StatCard({
   data,
   color,
   gradientId,
+  hideChart = false,
+  badge = "Période",
 }: {
   title: string
   value: string
@@ -205,46 +409,82 @@ function StatCard({
   data: { x: string; y: number }[]
   color: string
   gradientId: string
+  hideChart?: boolean
+  badge?: string
 }) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-bold text-slate-400">{title}</p>
-          <h2 className="mt-1 text-[30px] font-black leading-none text-white">
-            {value}
-          </h2>
-          <p className="mt-2 text-[10px] font-semibold text-slate-500">
-            {subtitle}
+          <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
+              {title}
           </p>
+         <h2 className="mt-1 text-[30px] font-black leading-none text-[var(--dashboard-text)]">
+             {value}
+         </h2>
+<p className="mt-2 text-[10px] font-semibold text-[var(--dashboard-muted)]">
+  {subtitle}
+</p>
         </div>
 
-        <span className="text-[10px] font-semibold text-slate-500">
-          last month +
-        </span>
+        <span
+  className="rounded-full px-2 py-1 text-[10px] font-bold"
+  style={{
+    backgroundColor: `${color}22`,
+    color: color,
+  }}
+>
+  {badge}
+</span>
       </div>
 
       <div className="mt-1 h-[55px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
+  {data.length === 0 ? (
+  <div className="flex h-full flex-col justify-center px-2">
+    <div
+  className="h-[2px] w-full rounded-full"
+  style={{ backgroundColor: color }}
+/>
 
-            <Area
-              type="monotone"
-              dataKey="y"
-              stroke={color}
-              strokeWidth={2.2}
-              fill={`url(#${gradientId})`}
-              dot={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="mt-2 text-right">
+      <span className="text-[10px] font-semibold text-slate-600">
+        Aucun trafic
+      </span>
+    </div>
+  </div>
+) : data.every((item) => Number(item.y || 0) === 0) ? (
+  <div className="flex h-full flex-col justify-center px-2">
+    <div className="h-[2px] w-full rounded-full bg-slate-700/70" />
+
+    <div className="mt-2 text-right">
+      <span className="text-[10px] font-semibold text-slate-600">
+        Aucun trafic
+      </span>
+    </div>
+  </div>
+) : (
+  <ResponsiveContainer width="100%" height="100%">
+    <AreaChart data={data}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+
+      <Area
+        type="monotone"
+        dataKey="y"
+        stroke={color}
+        strokeWidth={2.2}
+        fill={`url(#${gradientId})`}
+        dot={false}
+      />
+    </AreaChart>
+  </ResponsiveContainer>
+
+  )}
+</div>
     </Card>
   )
 }
@@ -288,15 +528,15 @@ function GaugeCard({
         <div className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px] border-[#2a2d4b]" />
 
         <div
-          className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px] border-transparent border-r-[#7c5cff] border-t-[#7c5cff]"
+          className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px] border-transparent border-r-[var(--brand-primary)] border-t-[var(--brand-primary)]"
           style={{
             transform: `rotate(${rotation}deg)`,
           }}
         />
 
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[34px] font-black text-white">
-          {value}%
-        </div>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[34px] font-black text-[var(--dashboard-text)]">
+  {value}%
+</div>
       </div>
 
       <p className="mt-3 text-center text-[11px] font-semibold text-slate-500">
@@ -305,51 +545,95 @@ function GaugeCard({
     </Card>
   )
 }
-function ScoreCard({
-  score,
+function EventsCard({
+  totalEvents,
+  totalUsers,
+  topEvent,
+  loading,
+  error,
 }: {
-  score: number
+  totalEvents: number
+  totalUsers: number
+  topEvent: string
+  loading: boolean
+  error: string
 }) {
+  const progress = Math.min(100, totalEvents)
+
   const donutData = [
-    { name: "done", value: score },
-    { name: "rest", value: 100 - score },
+    { name: "events", value: progress },
+    { name: "rest", value: 100 - progress },
   ]
 
   return (
     <Card className="p-4">
-      <SectionTitle title="Achievements" rightText="View all →" />
+      <SectionTitle title="Événements GA4" rightText="Données réelles" />
 
-      <div className="relative mx-auto h-[120px] w-[120px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={donutData}
-              dataKey="value"
-              innerRadius={44}
-              outerRadius={58}
-              startAngle={90}
-              endAngle={-270}
-              paddingAngle={2}
-            >
-              <Cell fill="#ff4fb8" />
-              <Cell fill="#2a2d4b" />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="rounded-full bg-[#1b1c34] px-4 py-3 text-center">
-            <div className="text-[18px] font-black text-white">{score}</div>
-          </div>
+      {loading ? (
+        <div className="flex h-[170px] items-center justify-center">
+          <p className="text-[12px] font-semibold text-slate-500">
+            Chargement...
+          </p>
         </div>
-      </div>
+      ) : error ? (
+        <div className="flex h-[170px] items-center justify-center">
+          <p className="text-[12px] font-semibold text-red-400">
+            {error}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="relative mx-auto h-[120px] w-[120px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  dataKey="value"
+                  innerRadius={44}
+                  outerRadius={58}
+                  startAngle={90}
+                  endAngle={-270}
+                  paddingAngle={2}
+                >
+                  <Cell fill="var(--brand-primary)" />
+                  <Cell fill="#2a2d4b" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
 
-      <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-slate-500">
-        <span>SEO score</span>
-        <span className="rounded-full bg-[#111222] px-2 py-1 text-white">
-          Good level
-        </span>
-      </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="rounded-full bg-[#1b1c34] px-4 py-3 text-center">
+                <div className="text-[18px] font-black text-white">
+                  {formatCompact(totalEvents)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 space-y-2 text-[10px] font-semibold text-slate-500">
+            <div className="flex items-center justify-between">
+              <span>Total événements</span>
+              <span className="rounded-full bg-[var(--dashboard-card-soft)] px-2 py-1 text-[var(--dashboard-text)]">
+                {formatCompact(totalEvents)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span>Utilisateurs engagés</span>
+              <span className="rounded-full bg-[var(--dashboard-card-soft)] px-2 py-1 text-[var(--dashboard-text)]">
+                {formatCompact(totalUsers)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span>Top événement</span>
+              <span className="max-w-[95px] truncate rounded-full bg-[var(--dashboard-card-soft)] px-2 py-1 text-[var(--dashboard-text)]">
+                {topEvent || "Aucun"}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
     </Card>
   )
 }
@@ -359,82 +643,95 @@ function ProgressCard({
 }: {
   data: { name: string; speaking: number; listening: number }[]
 }) {
+  const hasData = data.length > 0
+
   return (
     <Card className="p-4">
-      <SectionTitle title="Progress" rightText="last year +" />
+      <SectionTitle title="Évolution du trafic" rightText="GA4 / GSC" />
 
       <div className="mb-2 flex items-center gap-4 text-[10px] font-semibold">
         <span className="flex items-center gap-1 text-slate-400">
-          <span className="h-2 w-2 rounded-full bg-[#7c5cff]" />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--brand-primary)" }} />
           Sessions
         </span>
         <span className="flex items-center gap-1 text-slate-400">
-          <span className="h-2 w-2 rounded-full bg-[#ff4fb8]" />
-          Clicks
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--brand-secondary)" }} />
+          Clics
         </span>
       </div>
 
-      <div className="h-[145px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="sessionsFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7c5cff" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#7c5cff" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="clicksFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff4fb8" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#ff4fb8" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+      {!hasData ? (
+        <div className="flex h-[145px] items-center justify-center">
+          <p className="text-[12px] font-semibold text-slate-500">
+            Aucune donnée réelle disponible pour cette période.
+          </p>
+        </div>
+      ) : (
+        <div className="h-[145px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="sessionsFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--brand-primary)"  stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="var(--brand-primary)" stopOpacity={0} />
+                </linearGradient>
 
-            <CartesianGrid
-              stroke="rgba(255,255,255,0.05)"
-              vertical={false}
-            />
+                <linearGradient id="clicksFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--brand-secondary)" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="var(--brand-secondary)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-            <XAxis
-              dataKey="name"
-              tick={{ fill: "#64748b", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
+              <CartesianGrid
+                stroke="rgba(255,255,255,0.05)"
+                vertical={false}
+              />
 
-            <YAxis
-              tick={{ fill: "#64748b", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
+              <XAxis
+                dataKey="name"
+                tick={{ fill: "#64748b", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <Tooltip
-              contentStyle={{
-                background: "#17182d",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "12px",
-                color: "white",
-              }}
-            />
+              <YAxis
+                tick={{ fill: "#64748b", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <Area
-              type="monotone"
-              dataKey="speaking"
-              stroke="#7c5cff"
-              strokeWidth={2.2}
-              fill="url(#sessionsFill)"
-              dot={false}
-            />
+              <Tooltip
+                contentStyle={{
+                  background: "#17182d",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  color: "white",
+                }}
+              />
 
-            <Area
-              type="monotone"
-              dataKey="listening"
-              stroke="#ff4fb8"
-              strokeWidth={2.2}
-              fill="url(#clicksFill)"
-              dot={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+              <Area
+                type="monotone"
+                dataKey="speaking"
+                name="Sessions"
+                stroke="var(--brand-primary)"
+                strokeWidth={2.2}
+                fill="url(#sessionsFill)"
+                dot={false}
+              />
+
+              <Area
+                type="monotone"
+                dataKey="listening"
+                name="Clics"
+                stroke="var(--brand-secondary)"
+                strokeWidth={2.2}
+                fill="url(#clicksFill)"
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </Card>
   )
 }
@@ -471,13 +768,13 @@ function LessonsCard({
               </p>
               <div className="h-1.5 rounded-full bg-[#2a2d4b]">
                 <div
-                  className="h-1.5 rounded-full bg-[#7c5cff]"
-                  style={{ width: `${lesson.progress}%` }}
+                  className="h-1.5 rounded-full"
+                  style={{ width: `${lesson.progress}%`, backgroundColor: "var(--brand-primary)" }}
                 />
               </div>
             </div>
 
-            <button className="rounded-full bg-[#ff4fb8]/15 px-3 py-1.5 text-[9px] font-black text-[#ff4fb8]">
+            <button className="rounded-full bg-[var(--brand-secondary)]/15 px-3 py-1.5 text-[9px] font-black text-[var(--brand-secondary)]">
               {lesson.badge}
             </button>
           </div>
@@ -536,14 +833,14 @@ function LevelCard({
           label="CTR moyen"
           value={`${ctr}%`}
           width={`${Math.min(100, ctr * 10)}%`}
-          color="#7c5cff"
+          color="var(--brand-primary)"
         />
 
         <LevelBar
           label="Taux de rebond"
           value={`${bounceRate}%`}
           width={`${Math.min(100, bounceRate)}%`}
-          color="#ff4fb8"
+          color="var(--brand-secondary)"
         />
 
         <LevelBar
@@ -566,73 +863,226 @@ function LevelCard({
 
 function WeeklyBarsCard({
   data,
+  loading,
+  error,
 }: {
-  data: { day: string; value: number }[]
+  data: { page: string; page_views: number }[]
+  loading: boolean
+  error: string
 }) {
+  const formatPageLabel = (page: string) => {
+  if (!page) return "Page"
+
+  const cleanPage = page.replace("/travel_agency", "") || "/"
+
+  if (cleanPage.length > 12) {
+    return `${cleanPage.slice(0, 12)}...`
+  }
+
+  return cleanPage
+}
   return (
     <Card className="p-4">
-      <SectionTitle title="Learning hours" rightText="Weekly +" />
+      <SectionTitle title="Top 10 pages visitées" rightText="Google Analytics" />
 
-      <div className="h-[148px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <XAxis
-              dataKey="day"
-              tick={{ fill: "#64748b", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis hide />
-            <Tooltip
-              cursor={{ fill: "rgba(255,255,255,0.03)" }}
-              contentStyle={{
-                background: "#17182d",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "12px",
-                color: "white",
-              }}
-            />
-            <Bar dataKey="value" fill="#ff4fb8" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="h-[190px]">
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-[12px] font-semibold text-slate-500">
+              Chargement...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-[12px] font-semibold text-red-400">
+              {error}
+            </p>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-[12px] font-semibold text-slate-500">
+              Aucune page visitée disponible.
+            </p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.slice(0, 10)}>
+              <XAxis
+  dataKey="page"
+  tickFormatter={formatPageLabel}
+  tick={{ fill: "#64748b", fontSize: 10 }}
+  axisLine={false}
+  tickLine={false}
+/>
+
+              <YAxis hide />
+
+              <Tooltip
+  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+  formatter={(value: number) => [`${value} vues`, "Pages vues"]}
+  labelFormatter={(label) => `Page : ${label}`}
+  contentStyle={{
+    background: "#17182d",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "12px",
+    color: "white",
+  }}
+/>
+
+              <Bar
+                dataKey="page_views"
+                fill="var(--brand-primary)"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </Card>
   )
 }
 
-function CalendarCard() {
+function CalendarCard({
+  selectedDate,
+  onSelectDate,
+}: {
+  selectedDate: string | null
+  onSelectDate: (date: string | null) => void
+}) {
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const today = new Date()
+    return new Date(today.getFullYear(), today.getMonth(), 1)
+  })
+
   const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+
+  const year = visibleMonth.getFullYear()
+  const month = visibleMonth.getMonth()
+
+  const monthLabel = visibleMonth.toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+  })
+
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+
+  const firstWeekDay = (firstDay.getDay() + 6) % 7
+  const totalDays = lastDay.getDate()
+
+  const calendarCells: ({ day: number; date: string } | null)[] = []
+
+  for (let i = 0; i < firstWeekDay; i++) {
+    calendarCells.push(null)
+  }
+
+  for (let day = 1; day <= totalDays; day++) {
+    const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(
+      day
+    ).padStart(2, "0")}`
+
+    calendarCells.push({
+      day,
+      date,
+    })
+  }
+
+  const goPreviousMonth = () => {
+    setVisibleMonth(new Date(year, month - 1, 1))
+  }
+
+  const goNextMonth = () => {
+    setVisibleMonth(new Date(year, month + 1, 1))
+  }
 
   return (
     <Card className="p-4">
-      <SectionTitle title="November 2023" rightText="" />
+      <SectionTitle title="Calendrier" rightText="Sélection date" />
 
-      <div className="mb-2 flex items-center justify-between">
-        <button className="text-slate-500">‹</button>
-        <CalendarDays className="h-4 w-4 text-[#7c5cff]" />
-        <button className="text-slate-500">›</button>
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={goPreviousMonth}
+          className="text-[18px] font-bold text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
+        >
+          ‹
+        </button>
+
+        <div className="flex items-center gap-2">
+          <CalendarDays
+            className="h-4 w-4"
+            style={{ color: "var(--brand-primary)" }}
+          />
+          <span className="text-[12px] font-black capitalize text-[var(--dashboard-text)]">
+            {monthLabel}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={goNextMonth}
+          className="text-[18px] font-bold text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
+        >
+          ›
+        </button>
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center text-[10px]">
         {days.map((d) => (
-          <span key={d} className="font-bold text-slate-500">
+          <span
+            key={d}
+            className="font-bold text-[var(--dashboard-muted)]"
+          >
             {d}
           </span>
         ))}
 
-        {Array.from({ length: 14 }).map((_, i) => (
-          <span
-            key={i}
-            className={`rounded-lg py-1.5 font-bold ${
-              i === 9
-                ? "bg-[#7567ff] text-white"
-                : "text-slate-400 hover:bg-white/5"
-            }`}
-          >
-            {i + 7}
-          </span>
-        ))}
+        {calendarCells.map((item, index) => {
+          if (!item) {
+            return <span key={`empty-${index}`} />
+          }
+
+          const active = selectedDate === item.date
+
+          return (
+            <button
+              key={item.date}
+              type="button"
+              onClick={() => onSelectDate(item.date)}
+              className="rounded-lg py-1.5 text-[11px] font-bold transition"
+              style={{
+                background: active ? "var(--brand-gradient)" : "transparent",
+                color: active ? "white" : "var(--dashboard-muted)",
+              }}
+            >
+              {item.day}
+            </button>
+          )
+        })}
       </div>
+
+      {selectedDate ? (
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-[var(--dashboard-card-soft)] px-3 py-2">
+          <p className="text-[10px] font-semibold text-[var(--dashboard-muted)]">
+            Date sélectionnée
+          </p>
+
+          <button
+            type="button"
+            onClick={() => onSelectDate("")}
+            className="text-[10px] font-black"
+            style={{ color: "var(--brand-primary)" }}
+          >
+            Réinitialiser
+          </button>
+        </div>
+      ) : null}
+
+      {selectedDate ? (
+        <p className="mt-2 text-[10px] font-semibold text-[var(--dashboard-text)]">
+          {selectedDate}
+        </p>
+      ) : null}
     </Card>
   )
 }
@@ -650,7 +1100,8 @@ function TasksCard({
         {rows.map((task, index) => (
           <div
             key={index}
-            className="border-b border-white/5 pb-3 last:border-b-0"
+            className="border-b pb-3 last:border-b-0"
+style={{ borderColor: "var(--dashboard-border)" }}
           >
             <div className="mb-1">
               <span className="rounded-full bg-[#ff4fb8]/15 px-2 py-0.5 text-[9px] font-black text-[#ff4fb8]">
@@ -693,7 +1144,7 @@ function BounceRateRadialCard({
         </div>
 
         <span className="text-[11px] font-bold text-slate-500">
-          last month +
+          GA4
         </span>
       </div>
 
@@ -745,60 +1196,60 @@ function TopPagesCard({
   loading: boolean
   error: string
 }) {
-  const maxClicks = Math.max(
-    ...pages.map((item) => Number(item.total_clicks || 0)),
-    1
-  )
-
   return (
     <Card className="h-[250px] p-4">
-      <SectionTitle title="Pages performantes" rightText="Top 5" />
+      <SectionTitle title="Top pages SEO" rightText="Top 5" />
 
       {loading ? (
-        <div className="flex h-[180px] items-center justify-center">
+        <div className="flex h-[185px] items-center justify-center">
           <p className="text-[12px] font-semibold text-slate-500">
             Chargement...
           </p>
         </div>
       ) : error ? (
-        <div className="flex h-[180px] items-center justify-center">
+        <div className="flex h-[185px] items-center justify-center">
           <p className="text-[12px] font-semibold text-red-400">{error}</p>
         </div>
       ) : pages.length === 0 ? (
-        <div className="flex h-[180px] items-center justify-center">
+        <div className="flex h-[185px] items-center justify-center">
           <p className="text-[12px] font-semibold text-slate-500">
             Aucune page disponible.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 overflow-hidden">
           {pages.slice(0, 5).map((item, index) => {
             const clicks = Number(item.total_clicks || 0)
             const impressions = Number(item.total_impressions || 0)
-            const width = Math.max(8, Math.round((clicks / maxClicks) * 100))
 
             return (
-              <div key={`${item.page}-${index}`}>
-                <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[11px] font-bold text-white">
-                      {item.page || "Page inconnue"}
-                    </p>
-                    <p className="text-[9px] font-semibold text-slate-500">
-                      {impressions} impressions
-                    </p>
+              <div
+                key={`${item.page}-${index}`}
+                className="flex items-center justify-between gap-3 border-b border-white/5 pb-2 last:border-b-0 last:pb-0"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--brand-primary)]/15 text-[11px] font-black text-[var(--brand-primary)]">
+                    {index + 1}
                   </div>
 
-                  <span className="shrink-0 text-[11px] font-black text-white">
-                    {clicks} clics
-                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[12px] font-bold leading-tight text-white">
+                      {item.page || "Page inconnue"}
+                    </p>
+
+                    <p className="mt-1 text-[10px] font-semibold leading-tight text-slate-500">
+                      {formatCompact(impressions)} impressions
+                    </p>
+                  </div>
                 </div>
 
-                <div className="h-1.5 rounded-full bg-[#2a2d4b]">
-                  <div
-                    className="h-1.5 rounded-full bg-[#7c5cff]"
-                    style={{ width: `${width}%` }}
-                  />
+                <div className="shrink-0 text-right">
+                  <p className="text-[13px] font-black text-[var(--brand-primary)]">
+                    {formatCompact(clicks)}
+                  </p>
+                  <p className="text-[9px] font-semibold text-slate-500">
+                    clics
+                  </p>
                 </div>
               </div>
             )
@@ -811,6 +1262,7 @@ function TopPagesCard({
 
 export function MainDashboard() {
   const [websites, setWebsites] = useState<Website[]>([])
+  const [user, setUser] = useState<UserProfile | null>(null)
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string>("")
 
   const [loadingSites, setLoadingSites] = useState(true)
@@ -830,6 +1282,53 @@ export function MainDashboard() {
   const [topPages, setTopPages] = useState<TopPage[]>([])
   const [pagesLoading, setPagesLoading] = useState(false)
   const [pagesError, setPagesError] = useState("")
+  const [eventStats, setEventStats] = useState<EventStats | null>(null)
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const [eventsError, setEventsError] = useState("")
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState("")
+  const [topVisitedPages, setTopVisitedPages] = useState<
+  { page: string; page_views: number }[]
+>([])
+
+const [topVisitedPagesLoading, setTopVisitedPagesLoading] = useState(false)
+const [topVisitedPagesError, setTopVisitedPagesError] = useState("")
+
+  
+
+
+  const themes = [
+  {
+    id: "violetRose",
+    primary: "#7c5cff",
+    secondary: "#ff4fb8",
+  },
+  {
+    id: "bluePurple",
+    primary: "#315cff",
+    secondary: "#a855f7",
+  },
+  {
+    id: "purplePink",
+    primary: "#8b5cf6",
+    secondary: "#ec4899",
+  },
+  {
+    id: "mintPurple",
+    primary: "#2dd4bf",
+    secondary: "#a855f7",
+  },
+  {
+    id: "cyanBlue",
+    primary: "#06b6d4",
+    secondary: "#3b82f6",
+  },
+]
+
+const [selectedTheme, setSelectedTheme] = useState(themes[0])
+
+
+const currentTheme = selectedTheme
 
   useEffect(() => {
     const fetchWebsites = async () => {
@@ -871,45 +1370,141 @@ export function MainDashboard() {
     fetchWebsites()
   }, [])
 
+
   useEffect(() => {
-    if (!selectedWebsiteId) return
+  if (!selectedWebsiteId) return
 
-    const fetchStats = async () => {
-      try {
-        setLoadingStats(true)
-        setStatsError("")
-        setStatsData(null)
+  const fetchTopVisitedPages = async () => {
+    try {
+      setTopVisitedPagesLoading(true)
+      setTopVisitedPagesError("")
 
-        const params = new URLSearchParams()
-        params.append("website_id", selectedWebsiteId)
+      const params = new URLSearchParams()
+      params.append("website_id", selectedWebsiteId)
 
+      if (selectedCalendarDate) {
+        params.append("start_date", selectedCalendarDate)
+        params.append("end_date", selectedCalendarDate)
+      } else if (selectedMonth) {
+        const monthRange = getMonthRange(selectedMonth)
+
+        if (monthRange) {
+          params.append("start_date", monthRange.startDate)
+          params.append("end_date", monthRange.endDate)
+        }
+      } else {
         if (appliedStartDate) params.append("start_date", appliedStartDate)
         if (appliedEndDate) params.append("end_date", appliedEndDate)
-
-        const response = await fetch(
-          `http://127.0.0.1:8000/data/dashboard/stats/?${params.toString()}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        )
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || "Impossible de charger les statistiques.")
-        }
-
-        setStatsData(data)
-      } catch (err: any) {
-        setStatsError(err.message || "Une erreur est survenue.")
-      } finally {
-        setLoadingStats(false)
       }
-    }
 
-    fetchStats()
-  }, [selectedWebsiteId, appliedStartDate, appliedEndDate])
+      const response = await fetch(
+        `http://127.0.0.1:8000/data/top-visited-pages/?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Impossible de charger les pages les plus visitées."
+        )
+      }
+
+      setTopVisitedPages(data.pages || [])
+    } catch (err: any) {
+      setTopVisitedPagesError(
+        err.message || "Erreur lors du chargement des pages visitées."
+      )
+      setTopVisitedPages([])
+    } finally {
+      setTopVisitedPagesLoading(false)
+    }
+  }
+
+  fetchTopVisitedPages()
+}, [
+  selectedWebsiteId,
+  appliedStartDate,
+  appliedEndDate,
+  selectedCalendarDate,
+  selectedMonth,
+])
+
+  useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/me/", {
+        method: "GET",
+        credentials: "include",
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.authenticated) {
+        setUser(data)
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement de l'utilisateur :", error)
+    }
+  }
+
+  fetchUser()
+}, [])
+
+  useEffect(() => {
+  if (!selectedWebsiteId) return
+
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true)
+      setStatsError("")
+      setStatsData(null)
+
+      const params = new URLSearchParams()
+      params.append("website_id", selectedWebsiteId)
+
+      if (selectedCalendarDate) {
+  params.append("start_date", selectedCalendarDate)
+  params.append("end_date", selectedCalendarDate)
+} else if (selectedMonth) {
+  const monthRange = getMonthRange(selectedMonth)
+
+  if (monthRange) {
+    params.append("start_date", monthRange.startDate)
+    params.append("end_date", monthRange.endDate)
+  }
+} else {
+  if (appliedStartDate) params.append("start_date", appliedStartDate)
+  if (appliedEndDate) params.append("end_date", appliedEndDate)
+}
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/data/dashboard/stats/?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de charger les statistiques.")
+      }
+
+      setStatsData(data)
+    } catch (err: any) {
+      setStatsError(err.message || "Une erreur est survenue.")
+    } finally {
+      setLoadingStats(false)
+    }
+  }
+
+  fetchStats()
+}, [selectedWebsiteId, appliedStartDate, appliedEndDate, selectedCalendarDate,selectedMonth])
 
   useEffect(() => {
   if (!selectedWebsiteId) return
@@ -979,6 +1574,67 @@ export function MainDashboard() {
   fetchTopKeywords()
 }, [selectedWebsiteId])
 
+useEffect(() => {
+  if (!selectedWebsiteId) return
+
+  const fetchEventStats = async () => {
+    try {
+      setEventsLoading(true)
+      setEventsError("")
+
+      const params = new URLSearchParams()
+      params.append("website_id", selectedWebsiteId)
+
+      if (selectedCalendarDate) {
+        params.append("start_date", selectedCalendarDate)
+        params.append("end_date", selectedCalendarDate)
+      } else if (selectedMonth) {
+        const monthRange = getMonthRange(selectedMonth)
+
+        if (monthRange) {
+          params.append("start_date", monthRange.startDate)
+          params.append("end_date", monthRange.endDate)
+        }
+      } else {
+        if (appliedStartDate) params.append("start_date", appliedStartDate)
+        if (appliedEndDate) params.append("end_date", appliedEndDate)
+      }
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/data/dashboard/events/?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de charger les événements GA4.")
+      }
+
+      setEventStats({
+        total_events: Number(data.total_events || 0),
+        total_users: Number(data.total_users || 0),
+        top_event: data.top_event || "",
+      })
+    } catch (err: any) {
+      setEventsError(err.message || "Erreur lors du chargement des événements GA4.")
+      setEventStats(null)
+    } finally {
+      setEventsLoading(false)
+    }
+  }
+
+  fetchEventStats()
+}, [
+  selectedWebsiteId,
+  appliedStartDate,
+  appliedEndDate,
+  selectedCalendarDate,
+  selectedMonth,
+])
   const totalUsers =
     statsData?.ga_chart?.reduce((acc, item) => acc + Number(item.users || 0), 0) || 0
 
@@ -991,8 +1647,36 @@ export function MainDashboard() {
   const totalClicks =
     statsData?.gsc_chart?.reduce((acc, item) => acc + Number(item.clicks || 0), 0) || 0
 
+  const fallbackPageViewsChart = buildMiniTrendFromValue(totalPageViews, 7)
+
+  const positionedKeywords = topKeywords.length
+
+  const miniKeywordsChart =
+  positionedKeywords > 0
+    ? Array.from({ length: positionedKeywords }, (_, index) => ({
+        x: String(index + 1),
+        y: index % 2 === 0 ? positionedKeywords : Math.max(1, positionedKeywords / 2),
+      }))
+    : []
+
   const totalImpressions =
     statsData?.gsc_chart?.reduce((acc, item) => acc + Number(item.impressions || 0), 0) || 0
+  
+  const gaChart = statsData?.ga_chart ?? []
+
+const averageEngagementRate =
+  gaChart.length > 0
+    ? gaChart.reduce(
+        (acc: number, item: any) =>
+          acc + Number(item.engagement_rate || 0),
+        0
+      ) / gaChart.length
+    : 0
+
+const engagementRate =
+  averageEngagementRate <= 1
+    ? Math.round(averageEngagementRate * 100)
+    : Math.round(averageEngagementRate)
 
   const ctr = totalImpressions > 0 ? Number(((totalClicks / totalImpressions) * 100).toFixed(1)) : 0
   const averageBounceRate =
@@ -1012,17 +1696,6 @@ const ctrTarget = 10
 const ctrGaugeProgress =
   ctrTarget > 0
     ? Math.min(100, Math.round((ctr / ctrTarget) * 100))
-    : 0
-const averageEngagementRate =
-  statsData?.ga_chart?.length
-    ? Number(
-        (
-          statsData.ga_chart.reduce(
-            (acc, item) => acc + Number(item.engagement_rate || 0),
-            0
-          ) / statsData.ga_chart.length
-        ).toFixed(1)
-      )
     : 0
 
     const organicVisibilityRate =
@@ -1171,38 +1844,48 @@ const miniPageViewsChart = useMemo(() => {
   ]
 
   const handleApplyDateFilter = () => {
+    setSelectedCalendarDate(null)
     setAppliedStartDate(startDate)
     setAppliedEndDate(endDate)
   }
 
+  const getMonthRange = (monthValue: string) => {
+  if (!monthValue) return null
+
+  const [year, month] = monthValue.split("-").map(Number)
+
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`
+
+  const lastDay = new Date(year, month, 0).getDate()
+
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(
+    lastDay
+  ).padStart(2, "0")}`
+
+  return {
+    startDate,
+    endDate,
+  }
+}
+const userDisplayName =
+  user?.first_name || user?.username || user?.email || "Utilisateur"
+
   return (
-    <div className="min-h-screen bg-[#0e1022] p-5 text-white">
+    <div className="w-full overflow-x-hidden bg-transparent p-5 text-[var(--dashboard-text)]">
       <div className="mx-auto max-w-[1120px]">
         {/* TOP HEADER */}
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-[28px] font-black tracking-tight text-white">
-              Hello, Ahmed!
-            </h1>
-            <p className="mt-1 text-[11px] font-semibold text-slate-500">
-              Good luck improving your website performance
-            </p>
+            <h1 className="text-[28px] font-black tracking-tight text-[var(--dashboard-text)]">
+  Hello, {userDisplayName}
+</h1>
+
+<p className="mt-1 text-[11px] font-semibold text-slate-500">
+  Suivi des performances SEO, du trafic et des mots-clés
+</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-              <input
-                placeholder="search"
-                className="h-9 w-[220px] rounded-xl border border-white/5 bg-[#17182d] pl-9 pr-3 text-[12px] font-semibold text-white outline-none placeholder:text-slate-600"
-              />
-            </div>
-
-            <button className="relative grid h-9 w-9 place-items-center rounded-xl bg-[#17182d] text-slate-300">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#ff4fb8]" />
-            </button>
-
             <select
               value={selectedWebsiteId}
               onChange={(e) => {
@@ -1210,7 +1893,8 @@ const miniPageViewsChart = useMemo(() => {
                 setSelectedWebsiteId(value)
                 localStorage.setItem("websiteId", value)
               }}
-              className="h-9 rounded-xl border border-white/5 bg-[#17182d] px-3 text-[12px] font-semibold text-white outline-none"
+              className="h-9 rounded-xl border bg-[var(--dashboard-card)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
+style={{ borderColor: "var(--dashboard-border)" }}
             >
               {loadingSites ? (
                 <option>Loading...</option>
@@ -1228,102 +1912,124 @@ const miniPageViewsChart = useMemo(() => {
         </div>
 
         {/* FILTER BAR */}
-        <div className="mb-4 grid grid-cols-1 gap-3 rounded-[18px] border border-white/5 bg-[#17182d] p-4 lg:grid-cols-[1fr_160px_160px_120px] lg:items-end">
-          <div>
-            <p className="text-[13px] font-extrabold text-white">
-              Dashboard filters
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Select a period to update your dashboard statistics.
-            </p>
-            {sitesError ? (
-              <p className="mt-1 text-[11px] text-red-400">{sitesError}</p>
-            ) : null}
-            {statsError ? (
-              <p className="mt-1 text-[11px] text-red-400">{statsError}</p>
-            ) : null}
-          </div>
+        <div
+  className="mb-4 grid grid-cols-1 gap-4 rounded-[22px] border bg-[var(--dashboard-card)] p-5 lg:grid-cols-[minmax(0,1fr)_190px_190px_190px_120px] lg:items-end"
+  style={{ borderColor: "var(--dashboard-border)" }}
+>
+  <div>
+    <SectionTitle title="Filtres du tableau de bord"/>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-              Start date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="h-10 rounded-xl border border-white/5 bg-[#111222] px-3 text-[12px] font-semibold text-white outline-none"
-            />
-          </div>
+    {sitesError ? (
+      <p className="mt-1 text-[11px] text-red-400">{sitesError}</p>
+    ) : null}
 
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-              End date
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="h-10 rounded-xl border border-white/5 bg-[#111222] px-3 text-[12px] font-semibold text-white outline-none"
-            />
-          </div>
+    {statsError ? (
+      <p className="mt-1 text-[11px] text-red-400">{statsError}</p>
+    ) : null}
+  </div>
 
+  <div>
+    <label className="mb-2 block text-[10px] font-black uppercase tracking-wide text-[var(--dashboard-muted)]">
+      Mois
+
+    </label>
+
+    <input
+      type="month"
+      value={selectedMonth}
+      onChange={(e) => {
+        setSelectedMonth(e.target.value)
+        setSelectedCalendarDate(null)
+      }}
+      className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
+      style={{ borderColor: "var(--dashboard-border)" }}
+    />
+
+    {selectedMonth ? (
+      <button
+        type="button"
+        onClick={() => setSelectedMonth("")}
+        className="mt-2 text-[10px] font-bold text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
+      >
+        Réinitialiser mois
+      </button>
+    ) : null}
+  </div>
+
+  <div>
+    <label className="mb-2 block text-[10px] font-black uppercase tracking-wide text-[var(--dashboard-muted)]">
+      Date début
+    </label>
+
+    <input
+      type="date"
+      value={startDate}
+      onChange={(e) => setStartDate(e.target.value)}
+      className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
+      style={{ borderColor: "var(--dashboard-border)" }}
+    />
+  </div>
+
+  <div>
+    <label className="mb-2 block text-[10px] font-black uppercase tracking-wide text-[var(--dashboard-muted)]">
+      Date fin
+    </label>
+
+    <input
+      type="date"
+      value={endDate}
+      onChange={(e) => setEndDate(e.target.value)}
+      className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
+      style={{ borderColor: "var(--dashboard-border)" }}
+    />
+  </div>
+
+  <button
+    type="button"
+    onClick={handleApplyDateFilter}
+    className="h-10 w-[120px] rounded-xl px-4 text-[12px] font-bold text-white transition hover:opacity-90"
+    style={{ background: "var(--brand-gradient)" }}
+  >
+    Appliquer
+  </button>
           <button
-            type="button"
-            onClick={handleApplyDateFilter}
-            className="h-10 rounded-xl bg-[#7c5cff] px-4 text-[12px] font-bold text-white transition hover:opacity-90"
-          >
-            Apply
-          </button>
+     type="button"
+     onClick={() => setSelectedMonth("")}
+     className="text-[10px] font-bold text-[var(--dashboard-muted)] hover:text-[var(--dashboard-text)]"
+   >
+  Réinitialiser mois
+</button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_240px]">
           {/* LEFT MAIN AREA */}
           <section className="space-y-4">
             {/* TOP ROW */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-4 gap-4">
               <StatCard
   title="Trafic organique"
   value={loadingStats ? "..." : formatCompact(totalClicks)}
   subtitle="Clics depuis Google Search Console"
-  data={
-    miniClicksChart.length > 0
-      ? miniClicksChart
-      : [
-          { x: "1", y: 10 },
-          { x: "2", y: 18 },
-          { x: "3", y: 15 },
-          { x: "4", y: 24 },
-          { x: "5", y: 19 },
-          { x: "6", y: 30 },
-          { x: "7", y: 37 },
-        ]
-  }
-  color="#7c5cff"
+  data={miniClicksChart}
+  color="var(--brand-secondary)"
   gradientId="organicTrafficChart"
+  badge="GSC"
 />
 <StatCard
-    title="Pages consultées"
-    value={loadingStats ? "..." : formatCompact(totalPageViews)}
-    subtitle="Pages vues Google Analytics"
-    data={
-      miniPageViewsChart.length > 0
-        ? miniPageViewsChart
-        : [
-            { x: "1", y: 12 },
-            { x: "2", y: 22 },
-            { x: "3", y: 18 },
-            { x: "4", y: 30 },
-            { x: "5", y: 26 },
-            { x: "6", y: 36 },
-            { x: "7", y: 40 },
-          ]
-    }
-    color="#a78bfa"
-    gradientId="pageViewsChart"
-  />
+  title="Pages consultées"
+  value={loadingStats ? "..." : formatCompact(totalPageViews)}
+  subtitle="Pages vues Google Analytics"
+  data={
+    miniPageViewsChart.length > 0
+      ? miniPageViewsChart
+      : fallbackPageViewsChart
+  }
+  color="var(--brand-primary)"
+  gradientId="pageViewsChart"
+  badge="GA4"
+/>
 <StatCard
-  title="Sessions"
+  title="Trafic total"
   value={loadingStats ? "..." : formatCompact(totalSessions)}
   subtitle="Sessions totales du site"
   data={
@@ -1339,8 +2045,18 @@ const miniPageViewsChart = useMemo(() => {
           { x: "7", y: 49 },
         ]
   }
-  color="#ff4fb8"
+  color="var(--brand-secondary)"
   gradientId="sessionsChart"
+  badge="GA4"
+/>
+<StatCard
+  title="Mots-clés positionnés"
+  value={loadingStats ? "..." : formatCompact(positionedKeywords)}
+  subtitle="Requêtes visibles dans Google"
+  data={miniKeywordsChart}
+  color="var(--brand-primary)"
+  gradientId="keywordsChart"
+  badge="GSC"
 />
 
 
@@ -1348,24 +2064,18 @@ const miniPageViewsChart = useMemo(() => {
          
             {/* MIDDLE ROW */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
-              <ScoreCard score={loadingStats ? 0 : scoreValue} />
-              <ProgressCard
-                data={
-                  progressData.length > 0
-                    ? progressData
-                    : [
-                        { name: "May", speaking: 28, listening: 32 },
-                        { name: "June", speaking: 38, listening: 22 },
-                        { name: "July", speaking: 26, listening: 36 },
-                        { name: "August", speaking: 45, listening: 28 },
-                        { name: "September", speaking: 34, listening: 44 },
-                        { name: "October", speaking: 52, listening: 50 },
-                      ]
-                }
-              />
+              <EventsCard
+  totalEvents={eventStats?.total_events || 0}
+  totalUsers={eventStats?.total_users || 0}
+  topEvent={eventStats?.top_event || ""}
+  loading={eventsLoading}
+  error={eventsError}
+/>
+              <ProgressCard data={progressData} />
             </div>
-            {/* CTR + TAUX DE REBOND */}
-<div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
+           
+{/* CTR + TAUX DE REBOND + ENGAGEMENT */}
+<div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_500px_225px]">
  <GaugeCard
   title="CTR moyen"
   subtitle="Clics / impressions"
@@ -1394,8 +2104,16 @@ const miniPageViewsChart = useMemo(() => {
     color="#a78bfa"
     gradientId="bounceRateChart"
   />
+  <EngagementCircleCard
+    value={engagementRate}
+    loading={loadingStats}
+  />
 </div>
-
+      <WeeklyBarsCard
+  data={topVisitedPages}
+  loading={topVisitedPagesLoading}
+  error={topVisitedPagesError}
+/>
             {/* BOTTOM ROW */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
               <TopKeywordsCard
@@ -1408,26 +2126,17 @@ const miniPageViewsChart = useMemo(() => {
                    loading={pagesLoading}
                    error={pagesError}
                />
+               
             </div>
           </section>
 
           {/* RIGHT COLUMN */}
           <aside className="space-y-4">
-            <WeeklyBarsCard
-              data={
-                weeklyBarData.length > 0
-                  ? weeklyBarData
-                  : [
-                      { day: "Mon", value: 2 },
-                      { day: "Tue", value: 5 },
-                      { day: "Wed", value: 3 },
-                      { day: "Thu", value: 7 },
-                      { day: "Fri", value: 4 },
-                      { day: "Sat", value: 6 },
-                    ]
-              }
-            />
-            <CalendarCard />
+      
+           <CalendarCard
+           selectedDate={selectedCalendarDate}
+           onSelectDate={setSelectedCalendarDate}
+           />
             <TasksCard rows={taskRows} />
           </aside>
         </div>

@@ -64,6 +64,7 @@ def api_me(request):
     if request.user.is_authenticated:
         return JsonResponse({
             "authenticated": True,
+            "id": request.user.id,
             "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
@@ -73,3 +74,64 @@ def api_me(request):
     return JsonResponse({
         "authenticated": False
     }, status=401)
+@csrf_exempt
+@require_POST
+def api_change_password(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "success": False,
+            "message": "Utilisateur non authentifié."
+        }, status=401)
+
+    try:
+        data = json.loads(request.body)
+
+        old_password = data.get("old_password")
+        new_password = data.get("new_password")
+        confirm_password = data.get("confirm_password")
+
+        if not old_password or not new_password or not confirm_password:
+            return JsonResponse({
+                "success": False,
+                "message": "Tous les champs sont obligatoires."
+            }, status=400)
+
+        if not request.user.check_password(old_password):
+            return JsonResponse({
+                "success": False,
+                "message": "L'ancien mot de passe est incorrect."
+            }, status=400)
+
+        if new_password != confirm_password:
+            return JsonResponse({
+                "success": False,
+                "message": "Les deux nouveaux mots de passe ne correspondent pas."
+            }, status=400)
+
+        if len(new_password) < 8:
+            return JsonResponse({
+                "success": False,
+                "message": "Le nouveau mot de passe doit contenir au moins 8 caractères."
+            }, status=400)
+
+        request.user.set_password(new_password)
+        request.user.save()
+
+        logout(request)
+
+        return JsonResponse({
+            "success": True,
+            "message": "Mot de passe modifié avec succès. Veuillez vous reconnecter."
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "success": False,
+            "message": "JSON invalide."
+        }, status=400)
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "message": str(e)
+        }, status=500)

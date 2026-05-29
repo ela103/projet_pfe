@@ -28,5 +28,8 @@ urlpatterns = [
     path("top-pages/", views.top_pages, name="top_pages"),
     path("top-keywords/", views.top_keywords, name="top_keywords"),
     path("notifications/", views.notifications_list, name="notifications_list"),
+    path("websites/add/", views.add_website, name="add_website"),
+    path("dashboard/events/", views.dashboard_events, name="dashboard_events"),
+    path("top-visited-pages/", views.top_visited_pages, name="top_visited_pages"),
 
 ]

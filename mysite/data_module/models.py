@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.conf import settings
 
 class Website(models.Model):
     name = models.CharField(max_length=200)
@@ -7,12 +7,19 @@ class Website(models.Model):
     gsc_site_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="websites_added"
+    )
+
     class Meta:
         db_table = "website"
 
     def __str__(self):
         return self.name
-
 
 class GAMetrics(models.Model):
     website = models.ForeignKey(Website, on_delete=models.CASCADE)
@@ -148,3 +155,41 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.level} - {self.title}"
+class AIPageScore(models.Model):
+    website = models.ForeignKey(Website, on_delete=models.CASCADE)
+    page = models.CharField(max_length=500)
+
+    score = models.FloatField(default=0)
+    level = models.CharField(max_length=50, blank=True, null=True)
+    priority = models.CharField(max_length=50, blank=True, null=True)
+
+    diagnosis = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ai_page_score"
+        unique_together = ("website", "page")
+
+    def __str__(self):
+        return f"{self.website.name} - {self.page} - {self.score}"
+
+
+class AISiteScore(models.Model):
+    website = models.OneToOneField(Website, on_delete=models.CASCADE)
+
+    global_score = models.FloatField(default=0)
+    level = models.CharField(max_length=50, blank=True, null=True)
+    priority = models.CharField(max_length=50, blank=True, null=True)
+
+    global_diagnosis = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ai_site_score"
+
+    def __str__(self):
+        return f"{self.website.name} - {self.global_score}"

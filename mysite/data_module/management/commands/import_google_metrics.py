@@ -69,18 +69,33 @@ class Command(BaseCommand):
                     gsc_rows = get_gsc_daily(website.gsc_site_url, days=7)
 
                     for r in gsc_rows:
-                        GSCMetrics.objects.update_or_create(
+                        query_value = r.get("query") or ""
+
+                        existing_rows = GSCMetrics.objects.filter(
                             website=website,
                             date=r["date"],
                             page=r["page"],
-                            query=r["query"],
-                            defaults={
-                                "clicks": r["clicks"],
-                                "impressions": r["impressions"],
-                                "ctr": r["ctr"],
-                                "position": r["position"],
-                            },
+                            query=query_value,
                         )
+
+                        if existing_rows.exists():
+                            existing_rows.update(
+                                clicks=r["clicks"],
+                                impressions=r["impressions"],
+                                ctr=r["ctr"],
+                                position=r["position"],
+                            )
+                        else:
+                            GSCMetrics.objects.create(
+                                website=website,
+                                date=r["date"],
+                                page=r["page"],
+                                query=query_value,
+                                clicks=r["clicks"],
+                                impressions=r["impressions"],
+                                ctr=r["ctr"],
+                                position=r["position"],
+                            )
 
                     print(f"GSC metrics importées pour {website.name} ✔️")
 

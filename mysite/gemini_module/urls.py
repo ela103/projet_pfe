@@ -6,4 +6,5 @@ urlpatterns = [
     path("analyze/", analyze_stats, name="analyze_stats"),
     path("seo-global-insight/", seo_global_insight, name="seo_global_insight"),
     path("chatbot/", chatbot_api, name="chatbot_api"),
+    
 ]

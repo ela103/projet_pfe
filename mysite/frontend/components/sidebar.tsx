@@ -43,7 +43,7 @@ const sections: Section[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: Home },
       { href: "/statistics", label: "Statistics", icon: BarChart3 },
-      { href: "/security", label: "AI Insights", icon: BrainCircuit, badge: "AI" },
+      { href: "/ai-insights", label: "AI Insights", icon: BrainCircuit, badge: "AI" },
     ],
   },
   {
@@ -97,23 +97,25 @@ export function Sidebar({ onClose }: SidebarProps) {
       }}
     >
       {/* Toggle */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="absolute -right-3 top-8 z-20 grid size-7 place-items-center rounded-full transition-all duration-200 hover:scale-110 active:scale-95"
-        style={{
-          background: "var(--brand-gradient)",
-          border: "2px solid var(--sidebar-bg)",
-          boxShadow: "0 8px 18px rgba(15,23,42,0.22)",
-          color: "white",
-        }}
-        aria-label={open ? "Fermer" : "Ouvrir"}
-      >
-        {open ? (
-          <ChevronLeft className="size-3.5" />
-        ) : (
-          <ChevronRight className="size-3.5" />
-        )}
-      </button>
+<button
+  type="button"
+  onClick={() => setOpen((v) => !v)}
+  className="absolute right-4 top-6 z-30 grid h-8 w-8 place-items-center rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
+  style={{
+    background: "color-mix(in srgb, var(--brand-primary) 18%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--brand-primary) 35%, transparent)",
+    color: "var(--brand-primary)",
+  }}
+  aria-label={open ? "Réduire le menu" : "Ouvrir le menu"}
+  title={open ? "Réduire" : "Ouvrir"}
+>
+  {open ? (
+    <ChevronLeft className="h-4 w-4" strokeWidth={3} />
+  ) : (
+    <ChevronRight className="h-4 w-4" strokeWidth={3} />
+  )}
+</button>
+
 
       {/* Logo */}
       <div

@@ -7,14 +7,49 @@ from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from data_module.models import ScrapedPage
-from django.db.models import Sum, Avg
-from data_module.models import GSCMetrics, GAMetrics
+from django.db.models import Sum, Avg,Max
+from data_module.models import GSCMetrics, GAMetrics,GAEvent
+from datetime import timedelta
 
 
 # =========================
 # Chargement des datasets
 # =========================
-def load_gsc_dataset_from_db(website_id=None):
+
+def get_period_start_date(website_id=None, period="all"):
+    if period == "all":
+        return None
+
+    ga_query = GAMetrics.objects.all()
+    gsc_query = GSCMetrics.objects.all()
+
+    if website_id:
+        ga_query = ga_query.filter(website_id=website_id)
+        gsc_query = gsc_query.filter(website_id=website_id)
+
+    last_ga_date = ga_query.aggregate(last_date=Max("date"))["last_date"]
+    last_gsc_date = gsc_query.aggregate(last_date=Max("date"))["last_date"]
+
+    available_dates = [d for d in [last_ga_date, last_gsc_date] if d]
+
+    if not available_dates:
+        return None
+
+    last_available_date = max(available_dates)
+
+    if period == "day":
+        return last_available_date
+
+    if period == "week":
+        return last_available_date - timedelta(days=7)
+
+    if period == "month":
+        return last_available_date - timedelta(days=30)
+
+    return None
+
+
+def load_gsc_dataset_from_db(website_id=None,period="all"):
     import pandas as pd
     from data_module.models import GSCMetrics, Website
 
@@ -22,6 +57,12 @@ def load_gsc_dataset_from_db(website_id=None):
 
     if website_id:
         query = query.filter(website_id=website_id)
+        start_date = get_period_start_date(website_id, period)
+        if start_date:
+            if period == "day":
+                query = query.filter(date=start_date)
+            else:
+                query = query.filter(date__gte=start_date)
 
     rows = list(
         query.values(
@@ -43,7 +84,7 @@ def load_gsc_dataset_from_db(website_id=None):
 
     return df
 
-def load_ga_dataset_from_db(website_id=None):
+def load_ga_dataset_from_db(website_id=None,period="all"):
     import pandas as pd
     from data_module.models import GAMetrics, Website
 
@@ -51,6 +92,12 @@ def load_ga_dataset_from_db(website_id=None):
 
     if website_id:
         query = query.filter(website_id=website_id)
+        start_date = get_period_start_date(website_id, period)
+        if start_date:
+            if period == "day":
+                query = query.filter(date=start_date)
+            else:
+                query = query.filter(date__gte=start_date)
 
     rows = list(
         query.values(
@@ -110,9 +157,9 @@ def load_pages_content_dataset(website_id=None):
 # =========================
 # Analyse KPI
 # =========================
-def analyse_data(website_id=None):
-    gsc_df = load_gsc_dataset_from_db(website_id)
-    ga_df = load_ga_dataset_from_db(website_id)
+def analyse_data(website_id=None, period="all"):
+    gsc_df = load_gsc_dataset_from_db(website_id, period)
+    ga_df = load_ga_dataset_from_db(website_id, period)
 
     seo = {
         "total_clicks": 0,
@@ -144,12 +191,43 @@ def analyse_data(website_id=None):
     }
 
 
+def analyse_events(website_id=None, period="all"):
+    query = GAEvent.objects.all()
+
+    if website_id:
+        query = query.filter(website_id=website_id)
+
+    start_date = get_period_start_date(website_id, period)
+
+    if start_date:
+        if period == "day":
+            query = query.filter(date=start_date)
+        else:
+            query = query.filter(date__gte=start_date)
+
+    total_events = query.aggregate(total=Sum("event_count"))["total"] or 0
+    total_users = query.aggregate(total=Sum("users"))["total"] or 0
+
+    top_events = list(
+        query.values("event_name")
+        .annotate(total_events=Sum("event_count"))
+        .order_by("-total_events")[:5]
+    )
+
+    return {
+        "total_events": int(total_events),
+        "total_event_users": int(total_users),
+        "top_events": top_events,
+    }
+
+
+
 # =========================
 # Recommandations SEO
 # =========================
-def generate_recommendations(website_id=None):
-    gsc_df = load_gsc_dataset_from_db(website_id)
-    ga_df = load_ga_dataset_from_db(website_id)
+def generate_recommendations(website_id=None,period="all"):
+    gsc_df = load_gsc_dataset_from_db(website_id, period)
+    ga_df = load_ga_dataset_from_db(website_id, period)
 
     if gsc_df.empty and ga_df.empty:
         return ["Aucune donnée disponible pour générer des recommandations."]

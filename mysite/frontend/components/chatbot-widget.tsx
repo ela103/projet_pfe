@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { MessageCircle, X, Send, ArrowLeft } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { MessageCircle, X, Send, ArrowLeft, Minus } from "lucide-react"
+
 
 export function ChatbotWidget() {
   const [open, setOpen] = useState(false)
@@ -16,6 +17,7 @@ export function ChatbotWidget() {
 
   const [input, setInput] = useState("")
   const [websiteId, setWebsiteId] = useState<number | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const storedId = localStorage.getItem("websiteId")
@@ -25,13 +27,19 @@ export function ChatbotWidget() {
   }, [])
 
   const handleOpen = () => {
-    const storedId = localStorage.getItem("websiteId")
-    if (storedId) {
-      setWebsiteId(Number(storedId))
-    }
-    setOpen(true)
+  const storedId = localStorage.getItem("websiteId")
+  if (storedId) {
+    setWebsiteId(Number(storedId))
+  }
+
+  setOpen(true)
+
+  if (messages.length > 1) {
+    setScreen("chat")
+  } else {
     setScreen("welcome")
   }
+}
 
   const handleClose = () => {
     setOpen(false)
@@ -89,6 +97,16 @@ export function ChatbotWidget() {
       ])
     }
   }
+  useEffect(() => {
+  if (open && screen === "chat") {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      })
+    }, 100)
+  }
+}, [open, screen, messages])
 
   return (
     <>
@@ -188,25 +206,43 @@ export function ChatbotWidget() {
                   </div>
                 </div>
 
-                <button onClick={handleClose}>
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+        <button
+    type="button"
+    onClick={handleClose}
+    className="rounded-full p-1 hover:bg-white/15"
+    title="Minimiser"
+  >
+    <Minus size={18} />
+  </button>
+
+  <button
+    type="button"
+    onClick={handleClose}
+    className="rounded-full p-1 hover:bg-white/15"
+    title="Fermer"
+  >
+    <X size={18} />
+  </button>
+</div>
               </div>
 
               <div className="flex-1 space-y-3 overflow-y-auto bg-white p-4">
-                {messages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                      msg.role === "user"
-                        ? "ml-auto bg-purple-600 text-white"
-                        : "bg-gray-100 text-black border border-gray-200"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                ))}
-              </div>
+  {messages.map((msg, index) => (
+    <div
+      key={index}
+      className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+        msg.role === "user"
+          ? "ml-auto bg-purple-600 text-white"
+          : "bg-gray-100 text-black border border-gray-200"
+      }`}
+    >
+      {msg.content}
+    </div>
+  ))}
+
+  <div ref={messagesEndRef} />
+</div>
 
               <div className="flex gap-2 border-t border-gray-200 bg-white p-3">
                 <input

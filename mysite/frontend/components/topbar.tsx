@@ -120,170 +120,221 @@ useEffect(() => {
   fetchNotifications()
 }, [])
 
-  return (
-    <header className="lg:-mx-7 sticky top-0 z-30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border mb-6 rounded-xl lg:rounded-none">
-      <div className="h-16 px-4 md:px-7 flex items-center justify-between gap-3">
-        <button
-          onClick={onMenuClick}
-          className="lg:hidden rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2"
-          aria-label="Open menu"
-        >
-          <Menu className="size-5" />
-        </button>
+ return (
+  <header className="sticky top-0 z-30 mb-6 bg-transparent">
+    <div className="flex h-[76px] items-center justify-between gap-4 px-4 md:px-7">
+      {/* Bouton menu mobile */}
+      <button
+        onClick={onMenuClick}
+        className="grid h-10 w-10 place-items-center rounded-2xl border bg-[var(--dashboard-card)] text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)] lg:hidden"
+        style={{ borderColor: "var(--dashboard-border)" }}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
-        <div className="flex-1 max-w-xl">
-          <label className="relative block">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <Search className="size-4" />
-            </span>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search rooms, devices, or users..."
-              className="w-full rounded-full border bg-background pl-9 pr-3 py-2 text-sm"
-              aria-label="Search"
-            />
-          </label>
-        </div>
+      {/* Search */}
+      <div className="w-full max-w-[520px]">
+        <label className="relative block">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
 
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-  <DropdownMenuTrigger className="relative rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2">
-    <Bell className="size-5" aria-hidden />
-    <span className="sr-only">Open notifications</span>
-
-    {unreadCount > 0 && (
-      <span className="absolute right-1 top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-        {unreadCount}
-      </span>
-    )}
-  </DropdownMenuTrigger>
-
-  <DropdownMenuContent align="end" className="w-80">
-    <DropdownMenuLabel className="flex items-center justify-between">
-      <span>Notifications</span>
-
-      {unreadCount > 0 && (
-        <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500">
-          {unreadCount} nouvelle{unreadCount > 1 ? "s" : ""}
-        </span>
-      )}
-    </DropdownMenuLabel>
-
-    <DropdownMenuSeparator />
-
-    {notificationsLoading ? (
-      <div className="px-3 py-3 text-sm text-muted-foreground">
-        Chargement...
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher un site, une page ou un indicateur..."
+            className="h-12 w-full rounded-2xl border bg-[var(--dashboard-card)] pl-11 pr-4 text-sm font-semibold text-[var(--dashboard-text)] outline-none transition placeholder:text-[var(--dashboard-muted)] focus:border-[var(--brand-primary)]"
+            style={{ borderColor: "var(--dashboard-border)" }}
+            aria-label="Search"
+          />
+        </label>
       </div>
-    ) : notifications.length === 0 ? (
-      <div className="px-3 py-3 text-sm text-muted-foreground">
-        Aucune notification disponible.
-      </div>
-    ) : (
-      <div className="max-h-80 overflow-y-auto">
-        {notifications.map((notification) => {
-          const levelClass =
-            notification.level === "error"
-              ? "border-l-red-500"
-              : notification.level === "warning"
-              ? "border-l-orange-500"
-              : notification.level === "success"
-              ? "border-l-emerald-500"
-              : "border-l-blue-500"
 
-          return (
-            <DropdownMenuItem
-              key={notification.id}
-              className={`flex cursor-default flex-col items-start gap-1 border-l-4 ${levelClass} px-3 py-3`}
-            >
-              <div className="flex w-full items-center justify-between gap-2">
-                <span className="text-sm font-semibold">
-                  {notification.title}
+      {/* Actions */}
+      <div className="flex shrink-0 items-center gap-2">
+        {/* Notifications */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="relative grid h-11 w-11 place-items-center rounded-2xl border bg-[var(--dashboard-card)] text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30">
+            <Bell className="h-5 w-5" aria-hidden />
+            <span className="sr-only">Open notifications</span>
+
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                {unreadCount}
+              </span>
+            )}
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            align="end"
+            className="w-80 rounded-2xl border bg-[var(--dashboard-card)] p-2 text-[var(--dashboard-text)] shadow-xl"
+            style={{ borderColor: "var(--dashboard-border)" }}
+          >
+            <DropdownMenuLabel className="flex items-center justify-between px-2 py-2">
+              <span className="text-sm font-black">Notifications</span>
+
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-500">
+                  {unreadCount} nouvelle{unreadCount > 1 ? "s" : ""}
                 </span>
+              )}
+            </DropdownMenuLabel>
 
-                {!notification.is_read && (
-                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                    Nouveau
-                  </span>
-                )}
+            <DropdownMenuSeparator />
+
+            {notificationsLoading ? (
+              <div className="px-3 py-3 text-sm text-[var(--dashboard-muted)]">
+                Chargement...
               </div>
+            ) : notifications.length === 0 ? (
+              <div className="px-3 py-3 text-sm text-[var(--dashboard-muted)]">
+                Aucune notification disponible.
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.map((notification) => {
+                  const levelClass =
+                    notification.level === "error"
+                      ? "border-l-red-500"
+                      : notification.level === "warning"
+                      ? "border-l-orange-500"
+                      : notification.level === "success"
+                      ? "border-l-emerald-500"
+                      : "border-l-blue-500"
 
-              <span className="text-xs text-muted-foreground">
-                {notification.message}
-              </span>
+                  return (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className={`flex cursor-default flex-col items-start gap-1 rounded-xl border-l-4 ${levelClass} px-3 py-3 focus:bg-[var(--dashboard-card-soft)]`}
+                    >
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-[var(--dashboard-text)]">
+                          {notification.title}
+                        </span>
 
-              <span className="text-[10px] text-muted-foreground">
-                {new Date(notification.created_at).toLocaleString("fr-FR")}
-              </span>
+                        {!notification.is_read && (
+                          <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
+                            Nouveau
+                          </span>
+                        )}
+                      </div>
+
+                      <span className="text-xs text-[var(--dashboard-muted)]">
+                        {notification.message}
+                      </span>
+
+                      <span className="text-[10px] text-[var(--dashboard-muted)]">
+                        {new Date(notification.created_at).toLocaleString("fr-FR")}
+                      </span>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </div>
+            )}
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem className="rounded-xl text-[var(--dashboard-muted)] focus:bg-[var(--dashboard-card-soft)]">
+              Voir toutes les notifications
             </DropdownMenuItem>
-          )
-        })}
-      </div>
-    )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-    <DropdownMenuSeparator />
+        {/* Settings */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="grid h-11 w-11 place-items-center rounded-2xl border bg-[var(--dashboard-card)] text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30">
+            <Settings className="h-5 w-5" aria-hidden />
+            <span className="sr-only">Open settings</span>
+          </DropdownMenuTrigger>
 
-    <DropdownMenuItem className="text-muted-foreground">
-      Voir toutes les notifications
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
+          <DropdownMenuContent
+            align="end"
+            className="w-60 rounded-2xl border bg-[var(--dashboard-card)] p-2 text-[var(--dashboard-text)] shadow-xl"
+            style={{ borderColor: "var(--dashboard-border)" }}
+          >
+            <DropdownMenuLabel className="px-2 py-2 text-sm font-black">
+              Paramètres
+            </DropdownMenuLabel>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger className="rounded-full p-2 hover:bg-muted focus:outline-none focus:ring-2">
-              <Settings className="size-5" aria-hidden />
-              <span className="sr-only">Open settings</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Settings</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <button className="w-full text-left">Manage users</button>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <button className="w-full text-left">Network</button>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <ThemeToggle />
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem asChild>
+              <button className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold">
+                Manage users
+              </button>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <button className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold">
+                Network
+              </button>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <div className="px-2 py-2">
+              <ThemeToggle />
+            </div>
+
+            <div className="px-2 pb-2">
+              <ColorThemePicker />
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* User */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="grid h-11 w-11 place-items-center rounded-full bg-[var(--dashboard-card-soft)] transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-[var(--dashboard-card-soft)] text-sm font-black text-[var(--dashboard-text)]">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            align="end"
+            className="w-64 rounded-2xl border bg-[var(--dashboard-card)] p-2 text-[var(--dashboard-text)] shadow-xl"
+            style={{ borderColor: "var(--dashboard-border)" }}
+          >
+            <DropdownMenuLabel className="px-2 py-2">
+              <div className="flex items-center gap-3">
+                <div
+                  className="grid h-10 w-10 place-items-center rounded-full text-sm font-black text-white"
+                  style={{ background: "var(--brand-gradient)" }}
+                >
+                  {initials}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black">
+                    {signedInName}
+                  </p>
+                  <p className="truncate text-xs font-semibold text-[var(--dashboard-muted)]">
+                    {user?.email || "Aucun email"}
+                  </p>
+                </div>
               </div>
-              <div className="px-2 pb-2">
-                <ColorThemePicker />
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenuLabel>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger className="rounded-full p-1.5 hover:bg-muted focus:outline-none focus:ring-2">
-              <Avatar className="size-8">
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <span className="sr-only">Open user menu</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="flex items-center gap-2">
-                <User className="size-4" />
-                Signed in as {signedInName}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a href="/profile">Profile</a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href="/devices">My devices</a>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-destructive cursor-pointer"
-              >
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              onClick={() => router.push("/profile")}
+              className="rounded-xl px-2 py-2 text-sm font-semibold focus:bg-[var(--dashboard-card-soft)]"
+            >
+              <User className="mr-2 h-4 w-4" />
+              Profil
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="rounded-xl px-2 py-2 text-sm font-semibold text-red-500 focus:bg-red-500/10 focus:text-red-500"
+            >
+              Déconnexion
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-    </header>
-  )
-}
+    </div>
+  </header>
+)}

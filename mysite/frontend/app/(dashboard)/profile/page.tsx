@@ -12,12 +12,21 @@ import {
 
 type UserProfile = {
   authenticated: boolean
+  id: number
   email: string
   first_name: string
   last_name: string
   phone_number: string
 }
-
+type Website = {
+  id: number
+  name: string
+  ga4_property_id: string | null
+  gsc_site_url: string | null
+  created_at: string
+  added_by: number | null
+  added_by_name: string
+}
 // ── Palette Mobelite ─────────────────────────────────────────
 const G = {
   vb : "linear-gradient(135deg, #7B6EF6 0%, #4EAAF0 100%)",
@@ -117,11 +126,17 @@ function PreferenceRow({ label, sub, checked, onChange, color }: {
 }
 
 // ── Security button ──────────────────────────────────────────
-function SecurityBtn({ icon: Icon, label, sub, danger = false }: {
-  icon: any; label: string; sub: string; danger?: boolean
+function SecurityBtn({ icon: Icon, label, sub, danger = false, onClick }: {
+  icon: any
+  label: string
+  sub: string
+  danger?: boolean
+  onClick?: () => void
 }) {
   return (
-    <button style={{
+     <button
+    onClick={onClick}
+    style={{
       display: "flex", alignItems: "center", gap: "12px",
       padding: "14px 16px", borderRadius: "16px", width: "100%",
       background: danger ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.03)",
@@ -165,6 +180,16 @@ export default function ProfilePage() {
   const [user,    setUser]    = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState("")
+  const [websites, setWebsites] = useState<Website[]>([])
+  const addedWebsites = websites.filter(
+  (website) => website.added_by === user?.id
+)
+const [showPasswordModal, setShowPasswordModal] = useState(false)
+const [oldPassword, setOldPassword] = useState("")
+const [newPassword, setNewPassword] = useState("")
+const [confirmPassword, setConfirmPassword] = useState("")
+const [passwordMessage, setPasswordMessage] = useState("")
+const [passwordLoading, setPasswordLoading] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -178,8 +203,97 @@ export default function ProfilePage() {
       finally { setLoading(false) }
     })()
   }, [])
+  useEffect(() => {
+  const fetchProfileAndWebsites = async () => {
+    try {
+      setLoading(true)
 
-  if (loading) return (
+      const profileResponse = await fetch("http://127.0.0.1:8000/api/me/", {
+        method: "GET",
+        credentials: "include",
+      })
+
+      const profileData = await profileResponse.json()
+      setUser(profileData)
+
+      const websitesResponse = await fetch("http://127.0.0.1:8000/data/websites/", {
+        method: "GET",
+        credentials: "include",
+      })
+
+      const websitesData = await websitesResponse.json()
+      setWebsites(websitesData.websites || [])
+    } catch (error) {
+      setError("Erreur lors du chargement du profil.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchProfileAndWebsites()
+}, [])
+
+
+const handleChangePassword = async () => {
+  setPasswordMessage("")
+
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    setPasswordMessage("Veuillez remplir tous les champs.")
+    return
+  }
+
+  if (newPassword !== confirmPassword) {
+    setPasswordMessage("Les deux nouveaux mots de passe ne correspondent pas.")
+    return
+  }
+
+  if (newPassword.length < 8) {
+    setPasswordMessage("Le nouveau mot de passe doit contenir au moins 8 caractères.")
+    return
+  }
+
+  try {
+    setPasswordLoading(true)
+
+    const response = await fetch("http://127.0.0.1:8000/api/change-password/", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.success) {
+      setPasswordMessage(data.message || "Erreur lors de la modification du mot de passe.")
+      return
+    }
+
+    setPasswordMessage(data.message)
+
+    setOldPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+
+    setTimeout(() => {
+      window.location.href = "/login"
+    }, 1500)
+  } catch {
+    setPasswordMessage("Erreur de connexion au serveur.")
+  } finally {
+    setPasswordLoading(false)
+  }
+}
+
+  if (loading)
+    
+    return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"#0B0F1E" }}>
       <div style={{
         background: G.vb, borderRadius: "16px", padding: "20px 32px",
@@ -204,7 +318,7 @@ export default function ProfilePage() {
 
   const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Administrateur"
   const initials = `${user?.first_name?.[0]||""}${user?.last_name?.[0]||""}`.toUpperCase() || "AD"
-
+ 
   return (
     <div style={{ minHeight:"100vh", background:"#0B0F1E", padding:"0 0 40px" }}>
 
@@ -291,7 +405,49 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+<section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+  <div className="mb-5 flex items-center justify-between">
+    <div>
+      <h2 className="text-xl font-bold text-slate-900">Sites ajoutés</h2>
+      <p className="text-sm text-slate-500">
+        Liste des sites ajoutés par cet administrateur
+      </p>
+    </div>
 
+    <div className="rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
+      {addedWebsites.length} site{addedWebsites.length > 1 ? "s" : ""}
+    </div>
+  </div>
+
+  {addedWebsites.length === 0 ? (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+      Aucun site ajouté par cet administrateur pour le moment.
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {addedWebsites.map((site) => (
+        <div
+          key={site.id}
+          className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between"
+        >
+          <div>
+            <p className="font-bold text-slate-900">{site.name}</p>
+            <p className="text-sm text-slate-500">
+              {site.gsc_site_url || "URL non renseignée"}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Ajouté par : {site.added_by_name}
+            </p>
+          </div>
+
+          <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+            Actif
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
           {/* Edit button */}
           <button style={{
             display:"flex", alignItems:"center", gap:"7px",
@@ -412,13 +568,186 @@ export default function ProfilePage() {
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:"0" }}>
-            <SecurityBtn icon={Lock}       label="Changer le mot de passe"  sub="Dernière modification il y a 30 jours"/>
+            <SecurityBtn
+  icon={Lock}
+  label="Changer le mot de passe"
+  sub="Modifier les identifiants de connexion"
+  onClick={() => setShowPasswordModal(true)}
+/>
             <SecurityBtn icon={ShieldCheck}label="Vérification du compte"   sub="Compte vérifié et sécurisé"/>
             <SecurityBtn icon={LogOut}     label="Déconnexion sécurisée"    sub="Terminer la session en cours" danger/>
           </div>
-        </div>
+                </div>
 
       </div>
+
+      {showPasswordModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "440px",
+              background: "#111827",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "24px",
+              padding: "26px",
+              boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "16px",
+                marginBottom: "20px",
+              }}
+            >
+              <div>
+                <h2 style={{ color: "white", fontSize: "20px", fontWeight: 800, margin: 0 }}>
+                  Modifier le mot de passe
+                </h2>
+
+                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", margin: "5px 0 0" }}>
+                  Saisissez votre ancien mot de passe puis le nouveau.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false)
+                  setPasswordMessage("")
+                }}
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: "12px" }}>
+              <input
+                type="password"
+                placeholder="Ancien mot de passe"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "13px 15px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "white",
+                  outline: "none",
+                }}
+              />
+
+              <input
+                type="password"
+                placeholder="Nouveau mot de passe"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "13px 15px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "white",
+                  outline: "none",
+                }}
+              />
+
+              <input
+                type="password"
+                placeholder="Confirmer le nouveau mot de passe"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "13px 15px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "white",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            {passwordMessage && (
+              <p
+                style={{
+                  marginTop: "14px",
+                  color: passwordMessage.includes("succès") ? "#43E3C8" : "#f87171",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                {passwordMessage}
+              </p>
+            )}
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "22px" }}>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false)
+                  setPasswordMessage("")
+                }}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "white",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                Annuler
+              </button>
+
+              <button
+                onClick={handleChangePassword}
+                disabled={passwordLoading}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  borderRadius: "14px",
+                  border: "none",
+                  background: G.vb,
+                  color: "white",
+                  cursor: passwordLoading ? "not-allowed" : "pointer",
+                  fontWeight: 700,
+                  opacity: passwordLoading ? 0.7 : 1,
+                }}
+              >
+                {passwordLoading ? "Modification..." : "Enregistrer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

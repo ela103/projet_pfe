@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   AlertCircle,
   BarChart3,
@@ -211,6 +212,7 @@ function getFriendlyDescription(name: string) {
 }
 
 export default function WebsitesPage() {
+  const router = useRouter()
   const [websites, setWebsites] = useState<Website[]>([])
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -481,15 +483,17 @@ export default function WebsitesPage() {
               </button>
 
               <button
+                 type="button"
+                onClick={() => router.push("/devices/add")}
                 className="flex h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5"
                 style={{
-                  background: "var(--brand-gradient)",
-                  boxShadow: "0 18px 34px rgba(15,23,42,0.18)",
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Ajouter
-              </button>
+                background: "var(--brand-gradient)",
+                boxShadow: "0 18px 34px rgba(15,23,42,0.18)",
+          }}
+>
+  <Plus className="h-4 w-4" />
+  Ajouter
+</button>
             </div>
           </div>
         </div>

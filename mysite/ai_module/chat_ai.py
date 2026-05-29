@@ -449,7 +449,9 @@ def format_response(intent: str, data) -> str:
     elif intent == "pages_faibles":
         if not data:
             return "✅ Aucune page faible détectée pour le moment."
-        text = "🔻 Pages à améliorer en priorité :\n\n"
+        text = "Pages ou axes à améliorer selon les données GA/GSC :\n\n"
+        for rec in data[:5]:
+            text += f"- {rec}\n"
         for i, row in enumerate(data, 1):
             url = row["page"].split(".netlify.app")[-1] if ".netlify.app" in row["page"] else row["page"]
             text += f"{i}. {url}\n"
@@ -517,31 +519,21 @@ def format_response(intent: str, data) -> str:
     else:
         return "Je n'ai pas compris la question."
 
-def build_chatbot_context(website_id=None, intent=None):
-    context = {}
+def build_chatbot_context(website_id=None, intent=None, period="all"):
+    context = {
+        "periode_analyse": period,
+        "kpi": analyse_data(website_id, period),
+    }
 
-    if intent in ["kpi", "traffic"]:
-        context["kpi"] = analyse_data(website_id)
-
-    if intent in ["anomalies", "traffic_diagnosis"]:
-        context["anomalies"] = get_anomalies(website_id)
-
-    if intent in ["pages_faibles", "page_detail"]:
-        context["weak_pages"] = get_weak_pages(website_id)
-
-    if intent in ["recommendations"]:
-        context["recommendations"] = generate_recommendations(website_id)
-
-    # fallback si rien détecté
-    if not context:
-        context["kpi"] = analyse_data(website_id)
+    if intent in ["recommendations", "traffic_diagnosis", "full_analysis", "pages_faibles"]:
+        context["recommendations"] = generate_recommendations(website_id, period)
 
     return context
 
 # ============================================================
 # FONCTION PRINCIPALE
 # ============================================================
-def ask_ai(question: str, website_id=None) -> dict:
+def ask_ai(question: str, website_id=None, period="all") -> dict:
 
     # Salutations / au revoir
     special = chat_greetings_farewells(question)
@@ -568,12 +560,13 @@ def ask_ai(question: str, website_id=None) -> dict:
         "page_detail",
         "scraping",
     ]:
-        context = build_chatbot_context(website_id, intent)
+        context = build_chatbot_context(website_id, intent,period)
         rag_docs = retrieve_relevant_documents(question, website_id, top_k=5)
 
         prompt = build_chatbot_prompt(
     question=question,
     context={
+        "periode_analyse": period,
         "context_structuré": context,
         "documents_rag": rag_docs,
     }
@@ -582,27 +575,29 @@ def ask_ai(question: str, website_id=None) -> dict:
             gemini = GeminiService()
             ai_text = gemini.generate_text(prompt)
             return {
-                "intent": intent,
-                "text": ai_text,
-                "data": {
-                    "context_structuré": context,
-                    "documents_rag": rag_docs,
-                },
-                "source": "gemini_rag",
-            }
+    "intent": intent,
+    "text": ai_text,
+    "data": {
+        "context_structuré": context,
+        "documents_rag": rag_docs,
+    },
+    "source": "gemini_rag",
+    "used_rag": True,
+    "retrieved_documents_count": len(rag_docs),
+}
         except Exception as e:
             print("Erreur Gemini RAG :", e)
     # CORRECTION 4 — tous les intents sont gérés, y compris ga et gsc
     if intent == "kpi":
-        data = analyse_data(website_id)
+        data = analyse_data(website_id, period)
 
     elif intent == "ga":
         # ga retourne le même format que analyse_data mais on peut filtrer
-        data = analyse_data(website_id)
+        data = analyse_data(website_id, period)
 
     elif intent == "gsc":
         # gsc retourne le même format, la réponse formatée n'affiche que la partie seo
-        data = analyse_data(website_id)
+        data = analyse_data(website_id, period)
 
     elif intent == "scraping":
         data = nlp_analysis(website_id)
@@ -611,11 +606,11 @@ def ask_ai(question: str, website_id=None) -> dict:
         data = predict_traffic(days_ahead=1, website_id=website_id)
 
     elif intent == "recommendations":
-        data = generate_recommendations(website_id)
+        data = generate_recommendations(website_id,period)
 
     elif intent == "traffic_diagnosis":
         # même logique que recommendations mais formulé différemment
-        data = generate_recommendations(website_id)
+        data = generate_recommendations(website_id,period)
 
     elif intent == "nlp":
         data = nlp_analysis(website_id)
@@ -637,16 +632,13 @@ def ask_ai(question: str, website_id=None) -> dict:
             data = {"site": "Site inconnu"}
 
     elif intent == "full_analysis":
-        kpi     = analyse_data(website_id)
-        scraping = nlp_analysis(website_id)
-        weak    = get_weak_pages(website_id)
-        recs    = generate_recommendations(website_id)
+        kpi = analyse_data(website_id, period)
+        recs = generate_recommendations(website_id, period)
+
         data = {
-            "kpi":             kpi,
-            "scraping":        scraping,
-            "weak_pages":      weak,
+            "kpi": kpi,
             "recommendations": recs,
-        }
+      }
 
     else:  # unknown
         return {
@@ -666,7 +658,10 @@ def ask_ai(question: str, website_id=None) -> dict:
     text = f"{intro}\n\n{format_response(intent, data)}"
 
     return {
-        "intent": intent,
-        "text": text,
-        "data": data,
-    }
+    "intent": intent,
+    "text": text,
+    "data": data,
+    "source": "structured_data",
+    "used_rag": False,
+    "retrieved_documents_count": 0,
+}
