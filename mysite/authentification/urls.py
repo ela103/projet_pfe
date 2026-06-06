@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CustomLoginView, CustomLogoutView, api_login,api_logout,api_me,api_change_password
+from .views import CustomLoginView, CustomLogoutView, api_login,api_logout,api_me,api_change_password,api_admin_list,api_admin_create,api_admin_update,api_admin_delete,jwt_test
 
 urlpatterns = [
     path("login/", CustomLoginView.as_view(), name="login"),
@@ -8,4 +8,9 @@ urlpatterns = [
     path("api/logout/", api_logout, name="api_logout"),
     path("api/me/", api_me, name="api_me"),
     path("api/change-password/", api_change_password, name="api_change_password"),
+    path("api/admins/", api_admin_list, name="api_admin_list"),
+    path("api/admins/create/", api_admin_create, name="api_admin_create"),
+    path("api/admins/<int:admin_id>/update/", api_admin_update, name="api_admin_update"),
+    path("api/admins/<int:admin_id>/delete/", api_admin_delete, name="api_admin_delete"),
+    path("api/jwt-test/", jwt_test, name="jwt_test"),
 ]

@@ -445,7 +445,7 @@
   );
   --brand-primary: #315cff;
   --brand-secondary: #7b5cff;
-  --brand-accent: #f05bd8;
+  --brand-tertiary: #f05bd8;
   --sidebar-gradient: linear-gradient(180deg, #11162a 0%, #17122d 55%, #211536 100%);
 }
 
@@ -459,7 +459,7 @@
   );
   --brand-primary: #315cff;
   --brand-secondary: #7b5cff;
-  --brand-accent: #f05bd8;
+  --brand-tertiary: #f05bd8;
   --sidebar-gradient: linear-gradient(180deg, #10162d 0%, #171331 55%, #231638 100%);
 }
 
@@ -473,22 +473,35 @@
   );
   --brand-primary: #18c7e8;
   --brand-secondary: #315cff;
-  --brand-accent: #7b5cff;
+  --brand-tertiary: #7b5cff;
   --sidebar-gradient: linear-gradient(180deg, #071827 0%, #0b1735 55%, #15143a 100%);
 }
 
 [data-brand="violet"] {
-  --brand-gradient: linear-gradient(135deg, #7b5cff, #a855f7, #f05bd8);
+  --brand-gradient: linear-gradient(
+    135deg,
+    #f05bd8,
+    #ec4899,
+    #8b5cf6
+  );
+
   --brand-gradient-soft: linear-gradient(
     135deg,
-    rgba(123, 92, 255, 0.18),
-    rgba(168, 85, 247, 0.16),
-    rgba(240, 91, 216, 0.14)
+    rgba(240, 91, 216, 0.18),
+    rgba(236, 72, 153, 0.16),
+    rgba(139, 92, 246, 0.14)
   );
-  --brand-primary: #7b5cff;
-  --brand-secondary: #a855f7;
-  --brand-accent: #f05bd8;
-  --sidebar-gradient: linear-gradient(180deg, #121228 0%, #1a1535 55%, #2a173d 100%);
+
+  --brand-primary: #f05bd8;
+  --brand-secondary: #ec4899;
+  --brand-tertiary: #8b5cf6;
+
+  --sidebar-gradient: linear-gradient(
+    180deg,
+    #241326 0%,
+    #2b1430 55%,
+    #251538 100%
+  );
 }
 
 [data-brand="rose-green"] {
@@ -501,7 +514,7 @@
   );
   --brand-primary: #f05bd8;
   --brand-secondary: #8eecc8;
-  --brand-accent: #18c7e8;
+  --brand-tertiary: #18c7e8;
   --sidebar-gradient: linear-gradient(180deg, #241326 0%, #17312b 55%, #102a2d 100%);
 }
 [data-brand="mint"] {
@@ -514,7 +527,7 @@
   );
   --brand-primary: #14b8a6;
   --brand-secondary: #18c7e8;
-  --brand-accent: #315cff;
+  --brand-tertiary: #315cff;
   --sidebar-gradient: linear-gradient(180deg, #071c24 0%, #071a2e 55%, #10183a 100%);
 }
 :root {
@@ -540,41 +553,7 @@
   --sidebar-pill-bg: rgba(255, 255, 255, 0.05);
   --sidebar-shadow: 4px 0 32px rgba(0, 0, 0, 0.35);
 }
-:root {
-  --brand-primary: #315cff;
-  --brand-secondary: #f05bd8;
-  --brand-tertiary: #7b5cff;
-}
 
-[data-brand="mobelite"] {
-  --brand-primary: #315cff;
-  --brand-secondary: #f05bd8;
-  --brand-tertiary: #7b5cff;
-}
-
-[data-brand="ocean"] {
-  --brand-primary: #18c7e8;
-  --brand-secondary: #315cff;
-  --brand-tertiary: #7b5cff;
-}
-
-[data-brand="violet"] {
-  --brand-primary: #7b5cff;
-  --brand-secondary: #f05bd8;
-  --brand-tertiary: #a855f7;
-}
-
-[data-brand="rose-green"] {
-  --brand-primary: #f05bd8;
-  --brand-secondary: #8eecc8;
-  --brand-tertiary: #18c7e8;
-}
-
-[data-brand="mint"] {
-  --brand-primary: #14b8a6;
-  --brand-secondary: #18c7e8;
-  --brand-tertiary: #315cff;
-}
 :root {
   --dashboard-bg: #f7f8fc;
   --dashboard-card: #ffffff;

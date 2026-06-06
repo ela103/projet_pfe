@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from data_module.models import Website
 from gemini_module.gemini_service import GeminiService
 from gemini_module.prompt_builder import build_chatbot_prompt
-from .rag_retriever import retrieve_relevant_documents
+from .rag_embeddings import retrieve_relevant_documents
 
 from .ai_model import (
     analyse_data,

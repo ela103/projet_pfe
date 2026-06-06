@@ -18,6 +18,7 @@ import {
 } from "recharts"
 import { Bell, CalendarDays, Search } from "lucide-react"
 
+
 type Website = {
   id: number
   name: string
@@ -170,7 +171,7 @@ function TopKeywordsCard({
   error: string
 }) {
   return (
-    <Card className="p-4">
+    <Card className="h-full p-4">
       <SectionTitle title="Requêtes Search Console" rightText="Triées par clics" />
 
       {loading ? (
@@ -840,21 +841,21 @@ function LevelCard({
           label="Taux de rebond"
           value={`${bounceRate}%`}
           width={`${Math.min(100, bounceRate)}%`}
-          color="var(--brand-secondary)"
+          color="var(--brand-tertiary)"
         />
 
         <LevelBar
           label="Taux d’engagement"
           value={`${engagementRate}%`}
           width={`${Math.min(100, engagementRate)}%`}
-          color="#a78bfa"
+          color="var(--brand-tertiary)"
         />
 
         <LevelBar
           label="Visibilité organique"
           value={`${visibilityRate}%`}
           width={`${Math.min(100, visibilityRate)}%`}
-          color="#8b5cf6"
+          color="var(--brand-tertiary)"
         />
       </div>
     </Card>
@@ -1197,8 +1198,21 @@ function TopPagesCard({
   error: string
 }) {
   return (
-    <Card className="h-[250px] p-4">
-      <SectionTitle title="Top pages SEO" rightText="Top 5" />
+    <Card className="h-full p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-[16px] font-black text-[var(--dashboard-text)]">
+            Top pages SEO
+          </h3>
+          <p className="mt-1 text-[11px] font-semibold text-[var(--dashboard-muted)]">
+            Pages les plus performantes
+          </p>
+        </div>
+
+        <span className="text-[11px] font-bold text-[var(--brand-primary)]">
+          Top 5
+        </span>
+      </div>
 
       {loading ? (
         <div className="flex h-[185px] items-center justify-center">
@@ -1217,44 +1231,54 @@ function TopPagesCard({
           </p>
         </div>
       ) : (
-        <div className="space-y-3 overflow-hidden">
-          {pages.slice(0, 5).map((item, index) => {
-            const clicks = Number(item.total_clicks || 0)
-            const impressions = Number(item.total_impressions || 0)
+        <div className="space-y-2">
+  {pages.slice(0, 5).map((item, index) => {
+    const clicks = Number(item.total_clicks || 0)
+    const impressions = Number(item.total_impressions || 0)
 
-            return (
-              <div
-                key={`${item.page}-${index}`}
-                className="flex items-center justify-between gap-3 border-b border-white/5 pb-2 last:border-b-0 last:pb-0"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--brand-primary)]/15 text-[11px] font-black text-[var(--brand-primary)]">
-                    {index + 1}
-                  </div>
+    return (
+      <div
+        key={`${item.page}-${index}`}
+        className="group flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/[0.03] px-2.5 py-2 transition hover:border-white/10 hover:bg-white/[0.06]"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <div
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-black text-white shadow-md"
+            style={{
+              background:
+                index % 3 === 0
+                  ? "var(--brand-gradient)"
+                  : index % 3 === 1
+                  ? "linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))"
+                  : "linear-gradient(135deg, var(--brand-secondary), var(--brand-tertiary))",
+            }}
+          >
+            {index + 1}
+          </div>
 
-                  <div className="min-w-0">
-                    <p className="truncate text-[12px] font-bold leading-tight text-white">
-                      {item.page || "Page inconnue"}
-                    </p>
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-black leading-tight text-[var(--dashboard-text)]">
+              {item.page || "Page inconnue"}
+            </p>
 
-                    <p className="mt-1 text-[10px] font-semibold leading-tight text-slate-500">
-                      {formatCompact(impressions)} impressions
-                    </p>
-                  </div>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <p className="text-[13px] font-black text-[var(--brand-primary)]">
-                    {formatCompact(clicks)}
-                  </p>
-                  <p className="text-[9px] font-semibold text-slate-500">
-                    clics
-                  </p>
-                </div>
-              </div>
-            )
-          })}
+            <p className="mt-0.5 text-[9px] font-semibold leading-tight text-[var(--dashboard-muted)]">
+              {formatCompact(impressions)} impressions
+            </p>
+          </div>
         </div>
+
+        <div className="shrink-0 text-right">
+          <p className="text-[12px] font-black text-[var(--brand-primary)]">
+            {formatCompact(clicks)}
+          </p>
+          <p className="text-[8px] font-bold uppercase tracking-wide text-[var(--dashboard-muted)]">
+            clics
+          </p>
+        </div>
+      </div>
+    )
+  })}
+</div>
       )}
     </Card>
   )
@@ -1286,7 +1310,7 @@ export function MainDashboard() {
   const [eventsLoading, setEventsLoading] = useState(false)
   const [eventsError, setEventsError] = useState("")
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null)
-  const [selectedMonth, setSelectedMonth] = useState("")
+  
   const [topVisitedPages, setTopVisitedPages] = useState<
   { page: string; page_views: number }[]
 >([])
@@ -1383,19 +1407,17 @@ const currentTheme = selectedTheme
       params.append("website_id", selectedWebsiteId)
 
       if (selectedCalendarDate) {
-        params.append("start_date", selectedCalendarDate)
-        params.append("end_date", selectedCalendarDate)
-      } else if (selectedMonth) {
-        const monthRange = getMonthRange(selectedMonth)
+  params.append("start_date", selectedCalendarDate)
+  params.append("end_date", selectedCalendarDate)
+} else {
+  if (appliedStartDate) {
+    params.append("start_date", appliedStartDate)
+  }
 
-        if (monthRange) {
-          params.append("start_date", monthRange.startDate)
-          params.append("end_date", monthRange.endDate)
-        }
-      } else {
-        if (appliedStartDate) params.append("start_date", appliedStartDate)
-        if (appliedEndDate) params.append("end_date", appliedEndDate)
-      }
+  if (appliedEndDate) {
+    params.append("end_date", appliedEndDate)
+  }
+}
 
       const response = await fetch(
         `http://127.0.0.1:8000/data/top-visited-pages/?${params.toString()}`,
@@ -1430,7 +1452,7 @@ const currentTheme = selectedTheme
   appliedStartDate,
   appliedEndDate,
   selectedCalendarDate,
-  selectedMonth,
+  
 ])
 
   useEffect(() => {
@@ -1466,19 +1488,17 @@ const currentTheme = selectedTheme
       const params = new URLSearchParams()
       params.append("website_id", selectedWebsiteId)
 
-      if (selectedCalendarDate) {
+  if (selectedCalendarDate) {
   params.append("start_date", selectedCalendarDate)
   params.append("end_date", selectedCalendarDate)
-} else if (selectedMonth) {
-  const monthRange = getMonthRange(selectedMonth)
-
-  if (monthRange) {
-    params.append("start_date", monthRange.startDate)
-    params.append("end_date", monthRange.endDate)
-  }
 } else {
-  if (appliedStartDate) params.append("start_date", appliedStartDate)
-  if (appliedEndDate) params.append("end_date", appliedEndDate)
+  if (appliedStartDate) {
+    params.append("start_date", appliedStartDate)
+  }
+
+  if (appliedEndDate) {
+    params.append("end_date", appliedEndDate)
+  }
 }
 
       const response = await fetch(
@@ -1504,7 +1524,7 @@ const currentTheme = selectedTheme
   }
 
   fetchStats()
-}, [selectedWebsiteId, appliedStartDate, appliedEndDate, selectedCalendarDate,selectedMonth])
+}, [selectedWebsiteId, appliedStartDate, appliedEndDate, selectedCalendarDate])
 
   useEffect(() => {
   if (!selectedWebsiteId) return
@@ -1585,20 +1605,18 @@ useEffect(() => {
       const params = new URLSearchParams()
       params.append("website_id", selectedWebsiteId)
 
-      if (selectedCalendarDate) {
-        params.append("start_date", selectedCalendarDate)
-        params.append("end_date", selectedCalendarDate)
-      } else if (selectedMonth) {
-        const monthRange = getMonthRange(selectedMonth)
+     if (selectedCalendarDate) {
+  params.append("start_date", selectedCalendarDate)
+  params.append("end_date", selectedCalendarDate)
+} else {
+  if (appliedStartDate) {
+    params.append("start_date", appliedStartDate)
+  }
 
-        if (monthRange) {
-          params.append("start_date", monthRange.startDate)
-          params.append("end_date", monthRange.endDate)
-        }
-      } else {
-        if (appliedStartDate) params.append("start_date", appliedStartDate)
-        if (appliedEndDate) params.append("end_date", appliedEndDate)
-      }
+  if (appliedEndDate) {
+    params.append("end_date", appliedEndDate)
+  }
+}
 
       const response = await fetch(
         `http://127.0.0.1:8000/data/dashboard/events/?${params.toString()}`,
@@ -1633,7 +1651,7 @@ useEffect(() => {
   appliedStartDate,
   appliedEndDate,
   selectedCalendarDate,
-  selectedMonth,
+  
 ])
   const totalUsers =
     statsData?.ga_chart?.reduce((acc, item) => acc + Number(item.users || 0), 0) || 0
@@ -1849,24 +1867,7 @@ const miniPageViewsChart = useMemo(() => {
     setAppliedEndDate(endDate)
   }
 
-  const getMonthRange = (monthValue: string) => {
-  if (!monthValue) return null
-
-  const [year, month] = monthValue.split("-").map(Number)
-
-  const startDate = `${year}-${String(month).padStart(2, "0")}-01`
-
-  const lastDay = new Date(year, month, 0).getDate()
-
-  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(
-    lastDay
-  ).padStart(2, "0")}`
-
-  return {
-    startDate,
-    endDate,
-  }
-}
+ 
 const userDisplayName =
   user?.first_name || user?.username || user?.email || "Utilisateur"
 
@@ -1911,95 +1912,348 @@ style={{ borderColor: "var(--dashboard-border)" }}
           </div>
         </div>
 
-        {/* FILTER BAR */}
-        <div
-  className="mb-4 grid grid-cols-1 gap-4 rounded-[22px] border bg-[var(--dashboard-card)] p-5 lg:grid-cols-[minmax(0,1fr)_190px_190px_190px_120px] lg:items-end"
-  style={{ borderColor: "var(--dashboard-border)" }}
+{/* ── FILTER BAR ── */}
+<div
+  style={{
+    marginBottom: "20px",
+    background: "var(--dashboard-card)",
+    border: "1px solid var(--dashboard-border)",
+    borderRadius: "20px",
+    padding: "20px 24px",
+    backdropFilter: "blur(12px)",
+    boxShadow: "var(--dashboard-shadow)",
+  }}
 >
-  <div>
-    <SectionTitle title="Filtres du tableau de bord"/>
+  {/* Header row */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      marginBottom: "18px",
+      paddingBottom: "14px",
+      borderBottom: "1px solid var(--dashboard-line)",
+    }}
+  >
+    <div
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: "10px",
+        background: "var(--brand-gradient)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow:
+          "0 4px 12px color-mix(in srgb, var(--brand-primary) 35%, transparent)",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ color: "white", fontSize: "14px", fontWeight: 900 }}>
+        F
+      </span>
+    </div>
 
-    {sitesError ? (
-      <p className="mt-1 text-[11px] text-red-400">{sitesError}</p>
-    ) : null}
+    <div>
+      <p
+        style={{
+          fontSize: "13px",
+          fontWeight: 700,
+          color: "var(--dashboard-text)",
+          margin: 0,
+        }}
+      >
+        Filtres du tableau de bord
+      </p>
 
-    {statsError ? (
-      <p className="mt-1 text-[11px] text-red-400">{statsError}</p>
-    ) : null}
+      <p
+        style={{
+          fontSize: "11px",
+          color: "var(--dashboard-muted)",
+          margin: 0,
+        }}
+      >
+        Sélectionnez une période 
+      </p>
+    </div>
+
+    {/* Errors */}
+    {sitesError && (
+      <p style={{ fontSize: "11px", color: "#f87171", marginLeft: "12px" }}>
+        {sitesError}
+      </p>
+    )}
+
+    {statsError && (
+      <p style={{ fontSize: "11px", color: "#f87171", marginLeft: "12px" }}>
+        {statsError}
+      </p>
+    )}
   </div>
 
-  <div>
-    <label className="mb-2 block text-[10px] font-black uppercase tracking-wide text-[var(--dashboard-muted)]">
-      Mois
+  {/* Inputs row */}
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr  auto auto",
+      gap: "12px",
+      alignItems: "flex-end",
+    }}
+  >
+    
 
-    </label>
+    {/* Date début */}
+    <div>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "6px",
+          fontSize: "10px",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          color: "var(--dashboard-muted)",
+        }}
+      >
+        Date début
+      </label>
 
-    <input
-      type="month"
-      value={selectedMonth}
-      onChange={(e) => {
-        setSelectedMonth(e.target.value)
+      <input
+        type="date"
+        value={startDate}
+        onChange={(e) => setStartDate(e.target.value)}
+        style={{
+          width: "100%",
+          height: "42px",
+          background: "var(--dashboard-card-soft)",
+          border: startDate
+            ? "1px solid var(--brand-secondary)"
+            : "1px solid var(--dashboard-border)",
+          borderRadius: "13px",
+          padding: "0 14px",
+          fontSize: "13px",
+          fontWeight: 600,
+          color: "var(--dashboard-text)",
+          outline: "none",
+          colorScheme: "dark",
+          transition: "border-color 0.2s",
+          boxShadow: startDate
+            ? "0 0 0 3px color-mix(in srgb, var(--brand-secondary) 14%, transparent)"
+            : "none",
+        }}
+        onFocus={(e) => {
+          e.target.style.borderColor = "var(--brand-secondary)"
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = startDate
+            ? "var(--brand-secondary)"
+            : "var(--dashboard-border)"
+        }}
+      />
+    </div>
+
+    {/* Date fin */}
+    <div>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "6px",
+          fontSize: "10px",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          color: "var(--dashboard-muted)",
+        }}
+      >
+        Date fin
+      </label>
+
+      <input
+        type="date"
+        value={endDate}
+        onChange={(e) => setEndDate(e.target.value)}
+        style={{
+          width: "100%",
+          height: "42px",
+          background: "var(--dashboard-card-soft)",
+          border: endDate
+            ? "1px solid var(--brand-tertiary)"
+            : "1px solid var(--dashboard-border)",
+          borderRadius: "13px",
+          padding: "0 14px",
+          fontSize: "13px",
+          fontWeight: 600,
+          color: "var(--dashboard-text)",
+          outline: "none",
+          colorScheme: "dark",
+          transition: "border-color 0.2s",
+          boxShadow: endDate
+            ? "0 0 0 3px color-mix(in srgb, var(--brand-tertiary) 14%, transparent)"
+            : "none",
+        }}
+        onFocus={(e) => {
+          e.target.style.borderColor = "var(--brand-tertiary)"
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = endDate
+            ? "var(--brand-tertiary)"
+            : "var(--dashboard-border)"
+        }}
+      />
+    </div>
+
+    {/* Bouton Appliquer */}
+    <button
+      type="button"
+      onClick={handleApplyDateFilter}
+      style={{
+        height: "42px",
+        padding: "0 20px",
+        borderRadius: "13px",
+        border: "none",
+        background: "var(--brand-gradient)",
+        color: "white",
+        fontSize: "13px",
+        fontWeight: 700,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        boxShadow:
+          "0 4px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)",
+        transition: "opacity 0.2s, transform 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        ;(e.currentTarget as HTMLElement).style.opacity = "0.88"
+        ;(e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"
+      }}
+      onMouseLeave={(e) => {
+        ;(e.currentTarget as HTMLElement).style.opacity = "1"
+        ;(e.currentTarget as HTMLElement).style.transform = "translateY(0)"
+      }}
+    >
+      Appliquer
+    </button>
+
+    {/* Bouton Réinitialiser */}
+    <button
+      type="button"
+      onClick={() => {
+        
+        setStartDate("")
+        setEndDate("")
+        setAppliedStartDate("")
+        setAppliedEndDate("")
         setSelectedCalendarDate(null)
       }}
-      className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
-      style={{ borderColor: "var(--dashboard-border)" }}
-    />
+      style={{
+        height: "42px",
+        padding: "0 16px",
+        borderRadius: "13px",
+        background: "var(--dashboard-card-soft)",
+        border: "1px solid var(--dashboard-border)",
+        color: "var(--dashboard-muted)",
+        fontSize: "12px",
+        fontWeight: 600,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        transition: "all 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        ;(e.currentTarget as HTMLElement).style.color =
+          "var(--dashboard-text)"
+        ;(e.currentTarget as HTMLElement).style.borderColor =
+          "var(--brand-primary)"
+      }}
+      onMouseLeave={(e) => {
+        ;(e.currentTarget as HTMLElement).style.color =
+          "var(--dashboard-muted)"
+        ;(e.currentTarget as HTMLElement).style.borderColor =
+          "var(--dashboard-border)"
+      }}
+    >
+      Reset
+    </button>
+  </div>
 
-    {selectedMonth ? (
-      <button
-        type="button"
-        onClick={() => setSelectedMonth("")}
-        className="mt-2 text-[10px] font-bold text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
+  {/* Active filters badges */}
+  {(startDate || endDate) && (
+    <div
+      style={{
+        display: "flex",
+        gap: "8px",
+        flexWrap: "wrap",
+        marginTop: "14px",
+        paddingTop: "12px",
+        borderTop: "1px solid var(--dashboard-line)",
+      }}
+    >
+      <span
+        style={{
+          fontSize: "11px",
+          color: "var(--dashboard-muted)",
+          alignSelf: "center",
+        }}
       >
-        Réinitialiser mois
-      </button>
-    ) : null}
-  </div>
+        Filtres actifs :
+      </span>
 
-  <div>
-    <label className="mb-2 block text-[10px] font-black uppercase tracking-wide text-[var(--dashboard-muted)]">
-      Date début
-    </label>
+      
 
-    <input
-      type="date"
-      value={startDate}
-      onChange={(e) => setStartDate(e.target.value)}
-      className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
-      style={{ borderColor: "var(--dashboard-border)" }}
-    />
-  </div>
+      {startDate && (
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            padding: "3px 10px",
+            borderRadius: "99px",
+            background:
+              "color-mix(in srgb, var(--brand-secondary) 14%, transparent)",
+            color: "var(--brand-secondary)",
+            border:
+              "1px solid color-mix(in srgb, var(--brand-secondary) 28%, transparent)",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+          }}
+        >
+          Du : {startDate}
+          <span
+            style={{ cursor: "pointer", opacity: 0.65 }}
+            onClick={() => setStartDate("")}
+          >
+            ×
+          </span>
+        </span>
+      )}
 
-  <div>
-    <label className="mb-2 block text-[10px] font-black uppercase tracking-wide text-[var(--dashboard-muted)]">
-      Date fin
-    </label>
-
-    <input
-      type="date"
-      value={endDate}
-      onChange={(e) => setEndDate(e.target.value)}
-      className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
-      style={{ borderColor: "var(--dashboard-border)" }}
-    />
-  </div>
-
-  <button
-    type="button"
-    onClick={handleApplyDateFilter}
-    className="h-10 w-[120px] rounded-xl px-4 text-[12px] font-bold text-white transition hover:opacity-90"
-    style={{ background: "var(--brand-gradient)" }}
-  >
-    Appliquer
-  </button>
-          <button
-     type="button"
-     onClick={() => setSelectedMonth("")}
-     className="text-[10px] font-bold text-[var(--dashboard-muted)] hover:text-[var(--dashboard-text)]"
-   >
-  Réinitialiser mois
-</button>
-        </div>
+      {endDate && (
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            padding: "3px 10px",
+            borderRadius: "99px",
+            background:
+              "color-mix(in srgb, var(--brand-tertiary) 14%, transparent)",
+            color: "var(--brand-tertiary)",
+            border:
+              "1px solid color-mix(in srgb, var(--brand-tertiary) 28%, transparent)",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+          }}
+        >
+          Au : {endDate}
+          <span
+            style={{ cursor: "pointer", opacity: 0.65 }}
+            onClick={() => setEndDate("")}
+          >
+            ×
+          </span>
+        </span>
+      )}
+    </div>
+  )}
+</div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_240px]">
           {/* LEFT MAIN AREA */}
@@ -2075,7 +2329,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
             </div>
            
 {/* CTR + TAUX DE REBOND + ENGAGEMENT */}
-<div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_500px_225px]">
+<div className="grid grid-cols-1 gap-3 lg:grid-cols-[250px_minmax(0,1fr)_210px]">
  <GaugeCard
   title="CTR moyen"
   subtitle="Clics / impressions"
@@ -2101,7 +2355,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
             { x: "7", y: 30 },
           ]
     }
-    color="#a78bfa"
+    color="var(--brand-tertiary)"
     gradientId="bounceRateChart"
   />
   <EngagementCircleCard
@@ -2115,7 +2369,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
   error={topVisitedPagesError}
 />
             {/* BOTTOM ROW */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
+            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[1fr_360px]">
               <TopKeywordsCard
                  keywords={topKeywords}
                  loading={keywordsLoading}
