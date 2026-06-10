@@ -1,5 +1,20 @@
 from django.urls import path
-from .views import CustomLoginView, CustomLogoutView, api_login,api_logout,api_me,api_change_password,api_admin_list,api_admin_create,api_admin_update,api_admin_delete,jwt_test
+from .views import (
+    CustomLoginView,
+    CustomLogoutView,
+    api_login,
+    api_logout,
+    api_me,
+    api_change_password,
+    api_forgot_password,
+    api_verify_otp,
+    api_admin_list,
+    api_admin_create,
+    api_admin_update,
+    api_admin_delete,
+    jwt_test,
+    api_reset_password,
+)
 
 urlpatterns = [
     path("login/", CustomLoginView.as_view(), name="login"),
@@ -13,4 +28,8 @@ urlpatterns = [
     path("api/admins/<int:admin_id>/update/", api_admin_update, name="api_admin_update"),
     path("api/admins/<int:admin_id>/delete/", api_admin_delete, name="api_admin_delete"),
     path("api/jwt-test/", jwt_test, name="jwt_test"),
+    path("api/forgot-password/",api_forgot_password,name="api_forgot_password",),
+    path("api/jwt-test/", jwt_test, name="jwt_test"),
+    path("api/verify-otp/",api_verify_otp,name="api_verify_otp",),
+    path("api/reset-password/",api_reset_password,name="api_reset_password",),
 ]

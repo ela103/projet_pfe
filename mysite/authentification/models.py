@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
 
 
 class UserManager(BaseUserManager):
@@ -43,3 +44,36 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="password_reset_otps",
+    )
+
+    code_hash = models.CharField(max_length=128)
+    expires_at = models.DateTimeField()
+
+    is_used = models.BooleanField(default=False)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def set_code(self, code):
+        self.code_hash = make_password(code)
+
+    def check_code(self, code):
+        return check_password(code, self.code_hash)
+
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    def is_valid(self):
+        return (
+            not self.is_used
+            and not self.is_expired()
+            and self.attempts < 5
+        )
+
+    def __str__(self):
+        return f"OTP de {self.user.email}"

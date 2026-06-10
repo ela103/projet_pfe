@@ -207,6 +207,19 @@ function getFriendlyDescription(name: string) {
 
   return "Site ajouté à Smart SEO pour suivre ses données et ses performances."
 }
+function getCookie(name: string): string {
+  const cookies = document.cookie.split(";")
+
+  for (const cookie of cookies) {
+    const [cookieName, ...cookieValue] = cookie.trim().split("=")
+
+    if (cookieName === name) {
+      return decodeURIComponent(cookieValue.join("="))
+    }
+  }
+
+  return ""
+}
 
 export default function WebsitesPage() {
   const router = useRouter()
@@ -288,8 +301,63 @@ const [deleteSiteMessage, setDeleteSiteMessage] = useState("")
   const handleCreateWebsite = async () => {
   setAddSiteMessage("")
 
-  if (!siteName.trim()) {
+  const cleanSiteName = siteName.trim()
+
+  if (!cleanSiteName) {
     setAddSiteMessage("Le nom du site est obligatoire.")
+    return
+  }
+
+  if (cleanSiteName.length < 2) {
+    setAddSiteMessage(
+      "Le nom du site doit contenir au moins 2 caractères."
+    )
+    return
+  }
+
+  if (cleanSiteName.length > 20) {
+    setAddSiteMessage(
+      "Le nom du site ne doit pas dépasser 20 caractères."
+    )
+    return
+  }
+
+  const cleanPropertyId = ga4PropertyId.trim()
+
+  if (!cleanPropertyId) {
+    setAddSiteMessage("Le Property ID GA4 est obligatoire.")
+    return
+  }
+
+  if (!/^\d{8}$/.test(cleanPropertyId)) {
+    setAddSiteMessage(
+      "Le Property ID GA4 doit contenir exactement 8 chiffres."
+    )
+    return
+  }
+
+  const cleanGscUrl = gscSiteUrl.trim()
+
+  if (!cleanGscUrl) {
+    setAddSiteMessage(
+      "L’URL Google Search Console est obligatoire."
+    )
+    return
+  }
+
+  try {
+    const parsedUrl = new URL(cleanGscUrl)
+
+    if (parsedUrl.protocol !== "https:") {
+      setAddSiteMessage(
+        "L’URL Google Search Console doit commencer par https://"
+      )
+      return
+    }
+  } catch {
+    setAddSiteMessage(
+      "Veuillez saisir une URL Google Search Console valide."
+    )
     return
   }
 
@@ -297,17 +365,18 @@ const [deleteSiteMessage, setDeleteSiteMessage] = useState("")
     setAddSiteLoading(true)
 
     const response = await fetch(
-      "http://127.0.0.1:8000/data/websites/",
+      "http://127.0.0.1:8000/data/websites/add/",
       {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRFToken": getCookie("csrftoken"),
         },
         body: JSON.stringify({
-          name: siteName.trim(),
-          ga4_property_id: ga4PropertyId.trim(),
-          gsc_site_url: gscSiteUrl.trim(),
+          name: cleanSiteName,
+          ga4_property_id: cleanPropertyId,
+          gsc_site_url: cleanGscUrl,
         }),
       }
     )
@@ -494,7 +563,8 @@ const handleUpdateWebsite = async () => {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-        },
+          "X-CSRFToken": getCookie("csrftoken"),
+     },
         body: JSON.stringify({
           name: editSiteName.trim(),
           ga4_property_id: editGa4PropertyId.trim(),
@@ -1218,43 +1288,57 @@ const handleDeleteWebsite = async () => {
       {/* CHAMPS */}
       <div className="space-y-3">
         <input
-          type="text"
-          placeholder="Nom du site"
-          value={siteName}
-          onChange={(e) => setSiteName(e.target.value)}
-          className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
+  type="text"
+  placeholder="Nom du site"
+  value={siteName}
+  onChange={(e) => setSiteName(e.target.value)}
+  minLength={2}
+  maxLength={20}
+  required
+  className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor: "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
 
         <input
-          type="text"
-          placeholder="Identifiant GA4"
-          value={ga4PropertyId}
-          onChange={(e) => setGa4PropertyId(e.target.value)}
-          className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
+  type="text"
+  inputMode="numeric"
+  placeholder="identifiant GA4"
+  value={ga4PropertyId}
+  onChange={(e) => {
+    const value = e.target.value
+      .replace(/\D/g, "")
+      .slice(0, 8)
 
-        <input
-          type="url"
-          placeholder="URL Google Search Console"
-          value={gscSiteUrl}
-          onChange={(e) => setGscSiteUrl(e.target.value)}
-          className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
+    setGa4PropertyId(value)
+  }}
+  minLength={8}
+  maxLength={8}
+  required
+  className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor: "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
+
+       <input
+  type="url"
+  placeholder="Exemple : https://example.com/"
+  value={gscSiteUrl}
+  onChange={(e) => setGscSiteUrl(e.target.value)}
+  required
+  className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor: "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
       </div>
 
       {/* MESSAGE */}

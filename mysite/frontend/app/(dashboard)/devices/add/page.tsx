@@ -25,36 +25,68 @@ export default function AddWebsitePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!name.trim()) {
-      setError("Le nom du site est obligatoire.")
-      return
-    }
+    const cleanName = name.trim()
 
-    if (!ga4PropertyId.trim()) {
-      setError("Le GA4 Property ID est obligatoire.")
-      return
-    }
+if (!cleanName) {
+  setError("Le nom du site est obligatoire.")
+  return
+}
 
-    if (!gscSiteUrl.trim()) {
-      setError("L’URL Google Search Console est obligatoire.")
-      return
-    }
+if (cleanName.length < 5) {
+  setError("Le nom du site doit contenir au moins 2 caractères.")
+  return
+}
+
+if (cleanName.length > 20) {
+  setError("Le nom du site ne doit pas dépasser 20 caractères.")
+  return
+}
+
+    const cleanPropertyId = ga4PropertyId.trim()
+
+if (!cleanPropertyId) {
+  setError("Le Property ID GA4 est obligatoire.")
+  return
+}
+
+if (!/^\d{8}$/.test(cleanPropertyId)) {
+  setError("Le Property ID GA4 doit contenir exactement 8 chiffres.")
+  return
+}
+    const cleanGscUrl = gscSiteUrl.trim()
+
+if (!cleanGscUrl) {
+  setError("L’URL Google Search Console est obligatoire.")
+  return
+}
+
+try {
+  const parsedUrl = new URL(cleanGscUrl)
+
+  if (parsedUrl.protocol !== "https:") {
+    setError("L’URL Google Search Console doit commencer par https://")
+    return
+  }
+} catch {
+  setError("Veuillez saisir une URL Google Search Console valide.")
+  return
+}
 
     try {
       setLoading(true)
       setError("")
       setSuccess("")
 
-      const response = await fetch("http://127.0.0.1:8000/data/websites/", {
+      const response = await fetch("http://127.0.0.1:8000/data/websites/add/", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          ga4_property_id: ga4PropertyId,
-          gsc_site_url: gscSiteUrl,
+          name: cleanName,
+          ga4_property_id: cleanPropertyId,
+          gsc_site_url: cleanGscUrl,
         }),
       })
 
@@ -163,6 +195,9 @@ export default function AddWebsitePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Exemple : Travel Agency"
+                  minLength={5}
+                  maxLength={20}
+                  required
                   className="h-13 w-full rounded-2xl border pl-11 pr-4 text-[14px] font-bold outline-none transition"
                   style={{
                     height: "52px",
@@ -189,10 +224,20 @@ export default function AddWebsitePage() {
                   style={{ color: "var(--dashboard-muted)" }}
                 />
                 <input
-                  type="text"
-                  value={ga4PropertyId}
-                  onChange={(e) => setGa4PropertyId(e.target.value)}
-                  placeholder="Exemple : 123456789"
+  type="text"
+  inputMode="numeric"
+  value={ga4PropertyId}
+  onChange={(e) => {
+    const value = e.target.value
+      .replace(/\D/g, "")
+      .slice(0, 8)
+
+    setGa4PropertyId(value)
+  }}
+  placeholder="Exemple : 12345678"
+  minLength={8}
+  maxLength={8}
+  required
                   className="w-full rounded-2xl border pl-11 pr-4 text-[14px] font-bold outline-none transition"
                   style={{
                     height: "52px",
@@ -219,21 +264,22 @@ export default function AddWebsitePage() {
                   style={{ color: "var(--dashboard-muted)" }}
                 />
                 <input
-                  type="url"
-                  value={gscSiteUrl}
-                  onChange={(e) => setGscSiteUrl(e.target.value)}
-                  placeholder="Exemple : https://example.com/"
-                  className="w-full rounded-2xl border pl-11 pr-4 text-[14px] font-bold outline-none transition"
-                  style={{
-                    height: "52px",
-                    background:
-                      "color-mix(in srgb, var(--dashboard-card-soft) 82%, transparent)",
-                    borderColor: gscSiteUrl
-                      ? "var(--brand-tertiary)"
-                      : "var(--dashboard-border)",
-                    color: "var(--dashboard-text)",
-                  }}
-                />
+  type="url"
+  value={gscSiteUrl}
+  onChange={(e) => setGscSiteUrl(e.target.value)}
+  placeholder="Exemple : https://example.com/"
+  required
+  className="w-full rounded-2xl border pl-11 pr-4 text-[14px] font-bold outline-none transition"
+  style={{
+    height: "52px",
+    background:
+      "color-mix(in srgb, var(--dashboard-card-soft) 82%, transparent)",
+    borderColor: gscSiteUrl
+      ? "var(--brand-tertiary)"
+      : "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
               </div>
             </div>
 

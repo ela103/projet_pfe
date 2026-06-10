@@ -81,21 +81,77 @@ const [editLoading, setEditLoading] = useState(false)
   const handleCreateAdmin = async () => {
   setAdminMessage("")
 
+  const cleanFirstName = adminFirstName.trim()
+  const cleanLastName = adminLastName.trim()
+  const cleanEmail = adminEmail.trim().toLowerCase()
+  const cleanPhone = adminPhone.trim()
+
+  // Champs obligatoires
   if (
-    !adminFirstName.trim() ||
-    !adminLastName.trim() ||
-    !adminEmail.trim() ||
+    !cleanFirstName ||
+    !cleanLastName ||
+    !cleanEmail ||
+    !cleanPhone ||
     !adminPassword ||
     !adminConfirmPassword
   ) {
-    setAdminMessage("Veuillez remplir les champs obligatoires.")
+    setAdminMessage("Veuillez remplir tous les champs obligatoires.")
     return
   }
 
-  if (adminPassword.length < 8) {
-    setAdminMessage("Le mot de passe doit contenir au moins 8 caractères.")
+  // Prénom et nom : lettres, espaces, apostrophes et tirets
+  const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/
+
+  if (cleanFirstName.length < 2 || cleanFirstName.length > 25) {
+    setAdminMessage("Le prénom doit contenir entre 2 et 25 caractères.")
     return
   }
+
+  if (!nameRegex.test(cleanFirstName)) {
+    setAdminMessage(
+      "Le prénom doit contenir uniquement des lettres, espaces, apostrophes ou tirets."
+    )
+    return
+  }
+
+  if (cleanLastName.length < 2 || cleanLastName.length > 25) {
+    setAdminMessage("Le nom doit contenir entre 2 et 25 caractères.")
+    return
+  }
+
+  if (!nameRegex.test(cleanLastName)) {
+    setAdminMessage(
+      "Le nom doit contenir uniquement des lettres, espaces, apostrophes ou tirets."
+    )
+    return
+  }
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+if (!emailRegex.test(cleanEmail)) {
+  setAdminMessage("Veuillez saisir une adresse email valide.")
+  return
+}
+
+// Téléphone : exactement 8 chiffres
+const phoneRegex = /^\d{8}$/
+
+if (!phoneRegex.test(cleanPhone)) {
+  setAdminMessage(
+    "Le numéro de téléphone doit contenir exactement 8 chiffres."
+  )
+  return
+}
+
+  const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
+
+if (!passwordRegex.test(adminPassword)) {
+  setAdminMessage(
+    "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial."
+  )
+  return
+}
 
   if (adminPassword !== adminConfirmPassword) {
     setAdminMessage("Les deux mots de passe ne correspondent pas.")
@@ -114,13 +170,13 @@ const [editLoading, setEditLoading] = useState(false)
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          first_name: adminFirstName.trim(),
-          last_name: adminLastName.trim(),
-          email: adminEmail.trim().toLowerCase(),
-          phone_number: adminPhone.trim(),
-          password: adminPassword,
-          confirm_password: adminConfirmPassword,
-        }),
+        first_name: cleanFirstName,
+        last_name: cleanLastName,
+        email: cleanEmail,
+        phone_number: cleanPhone,
+        password: adminPassword,
+        confirm_password: adminConfirmPassword,
+    })
       }
     )
 
@@ -579,18 +635,27 @@ const recentAdmins = admins.filter((admin) => {
               />
 
               <input
-                type="text"
-                placeholder="Téléphone"
-                value={adminPhone}
-                onChange={(e) => setAdminPhone(e.target.value)}
-                className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-                style={{
-                  background: "var(--dashboard-card-soft)",
-                  borderColor: "var(--dashboard-border)",
-                  color: "var(--dashboard-text)",
-                }}
-              />
-              {/* Mot de passe */}
+  type="tel"
+  name="phone"
+  placeholder="Téléphone — 8 chiffres"
+  value={adminPhone}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 8)
+    setAdminPhone(value)
+  }}
+  inputMode="numeric"
+  maxLength={8}
+  autoComplete="tel"
+  className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor: "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+  
+/>
+
+{/* Mot de passe */}
 <input
   type="password"
   name="new-password"
@@ -616,7 +681,7 @@ const recentAdmins = admins.filter((admin) => {
   autoComplete="new-password"
   minLength={8}
   required
-  className="h-14 w-full rounded-[20px] border px-5 text-[14px] font-bold outline-none"
+  className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none transition focus:ring-2"
   style={{
     background: "var(--dashboard-card-soft)",
     borderColor: "var(--dashboard-border)",
@@ -756,20 +821,70 @@ const recentAdmins = admins.filter((admin) => {
               />
 
               <input
-                type="text"
-                placeholder="Téléphone"
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-                style={{
-                  background: "var(--dashboard-card-soft)",
-                  borderColor: "var(--dashboard-border)",
-                  color: "var(--dashboard-text)",
-                }}
-              />
+  type="tel"
+  name="phone"
+  placeholder="Téléphone — 8 chiffres"
+  value={adminPhone}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 8)
+    setAdminPhone(value)
+  }}
+  inputMode="numeric"
+  maxLength={8}
+  autoComplete="tel"
+  className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor: "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
+            {/* Mot de passe */}
+<input
+  type="password"
+  name="new-password"
+  placeholder="Mot de passe"
+  value={adminPassword}
+  onChange={(e) => setAdminPassword(e.target.value)}
+  autoComplete="new-password"
+  minLength={8}
+  required
+  className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor: "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
 
-            
+{/* Confirmation du mot de passe */}
+<input
+  type="password"
+  name="confirm-password"
+  placeholder="Confirmer le mot de passe"
+  value={adminConfirmPassword}
+  onChange={(e) => setAdminConfirmPassword(e.target.value)}
+  autoComplete="new-password"
+  minLength={8}
+  required
+  className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
+  style={{
+    background: "var(--dashboard-card-soft)",
+    borderColor:
+      adminConfirmPassword &&
+      adminPassword !== adminConfirmPassword
+        ? "#f87171"
+        : "var(--dashboard-border)",
+    color: "var(--dashboard-text)",
+  }}
+/>
 
+{adminConfirmPassword &&
+  adminPassword !== adminConfirmPassword && (
+    <p className="-mt-1 text-xs font-bold text-red-400">
+      Les deux mots de passe ne correspondent pas.
+    </p>
+  )}
               
             </div>
 

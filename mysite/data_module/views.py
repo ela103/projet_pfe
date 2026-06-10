@@ -591,10 +591,15 @@ def websites_list(request):
         added_by_name = "Non renseigné"
 
         if website.added_by:
+            full_name = (
+                f"{website.added_by.first_name} "
+                f"{website.added_by.last_name}"
+            ).strip()
+
             added_by_name = (
-                website.added_by.get_full_name()
+                full_name
                 or website.added_by.email
-                or website.added_by.username
+                or "Utilisateur"
             )
 
         data.append({
@@ -610,12 +615,12 @@ def websites_list(request):
     return JsonResponse({
         "websites": data
     })
-
 @csrf_exempt
 @require_POST
 def add_website(request):
     try:
         body = json.loads(request.body)
+        print("DONNÉES REÇUES :", body)
 
         name = body.get("name")
         ga4_property_id = body.get("ga4_property_id")
@@ -625,22 +630,28 @@ def add_website(request):
             return JsonResponse({"error": "Le nom du site est obligatoire."}, status=400)
 
         added_by = request.user if request.user.is_authenticated else None
-
+        print("AVANT CRÉATION DU SITE"),
         website = Website.objects.create(
+           
             name=name,
             ga4_property_id=ga4_property_id,
             gsc_site_url=gsc_site_url,
             added_by=added_by,
         )
+        print("SITE CRÉÉ :", website.id, website.name)
 
         added_by_name = "Non renseigné"
 
         if website.added_by:
-            added_by_name = (
-                website.added_by.get_full_name()
-                or website.added_by.email
-                or website.added_by.username
-            )
+            full_name = (
+        f"{website.added_by.first_name} "
+        f"{website.added_by.last_name}"
+    ).strip()
+        added_by_name = (
+        full_name
+        or website.added_by.email
+        or "Utilisateur"
+    )
 
         return JsonResponse({
             "message": "Site ajouté avec succès.",
@@ -661,7 +672,58 @@ def add_website(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@csrf_exempt
+@require_http_methods(["PUT", "DELETE"])
+def website_detail(request, website_id):
+    try:
+        website = Website.objects.get(id=website_id)
+    except Website.DoesNotExist:
+        return JsonResponse(
+            {"error": "Site introuvable."},
+            status=404,
+        )
 
+    if request.method == "PUT":
+        try:
+            body = json.loads(request.body or "{}")
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "JSON invalide."},
+                status=400,
+            )
+
+        name = body.get("name", "").strip()
+        ga4_property_id = body.get("ga4_property_id", "").strip()
+        gsc_site_url = body.get("gsc_site_url", "").strip()
+
+        if not name:
+            return JsonResponse(
+                {"error": "Le nom du site est obligatoire."},
+                status=400,
+            )
+
+        website.name = name
+        website.ga4_property_id = ga4_property_id or None
+        website.gsc_site_url = gsc_site_url or None
+        website.save()
+
+        return JsonResponse({
+            "message": "Site modifié avec succès.",
+            "website": {
+                "id": website.id,
+                "name": website.name,
+                "ga4_property_id": website.ga4_property_id,
+                "gsc_site_url": website.gsc_site_url,
+                "created_at": website.created_at,
+                "added_by": website.added_by_id,
+            },
+        })
+
+    website.delete()
+
+    return JsonResponse({
+        "message": "Site supprimé avec succès."
+    })
 def top_pages(request):
     website_id = request.GET.get("website_id")
 

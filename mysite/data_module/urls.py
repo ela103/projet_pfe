@@ -29,6 +29,7 @@ urlpatterns = [
     path("top-keywords/", views.top_keywords, name="top_keywords"),
     path("notifications/", views.notifications_list, name="notifications_list"),
     path("websites/add/", views.add_website, name="add_website"),
+    path("websites/<int:website_id>/",views.website_detail,name="website_detail"),
     path("dashboard/events/", views.dashboard_events, name="dashboard_events"),
     path("top-visited-pages/", views.top_visited_pages, name="top_visited_pages"),
 

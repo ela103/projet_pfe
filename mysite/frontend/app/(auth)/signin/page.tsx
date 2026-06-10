@@ -120,6 +120,14 @@ if (response.ok && data.success) {
               />
             </div>
 
+            <div className="flex justify-end">
+            <Link
+               href="/forgot-password"
+               className="text-sm font-medium text-cyan-200 transition hover:text-white hover:underline"
+              >Mot de passe oublié ?
+           </Link>
+           </div>
+
             {message && (
               <p className="rounded-xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
                 {message}
