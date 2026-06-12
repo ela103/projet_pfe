@@ -273,32 +273,39 @@ def api_forgot_password(request):
                 status=400,
             )
 
+        email_error = validate_email_address(email)
+
+        if email_error:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": email_error,
+                },
+                status=400,
+            )
+
         try:
             user = User.objects.get(
                 email__iexact=email,
                 is_active=True,
             )
         except User.DoesNotExist:
-            # Réponse volontairement neutre :
-            # on ne révèle pas si l'adresse existe.
             return JsonResponse(
                 {
-                    "success": True,
+                    "success": False,
                     "message": (
-                        "Si cette adresse correspond à un compte actif, "
-                        "un code de vérification a été envoyé."
+                        "Aucun compte actif n’est associé "
+                        "à cette adresse email."
                     ),
-                }
-                
+                },
+                status=404,
             )
 
-        # Invalider les anciens codes non utilisés
         PasswordResetOTP.objects.filter(
             user=user,
             is_used=False,
         ).update(is_used=True)
 
-        # Code sécurisé de 6 chiffres
         code = f"{secrets.randbelow(1_000_000):06d}"
 
         otp = PasswordResetOTP(
@@ -326,11 +333,9 @@ def api_forgot_password(request):
         return JsonResponse(
             {
                 "success": True,
-                "message": (
-                    "Si cette adresse correspond à un compte actif, "
-                    "un code de vérification a été envoyé."
-                ),
-            }
+                "message": "Le code de vérification a été envoyé.",
+            },
+            status=200,
         )
 
     except json.JSONDecodeError:
@@ -344,6 +349,7 @@ def api_forgot_password(request):
 
     except Exception as e:
         print("Erreur envoi OTP :", repr(e))
+
         return JsonResponse(
             {
                 "success": False,
@@ -737,7 +743,7 @@ def api_admin_create(request):
         )
 
     try:
-        admin = User.objects.create_user(
+        admin = User.objects.create_superuser(
             email=email,
             password=password,
             first_name=first_name,
@@ -745,6 +751,7 @@ def api_admin_create(request):
             phone_number=phone_number,
             is_staff=True,
             is_active=True,
+            is_superuser=True
         )
 
         return JsonResponse(
@@ -1017,4 +1024,14 @@ def jwt_test(request):
             "is_staff": request.user.is_staff,
             "is_active": request.user.is_active,
         }
+    })
+from django.views.decorators.csrf import ensure_csrf_cookie
+
+
+@ensure_csrf_cookie
+@require_GET
+def api_csrf(request):
+    return JsonResponse({
+        "success": True,
+        "message": "Cookie CSRF initialisé.",
     })

@@ -32,5 +32,7 @@ urlpatterns = [
     path("websites/<int:website_id>/",views.website_detail,name="website_detail"),
     path("dashboard/events/", views.dashboard_events, name="dashboard_events"),
     path("top-visited-pages/", views.top_visited_pages, name="top_visited_pages"),
+    path("dashboard/stats-dw/",views.dashboard_stats_dw,name="dashboard_stats_dw"),
+    path("top-visited-pages-dw/",views.top_visited_pages_dw,name="top_visited_pages_dw"),
 
 ]

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "gemini_module",
     'rest_framework',
     "competitor_module",
+    "datawarehouse",
     
 
 ]

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { AlertCircle } from "lucide-react"
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -74,35 +75,39 @@ router.push(
           </div>
 
           <form className="grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-white/90">
-                Adresse email
-              </label>
+  <div className="grid gap-2">
+    <label className="text-sm font-medium text-white/90">
+      Adresse email
+    </label>
 
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Votre email"
-                required
-                className="h-12 rounded-full border border-white/10 bg-[#1d2048]/90 px-4 text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20"
-              />
-            </div>
+    <input
+      type="email"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      placeholder="Votre email"
+      required
+      className="h-12 rounded-full border border-white/10 bg-[#1d2048]/90 px-4 text-white placeholder:text-white/40 outline-none transition-all duration-300 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20"
+    />
+  </div>
 
-            {message && (
-              <p className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white">
-                {message}
-              </p>
-            )}
+  {message && (
+    <div className="flex items-start gap-3 rounded-2xl border border-red-300/30 bg-red-500/15 px-4 py-3">
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-200" />
 
-            <button
-  type="submit"
-  disabled={loading}
-  className="mt-2 h-12 rounded-full bg-[linear-gradient(90deg,#7c3aed,#6366f1,#60a5fa)] text-sm font-semibold text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
->
-  {loading ? "Envoi..." : "Envoyer le code"}
-</button>
-          </form>
+      <p className="text-sm font-semibold leading-6 text-red-100">
+        {message}
+      </p>
+    </div>
+  )}
+
+  <button
+    type="submit"
+    disabled={loading}
+    className="mt-2 h-12 rounded-full bg-[linear-gradient(90deg,#7c3aed,#6366f1,#60a5fa)] text-sm font-semibold text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+  >
+    {loading ? "Envoi..." : "Envoyer le code"}
+  </button>
+</form>
 
           <div className="mt-6 text-center">
             <Link

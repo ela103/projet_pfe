@@ -1502,7 +1502,7 @@ const currentTheme = selectedTheme
 }
 
       const response = await fetch(
-        `http://127.0.0.1:8000/data/dashboard/stats/?${params.toString()}`,
+         `http://127.0.0.1:8000/data/dashboard/stats-dw/?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",

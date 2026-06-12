@@ -14,6 +14,7 @@ from .views import (
     api_admin_delete,
     jwt_test,
     api_reset_password,
+    api_csrf,
 )
 
 urlpatterns = [
@@ -32,4 +33,5 @@ urlpatterns = [
     path("api/jwt-test/", jwt_test, name="jwt_test"),
     path("api/verify-otp/",api_verify_otp,name="api_verify_otp",),
     path("api/reset-password/",api_reset_password,name="api_reset_password",),
+    path("api/csrf/", api_csrf, name="api_csrf"),
 ]

@@ -32,6 +32,12 @@ from django.http import JsonResponse
 from .models import Website
 
 from .models import Notification
+from datawarehouse.models import (
+    DimWebsite,
+    FactGAMetrics,
+    FactGSCMetrics,
+    FactGAEvent,
+)
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -425,6 +431,135 @@ def dashboard_stats(request):
         "ga_chart": ga_chart,
         "gsc_chart": list(gsc_data),
     })
+
+def dashboard_stats_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id requis"},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    ga_query = FactGAMetrics.objects.filter(
+        website=dim_website,
+        page__isnull=False,
+    )
+
+    gsc_query = FactGSCMetrics.objects.filter(
+        website=dim_website,
+        page__isnull=False,
+    )
+
+    if start_date:
+        ga_query = ga_query.filter(
+            date__full_date__gte=start_date
+        )
+        gsc_query = gsc_query.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        ga_query = ga_query.filter(
+            date__full_date__lte=end_date
+        )
+        gsc_query = gsc_query.filter(
+            date__full_date__lte=end_date
+        )
+
+    ga_data = (
+        ga_query
+        .values("date__full_date")
+        .annotate(
+            users=Sum("active_users"),
+            sessions=Sum("sessions"),
+            page_views=Sum("page_views"),
+            engagement_rate=Avg("engagement_rate"),
+        )
+        .order_by("date__full_date")
+    )
+
+    ga_chart = []
+
+    for item in ga_data:
+        engagement_rate = float(
+            item.get("engagement_rate") or 0
+        )
+
+        if engagement_rate <= 1:
+            engagement_rate_percent = round(
+                engagement_rate * 100,
+                2,
+            )
+            bounce_rate = round(
+                (1 - engagement_rate) * 100,
+                2,
+            )
+        else:
+            engagement_rate_percent = round(
+                engagement_rate,
+                2,
+            )
+            bounce_rate = round(
+                100 - engagement_rate,
+                2,
+            )
+
+        ga_chart.append({
+            "date": item["date__full_date"],
+            "users": item["users"] or 0,
+            "sessions": item["sessions"] or 0,
+            "page_views": item["page_views"] or 0,
+            "engagement_rate": engagement_rate_percent,
+            "bounce_rate": bounce_rate,
+        })
+
+    gsc_data = (
+        gsc_query
+        .values("date__full_date")
+        .annotate(
+            clicks=Sum("clicks"),
+            impressions=Sum("impressions"),
+            ctr=Avg("ctr"),
+            position=Avg("position"),
+        )
+        .order_by("date__full_date")
+    )
+
+    gsc_chart = [
+        {
+            "date": item["date__full_date"],
+            "clicks": item["clicks"] or 0,
+            "impressions": item["impressions"] or 0,
+            "ctr": float(item["ctr"] or 0),
+            "position": float(item["position"] or 0),
+        }
+        for item in gsc_data
+    ]
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "website_id": int(website_id),
+        "ga_chart": ga_chart,
+        "gsc_chart": gsc_chart,
+    })
+
 def gsc_page_distribution(request):
     website_id = request.GET.get("website_id")
 
@@ -850,3 +985,68 @@ def top_visited_pages(request):
     ]
 
     return JsonResponse({"pages": data})
+
+
+def top_visited_pages_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id est obligatoire"},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans "
+                    "la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    queryset = FactGAMetrics.objects.filter(
+        website=dim_website,
+        page__isnull=False,
+    )
+
+    if start_date:
+        queryset = queryset.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        queryset = queryset.filter(
+            date__full_date__lte=end_date
+        )
+
+    pages = (
+        queryset
+        .values("page__page_path")
+        .annotate(
+            page_views=Sum("page_views")
+        )
+        .order_by("-page_views")[:10]
+    )
+
+    data = [
+        {
+            "page": item["page__page_path"] or "Page inconnue",
+            "page_views": item["page_views"] or 0,
+        }
+        for item in pages
+    ]
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "pages": data,
+    })
+

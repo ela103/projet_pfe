@@ -44,6 +44,11 @@ const [editEmail, setEditEmail] = useState("")
 const [editPhone, setEditPhone] = useState("")
 const [editPassword, setEditPassword] = useState("")
 const [editIsActive, setEditIsActive] = useState(true)
+const [adminToDelete, setAdminToDelete] =
+  useState<AdminAccount | null>(null)
+
+const [isDeleting, setIsDeleting] = useState(false)
+const [deleteMessage, setDeleteMessage] = useState("")
 
 
 const [editMessage, setEditMessage] = useState("")
@@ -279,6 +284,44 @@ const handleUpdateAdmin = async () => {
     setEditMessage("Erreur de connexion au serveur.")
   } finally {
     setEditLoading(false)
+  }
+}
+const handleDeleteAdmin = async () => {
+  if (!adminToDelete) return
+
+  setIsDeleting(true)
+  setDeleteMessage("")
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/admins/${adminToDelete.id}/delete/`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    )
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      setDeleteMessage(
+        data.message || "Impossible de supprimer ce compte."
+      )
+      return
+    }
+
+    setAdmins((currentAdmins) =>
+      currentAdmins.filter(
+        (admin) => admin.id !== adminToDelete.id
+      )
+    )
+
+    setAdminToDelete(null)
+  } catch (error) {
+    console.error("Erreur de suppression :", error)
+    setDeleteMessage("Impossible de contacter le serveur.")
+  } finally {
+    setIsDeleting(false)
   }
 }
 const totalAdmins = admins.length
@@ -543,11 +586,15 @@ const recentAdmins = admins.filter((admin) => {
                     </button>
 
                     <button
-                      type="button"
-                      className="rounded-full bg-red-500/10 px-4 py-2 text-[11px] font-black text-red-400 transition hover:bg-red-500/15"
-                    >
-                      Supprimer
-                    </button>
+  type="button"
+  onClick={() => {
+    setAdminToDelete(admin)
+    setDeleteMessage("")
+  }}
+  className="rounded-full bg-red-500/10 px-4 py-2 text-[11px] font-black text-red-400 transition hover:bg-red-500/15"
+>
+  Supprimer
+</button>
                   </div>
                 </div>
               ))}
@@ -932,6 +979,127 @@ const recentAdmins = admins.filter((admin) => {
           </div>
         </div>
       )}
+     
+{/* MODALE DE CONFIRMATION DE SUPPRESSION */}
+{adminToDelete && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+    <div
+      className="relative w-full max-w-md rounded-[28px] border p-6 shadow-2xl"
+      style={{
+        background: "var(--dashboard-card)",
+        borderColor: "var(--dashboard-border)",
+        color: "var(--dashboard-text)",
+      }}
+    >
+      {/* Bouton de fermeture */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!isDeleting) {
+            setAdminToDelete(null)
+            setDeleteMessage("")
+          }
+        }}
+        disabled={isDeleting}
+        aria-label="Fermer"
+        className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full border text-2xl transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+        style={{
+          background: "var(--dashboard-card-soft)",
+          borderColor: "var(--dashboard-border)",
+          color: "var(--dashboard-text)",
+        }}
+      >
+        ×
+      </button>
+
+      {/* Titre */}
+      <div className="pr-12">
+        <h2 className="text-xl font-black">
+          Supprimer le compte
+        </h2>
+
+        <p
+          className="mt-2 text-sm font-medium"
+          style={{ color: "var(--dashboard-muted)" }}
+        >
+          Cette action est définitive.
+        </p>
+      </div>
+
+      {/* Informations du compte */}
+      <div
+        className="mt-5 rounded-[20px] border p-4"
+        style={{
+          background: "var(--dashboard-card-soft)",
+          borderColor: "var(--dashboard-border)",
+        }}
+      >
+        <p className="text-sm font-bold leading-6">
+          Êtes-vous sûr de vouloir supprimer le compte de{" "}
+          <span className="font-black">
+            {adminToDelete.first_name} {adminToDelete.last_name}
+          </span>{" "}
+          ?
+        </p>
+
+        <p
+          className="mt-1 truncate text-xs font-medium"
+          style={{ color: "var(--dashboard-muted)" }}
+        >
+          {adminToDelete.email}
+        </p>
+      </div>
+
+      {/* Message d’erreur */}
+      {deleteMessage && (
+        <div
+          className="mt-4 rounded-2xl border px-4 py-3 text-sm font-bold"
+          style={{
+            background: "var(--dashboard-card-soft)",
+            borderColor: "var(--dashboard-border)",
+            color: "var(--dashboard-text)",
+          }}
+        >
+          {deleteMessage}
+        </div>
+      )}
+
+      {/* Boutons */}
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setAdminToDelete(null)
+            setDeleteMessage("")
+          }}
+          disabled={isDeleting}
+          className="h-11 rounded-2xl border text-sm font-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+          style={{
+            background: "var(--dashboard-card-soft)",
+            borderColor: "var(--dashboard-border)",
+            color: "var(--dashboard-text)",
+          }}
+        >
+          Annuler
+        </button>
+
+        <button
+          type="button"
+          onClick={handleDeleteAdmin}
+          disabled={isDeleting}
+          className="h-11 rounded-2xl text-sm font-black text-white shadow-lg transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            background: "var(--brand-gradient)",
+          }}
+        >
+          {isDeleting ? "Suppression..." : "Oui, supprimer"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </section>
   )
 }
