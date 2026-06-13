@@ -50,7 +50,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                "Synchronisation terminée avec succès."
+                "Synchronisation complète du data warehouse terminée avec succès."
             )
         )
         # -------------------------------------------------

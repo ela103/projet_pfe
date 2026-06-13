@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import Group
 from django.views.decorators.http import (
     require_GET,
     require_POST,
@@ -153,6 +154,7 @@ def api_login(request):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
             },
         }
     )
@@ -173,6 +175,8 @@ def api_me(request):
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
             "phone_number": request.user.phone_number,
+            "is_staff": request.user.is_staff,
+            "is_superuser": request.user.is_superuser,
         })
 
     return JsonResponse({
@@ -239,11 +243,28 @@ def api_change_password(request):
             "success": False,
             "message": str(e)
         }, status=500)
-def is_admin_user(request):
+def is_staff_user(request):
+    """
+    Admin principal ou administrateur secondaire.
+    Peut consulter les données administratives.
+    """
     return (
         request.user.is_authenticated
         and request.user.is_active
         and request.user.is_staff
+    )
+
+
+def is_main_admin(request):
+    """
+    Seulement l'administrateur principal.
+    Peut créer, modifier et supprimer des administrateurs.
+    """
+    return (
+        request.user.is_authenticated
+        and request.user.is_active
+        and request.user.is_staff
+        and request.user.is_superuser
     )
 def serialize_user(user):
     return {
@@ -254,6 +275,7 @@ def serialize_user(user):
         "phone_number": user.phone_number or "",
         "is_active": user.is_active,
         "is_staff": user.is_staff,
+        "is_superuser": user.is_superuser,
         "date_joined": user.date_joined.isoformat(),
     }
 
@@ -597,11 +619,11 @@ def api_reset_password(request):
         )
 @require_GET
 def api_admin_list(request):
-    if not is_admin_user(request):
+    if not is_main_admin(request):
         return JsonResponse(
             {
                 "success": False,
-                "message": "Accès refusé.",
+                "message": "Seul l’administrateur principal peut consulter les comptes administrateurs.",
             },
             status=403,
         )
@@ -624,11 +646,15 @@ def api_admin_list(request):
 @csrf_exempt
 @require_POST
 def api_admin_create(request):
-    if not is_admin_user(request):
+    # Seul le superuser peut créer un administrateur secondaire
+    if not is_main_admin(request):
         return JsonResponse(
             {
                 "success": False,
-                "message": "Accès refusé.",
+                "message": (
+                    "Seul l’administrateur principal peut "
+                    "ajouter un administrateur."
+                ),
             },
             status=403,
         )
@@ -743,16 +769,23 @@ def api_admin_create(request):
         )
 
     try:
-        admin = User.objects.create_superuser(
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            phone_number=phone_number,
-            is_staff=True,
-            is_active=True,
-            is_superuser=True
+        # Création d’un admin secondaire, et non d’un superuser
+        admin = User.objects.create_user(
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        phone_number=phone_number,
+        is_staff=True,
+        is_active=True,
+        is_superuser=False,
+    )
+
+        admin_group, created = Group.objects.get_or_create(
+            name="Administrateurs secondaires"
         )
+
+        admin.groups.add(admin_group)
 
         return JsonResponse(
             {
@@ -764,7 +797,8 @@ def api_admin_create(request):
         )
 
     except Exception as e:
-        print("Erreur envoi OTP :", repr(e))
+        print("Erreur création administrateur :", repr(e))
+
         return JsonResponse(
             {
                 "success": False,
@@ -779,7 +813,7 @@ def api_admin_create(request):
 @csrf_exempt
 @require_http_methods(["PUT", "PATCH"])
 def api_admin_update(request, admin_id):
-    if not is_admin_user(request):
+    if not is_main_admin(request):
         return JsonResponse(
             {
                 "success": False,
@@ -800,6 +834,16 @@ def api_admin_update(request, admin_id):
                 "message": "Administrateur introuvable.",
             },
             status=404,
+        )
+
+    # AJOUTEZ LA VÉRIFICATION ICI
+    if admin.is_superuser and admin.id != request.user.id:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Vous ne pouvez pas modifier un autre superutilisateur.",
+            },
+            status=403,
         )
 
     try:
@@ -928,6 +972,14 @@ def api_admin_update(request, admin_id):
     admin.is_active = is_active
     admin.is_staff = True
 
+    if not admin.is_superuser:
+        admin.is_superuser = False
+
+    if password:
+        admin.set_password(password)
+
+    admin.save()
+
     if password:
         admin.set_password(password)
 
@@ -957,7 +1009,7 @@ def api_admin_update(request, admin_id):
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def api_admin_delete(request, admin_id):
-    if not is_admin_user(request):
+    if not is_main_admin(request):
         return JsonResponse(
             {
                 "success": False,
@@ -990,6 +1042,14 @@ def api_admin_delete(request, admin_id):
         )
 
     try:
+        if admin.is_superuser:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Le compte administrateur principal ne peut pas être supprimé.",
+                },
+                status=403,
+            )
         admin.delete()
 
         return JsonResponse(

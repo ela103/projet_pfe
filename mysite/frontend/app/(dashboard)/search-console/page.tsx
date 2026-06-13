@@ -204,7 +204,7 @@ export default function SearchConsolePage() {
         if (appliedEndDate) params.append("end_date", appliedEndDate)
 
         const statsResponse = await fetch(
-          `http://127.0.0.1:8000/data/dashboard/stats/?${params.toString()}`,
+          `http://127.0.0.1:8000/data/dashboard/stats-dw/?${params.toString()}`,
           {
             method: "GET",
             credentials: "include",
@@ -222,7 +222,7 @@ export default function SearchConsolePage() {
         setStatsData(statsJson)
 
         const pagesResponse = await fetch(
-          `http://127.0.0.1:8000/data/top-pages/?${params.toString()}`,
+          `http://127.0.0.1:8000/data/top-pages-dw/?${params.toString()}`,
           {
             method: "GET",
             credentials: "include",
@@ -237,7 +237,7 @@ export default function SearchConsolePage() {
         }
 
         const keywordsResponse = await fetch(
-          `http://127.0.0.1:8000/data/top-keywords/?${params.toString()}`,
+          `http://127.0.0.1:8000/data/top-keywords-dw/?${params.toString()}`,
           {
             method: "GET",
             credentials: "include",

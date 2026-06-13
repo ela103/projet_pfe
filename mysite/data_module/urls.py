@@ -32,7 +32,14 @@ urlpatterns = [
     path("websites/<int:website_id>/",views.website_detail,name="website_detail"),
     path("dashboard/events/", views.dashboard_events, name="dashboard_events"),
     path("top-visited-pages/", views.top_visited_pages, name="top_visited_pages"),
+
+
+
     path("dashboard/stats-dw/",views.dashboard_stats_dw,name="dashboard_stats_dw"),
     path("top-visited-pages-dw/",views.top_visited_pages_dw,name="top_visited_pages_dw"),
-
+    path("top-pages-dw/",views.top_pages_dw,name="top_pages_dw"),
+    path("top-keywords-dw/",views.top_keywords_dw,name="top_keywords_dw"),
+    path("dashboard/events-dw/",views.dashboard_events_dw,name="dashboard_events_dw"),
+    path("dashboard/ga-events-dw/",views.ga_events_chart_dw,name="ga_events_chart_dw"),
+    path("dashboard/gsc-pages-dw/",views.gsc_page_distribution_dw,name="gsc_page_distribution_dw"),
 ]

@@ -1420,7 +1420,7 @@ const currentTheme = selectedTheme
 }
 
       const response = await fetch(
-        `http://127.0.0.1:8000/data/top-visited-pages/?${params.toString()}`,
+        `http://127.0.0.1:8000/data/top-visited-pages-dw/?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",
@@ -1534,8 +1534,24 @@ const currentTheme = selectedTheme
       setPagesLoading(true)
       setPagesError("")
 
+      const params = new URLSearchParams()
+      params.append("website_id", selectedWebsiteId)
+
+      if (selectedCalendarDate) {
+        params.append("start_date", selectedCalendarDate)
+        params.append("end_date", selectedCalendarDate)
+      } else {
+        if (appliedStartDate) {
+          params.append("start_date", appliedStartDate)
+        }
+
+        if (appliedEndDate) {
+          params.append("end_date", appliedEndDate)
+        }
+      }
+
       const response = await fetch(
-        `http://127.0.0.1:8000/data/top-pages/?website_id=${selectedWebsiteId}`,
+        `http://127.0.0.1:8000/data/top-pages-dw/?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",
@@ -1545,12 +1561,16 @@ const currentTheme = selectedTheme
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Impossible de charger les pages.")
+        throw new Error(
+          data.error || "Impossible de charger les pages."
+        )
       }
 
       setTopPages(data.pages || [])
     } catch (err: any) {
-      setPagesError(err.message || "Erreur lors du chargement des pages.")
+      setPagesError(
+        err.message || "Erreur lors du chargement des pages."
+      )
       setTopPages([])
     } finally {
       setPagesLoading(false)
@@ -1558,9 +1578,14 @@ const currentTheme = selectedTheme
   }
 
   fetchTopPages()
-}, [selectedWebsiteId])
+}, [
+  selectedWebsiteId,
+  appliedStartDate,
+  appliedEndDate,
+  selectedCalendarDate,
+])
 
-  useEffect(() => {
+ useEffect(() => {
   if (!selectedWebsiteId) return
 
   const fetchTopKeywords = async () => {
@@ -1568,8 +1593,24 @@ const currentTheme = selectedTheme
       setKeywordsLoading(true)
       setKeywordsError("")
 
+      const params = new URLSearchParams()
+      params.append("website_id", selectedWebsiteId)
+
+      if (selectedCalendarDate) {
+        params.append("start_date", selectedCalendarDate)
+        params.append("end_date", selectedCalendarDate)
+      } else {
+        if (appliedStartDate) {
+          params.append("start_date", appliedStartDate)
+        }
+
+        if (appliedEndDate) {
+          params.append("end_date", appliedEndDate)
+        }
+      }
+
       const response = await fetch(
-        `http://127.0.0.1:8000/data/top-keywords/?website_id=${selectedWebsiteId}`,
+        `http://127.0.0.1:8000/data/top-keywords-dw/?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",
@@ -1579,12 +1620,16 @@ const currentTheme = selectedTheme
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Impossible de charger les mots-clés.")
+        throw new Error(
+          data.error || "Impossible de charger les mots-clés."
+        )
       }
 
       setTopKeywords(data.keywords || [])
     } catch (err: any) {
-      setKeywordsError(err.message || "Erreur lors du chargement des mots-clés.")
+      setKeywordsError(
+        err.message || "Erreur lors du chargement des mots-clés."
+      )
       setTopKeywords([])
     } finally {
       setKeywordsLoading(false)
@@ -1592,7 +1637,12 @@ const currentTheme = selectedTheme
   }
 
   fetchTopKeywords()
-}, [selectedWebsiteId])
+}, [
+  selectedWebsiteId,
+  appliedStartDate,
+  appliedEndDate,
+  selectedCalendarDate,
+])
 
 useEffect(() => {
   if (!selectedWebsiteId) return
@@ -1619,7 +1669,7 @@ useEffect(() => {
 }
 
       const response = await fetch(
-        `http://127.0.0.1:8000/data/dashboard/events/?${params.toString()}`,
+        `http://127.0.0.1:8000/data/dashboard/events-dw/?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",

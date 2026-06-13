@@ -29,6 +29,8 @@ type UserProfile = {
   first_name: string
   last_name: string
   phone_number: string
+  is_staff: boolean
+  is_superuser: boolean
 }
 
 type AdminAccount = {
@@ -122,7 +124,6 @@ export default function ProfilePage() {
   const [adminPassword, setAdminPassword] = useState("")
   const [adminMessage, setAdminMessage] = useState("")
   const [adminLoading, setAdminLoading] = useState(false)
-
 const fetchAdmins = async () => {
   try {
     setAdminsLoading(true)
@@ -136,7 +137,9 @@ const fetchAdmins = async () => {
     const data = await response.json()
 
     if (!response.ok || !data.success) {
-      setAdminsError(data.message || "Impossible de charger les comptes.")
+      setAdminsError(
+        data.message || "Impossible de charger les comptes."
+      )
       return
     }
 
@@ -147,34 +150,47 @@ const fetchAdmins = async () => {
     setAdminsLoading(false)
   }
 }
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true)
-        setError("")
 
-        const response = await fetch("http://127.0.0.1:8000/api/me/", {
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      setError("")
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/me/",
+        {
           method: "GET",
           credentials: "include",
-        })
-
-        const data = await response.json()
-
-        if (!response.ok || !data.authenticated) {
-          setError("Impossible de récupérer les informations du profil.")
-          return
         }
+      )
 
-        setUser(data)
-      } catch {
-        setError("Erreur de connexion au serveur.")
-      } finally {
-        setLoading(false)
+      const data = await response.json()
+
+      if (!response.ok || !data.authenticated) {
+        setError(
+          "Impossible de récupérer les informations du profil."
+        )
+        return
       }
-    }
 
-    fetchProfile()
-    fetchAdmins()
+      setUser(data)
+
+      // Seulement le superuser peut charger la liste des admins
+      if (data.is_superuser === true) {
+        await fetchAdmins()
+      } else {
+        setAdmins([])
+        setAdminsLoading(false)
+      }
+    } catch {
+      setError("Erreur de connexion au serveur.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchProfile()
   }, [])
 
   const handleChangePassword = async () => {
@@ -224,7 +240,7 @@ const fetchAdmins = async () => {
       setConfirmPassword("")
 
       setTimeout(() => {
-        window.location.href = "/login"
+        window.location.href = "/signin"
       }, 1500)
     } catch {
       setPasswordMessage("Erreur de connexion au serveur.")
@@ -606,7 +622,7 @@ const fetchAdmins = async () => {
                 </span>
               </button>
               
-<button
+{user?.is_superuser === true && (<button
   type="button"
   onClick={() => {
   window.location.href = "/profile/accounts"
@@ -643,7 +659,7 @@ const fetchAdmins = async () => {
   >
     Gérer
   </span>
-</button>
+</button>)}
 <button
   type="button"
   onClick={() => {

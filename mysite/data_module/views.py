@@ -38,6 +38,7 @@ from datawarehouse.models import (
     FactGSCMetrics,
     FactGAEvent,
 )
+from authentification.permissions import is_staff_user
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -433,6 +434,14 @@ def dashboard_stats(request):
     })
 
 def dashboard_stats_dw(request):
+    if not is_staff_user(request):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Accès réservé aux administrateurs.",
+            },
+            status=403,
+        )
     website_id = request.GET.get("website_id")
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
@@ -580,6 +589,75 @@ def gsc_page_distribution(request):
     return JsonResponse({
         "pages": list(data)
     })
+
+def gsc_page_distribution_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id requis"},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans "
+                    "la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    queryset = FactGSCMetrics.objects.filter(
+        website=dim_website,
+        page__isnull=False,
+    )
+
+    if start_date:
+        queryset = queryset.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        queryset = queryset.filter(
+            date__full_date__lte=end_date
+        )
+
+    rows = (
+        queryset
+        .values("page__page_path")
+        .annotate(
+            total_clicks=Sum("clicks"),
+            total_impressions=Sum("impressions"),
+        )
+        .order_by(
+            "-total_clicks",
+            "-total_impressions",
+        )[:5]
+    )
+
+    pages = [
+        {
+            "page": item["page__page_path"] or "Page inconnue",
+            "total_clicks": item["total_clicks"] or 0,
+            "total_impressions": item["total_impressions"] or 0,
+        }
+        for item in rows
+    ]
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "pages": pages,
+    })
+
 def ga_events_chart(request):
     try:
         website_id = request.GET.get("website_id")
@@ -605,6 +683,87 @@ def ga_events_chart(request):
 
     except Exception as e:
         return JsonResponse({"message": str(e)}, status=500)
+    
+def ga_events_chart_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id est obligatoire."},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans "
+                    "la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    queryset = FactGAEvent.objects.filter(
+        website=dim_website,
+        page__isnull=False,
+    )
+
+    if start_date:
+        queryset = queryset.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        queryset = queryset.filter(
+            date__full_date__lte=end_date
+        )
+
+    event_rows = (
+        queryset
+        .values(
+            "date__full_date",
+            "page__page_path",
+            "event_name",
+        )
+        .annotate(
+            event_count=Sum("event_count"),
+            users=Sum("users"),
+            total_revenue=Sum("total_revenue"),
+        )
+        .order_by(
+            "-date__full_date",
+            "-event_count",
+        )[:200]
+    )
+
+    events = [
+        {
+            "date": item["date__full_date"],
+            "page_path": (
+                item["page__page_path"] or "Page inconnue"
+            ),
+            "event_name": item["event_name"],
+            "event_count": item["event_count"] or 0,
+            "users": item["users"] or 0,
+            "total_revenue": float(
+                item["total_revenue"] or 0
+            ),
+        }
+        for item in event_rows
+    ]
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "events": events,
+    })
+
 @csrf_exempt
 @require_POST
 def scrape_pages(request):
@@ -717,7 +876,18 @@ def get_scraped_pages(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+        
+@require_GET
 def websites_list(request):
+    if not is_staff_user(request):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Accès réservé aux administrateurs.",
+            },
+            status=403,
+        )
+
     websites = Website.objects.select_related("added_by").all()
 
     data = []
@@ -748,73 +918,111 @@ def websites_list(request):
         })
 
     return JsonResponse({
-        "websites": data
+        "success": True,
+        "websites": data,
     })
 @csrf_exempt
 @require_POST
 def add_website(request):
-    try:
-        body = json.loads(request.body)
-        print("DONNÉES REÇUES :", body)
+    if not is_staff_user(request):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Accès réservé aux administrateurs.",
+            },
+            status=403,
+        )
 
-        name = body.get("name")
+    try:
+        body = json.loads(request.body or "{}")
+
+        name = body.get("name", "").strip()
         ga4_property_id = body.get("ga4_property_id")
         gsc_site_url = body.get("gsc_site_url")
 
         if not name:
-            return JsonResponse({"error": "Le nom du site est obligatoire."}, status=400)
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Le nom du site est obligatoire.",
+                },
+                status=400,
+            )
 
-        added_by = request.user if request.user.is_authenticated else None
-        print("AVANT CRÉATION DU SITE"),
         website = Website.objects.create(
-           
             name=name,
             ga4_property_id=ga4_property_id,
             gsc_site_url=gsc_site_url,
-            added_by=added_by,
+            added_by=request.user,
         )
-        print("SITE CRÉÉ :", website.id, website.name)
 
-        added_by_name = "Non renseigné"
-
-        if website.added_by:
-            full_name = (
-        f"{website.added_by.first_name} "
-        f"{website.added_by.last_name}"
-    ).strip()
         added_by_name = (
-        full_name
-        or website.added_by.email
-        or "Utilisateur"
-    )
+            f"{request.user.first_name} "
+            f"{request.user.last_name}"
+        ).strip()
 
-        return JsonResponse({
-            "message": "Site ajouté avec succès.",
-            "website": {
-                "id": website.id,
-                "name": website.name,
-                "ga4_property_id": website.ga4_property_id,
-                "gsc_site_url": website.gsc_site_url,
-                "created_at": website.created_at,
-                "added_by": website.added_by_id,
-                "added_by_name": added_by_name,
-            }
-        }, status=201)
+        added_by_name = (
+            added_by_name
+            or request.user.email
+            or "Utilisateur"
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Site ajouté avec succès.",
+                "website": {
+                    "id": website.id,
+                    "name": website.name,
+                    "ga4_property_id": website.ga4_property_id,
+                    "gsc_site_url": website.gsc_site_url,
+                    "created_at": website.created_at,
+                    "added_by": website.added_by_id,
+                    "added_by_name": added_by_name,
+                },
+            },
+            status=201,
+        )
 
     except json.JSONDecodeError:
-        return JsonResponse({"error": "JSON invalide."}, status=400)
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "JSON invalide.",
+            },
+            status=400,
+        )
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        print("Erreur ajout site :", repr(e))
 
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Une erreur est survenue pendant l’ajout du site.",
+            },
+            status=500,
+        )
 @csrf_exempt
 @require_http_methods(["PUT", "DELETE"])
 def website_detail(request, website_id):
+    if not is_staff_user(request):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Accès réservé aux administrateurs.",
+            },
+            status=403,
+        )
+
     try:
         website = Website.objects.get(id=website_id)
     except Website.DoesNotExist:
         return JsonResponse(
-            {"error": "Site introuvable."},
+            {
+                "success": False,
+                "error": "Site introuvable.",
+            },
             status=404,
         )
 
@@ -823,7 +1031,10 @@ def website_detail(request, website_id):
             body = json.loads(request.body or "{}")
         except json.JSONDecodeError:
             return JsonResponse(
-                {"error": "JSON invalide."},
+                {
+                    "success": False,
+                    "error": "JSON invalide.",
+                },
                 status=400,
             )
 
@@ -833,7 +1044,10 @@ def website_detail(request, website_id):
 
         if not name:
             return JsonResponse(
-                {"error": "Le nom du site est obligatoire."},
+                {
+                    "success": False,
+                    "error": "Le nom du site est obligatoire.",
+                },
                 status=400,
             )
 
@@ -843,6 +1057,7 @@ def website_detail(request, website_id):
         website.save()
 
         return JsonResponse({
+            "success": True,
             "message": "Site modifié avec succès.",
             "website": {
                 "id": website.id,
@@ -857,8 +1072,10 @@ def website_detail(request, website_id):
     website.delete()
 
     return JsonResponse({
-        "message": "Site supprimé avec succès."
+        "success": True,
+        "message": "Site supprimé avec succès.",
     })
+
 def top_pages(request):
     website_id = request.GET.get("website_id")
 
@@ -874,6 +1091,75 @@ def top_pages(request):
     )
 
     return JsonResponse({"pages": list(pages)})
+
+def top_pages_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id est obligatoire."},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans "
+                    "la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    queryset = FactGSCMetrics.objects.filter(
+        website=dim_website,
+        page__isnull=False,
+    )
+
+    if start_date:
+        queryset = queryset.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        queryset = queryset.filter(
+            date__full_date__lte=end_date
+        )
+
+    pages = (
+        queryset
+        .values("page__page_path")
+        .annotate(
+            total_clicks=Sum("clicks"),
+            total_impressions=Sum("impressions"),
+        )
+        .order_by(
+            "-total_clicks",
+            "-total_impressions",
+        )[:10]
+    )
+
+    data = [
+        {
+            "page": item["page__page_path"] or "Page inconnue",
+            "total_clicks": item["total_clicks"] or 0,
+            "total_impressions": item["total_impressions"] or 0,
+        }
+        for item in pages
+    ]
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "pages": data,
+    })
+
 def top_keywords(request):
     website_id = request.GET.get("website_id")
 
@@ -892,6 +1178,80 @@ def top_keywords(request):
     )
 
     return JsonResponse({"keywords": list(keywords)})
+
+
+def top_keywords_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id est obligatoire."},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans "
+                    "la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    queryset = (
+        FactGSCMetrics.objects
+        .filter(website=dim_website)
+        .exclude(query="")
+    )
+
+    if start_date:
+        queryset = queryset.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        queryset = queryset.filter(
+            date__full_date__lte=end_date
+        )
+
+    keywords = (
+        queryset
+        .values("query")
+        .annotate(
+            total_clicks=Sum("clicks"),
+            total_impressions=Sum("impressions"),
+            avg_position=Avg("position"),
+        )
+        .order_by(
+            "-total_clicks",
+            "-total_impressions",
+        )[:10]
+    )
+
+    data = [
+        {
+            "query": item["query"],
+            "total_clicks": item["total_clicks"] or 0,
+            "total_impressions": item["total_impressions"] or 0,
+            "avg_position": float(item["avg_position"] or 0),
+        }
+        for item in keywords
+    ]
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "keywords": data,
+    })
+
+
 def notifications_list(request):
     notifications = Notification.objects.order_by("-created_at")[:20]
 
@@ -950,6 +1310,76 @@ def dashboard_events(request):
         "total_users": int(total_users),
         "top_event": top_event,
     })
+
+def dashboard_events_dw(request):
+    website_id = request.GET.get("website_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if not website_id:
+        return JsonResponse(
+            {"error": "website_id est obligatoire."},
+            status=400,
+        )
+
+    try:
+        dim_website = DimWebsite.objects.get(
+            source_website_id=website_id
+        )
+    except DimWebsite.DoesNotExist:
+        return JsonResponse(
+            {
+                "error": (
+                    "Ce site n’existe pas dans "
+                    "la couche décisionnelle."
+                )
+            },
+            status=404,
+        )
+
+    query = FactGAEvent.objects.filter(
+        website=dim_website
+    )
+
+    if start_date:
+        query = query.filter(
+            date__full_date__gte=start_date
+        )
+
+    if end_date:
+        query = query.filter(
+            date__full_date__lte=end_date
+        )
+
+    total_events = (
+        query.aggregate(total=Sum("event_count"))["total"] or 0
+    )
+
+    total_users = (
+        query.aggregate(total=Sum("users"))["total"] or 0
+    )
+
+    top_event_row = (
+        query
+        .values("event_name")
+        .annotate(total=Sum("event_count"))
+        .order_by("-total")
+        .first()
+    )
+
+    top_event = (
+        top_event_row["event_name"]
+        if top_event_row
+        else ""
+    )
+
+    return JsonResponse({
+        "source": "data_warehouse",
+        "total_events": int(total_events),
+        "total_users": int(total_users),
+        "top_event": top_event,
+    })
+
 def top_visited_pages(request):
     website_id = request.GET.get("website_id")
     start_date = request.GET.get("start_date")

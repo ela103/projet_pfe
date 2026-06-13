@@ -1,7 +1,7 @@
 "use client"
 
 import { Bell, Search, Settings, User, Menu } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState,useRef } from "react"
 import { useRouter } from "next/navigation"
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ColorThemePicker } from "@/components/color-theme"
+import { toast } from "@/hooks/use-toast"
 
 interface TopbarProps {
   onMenuClick?: () => void
@@ -40,9 +41,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const [q, setQ] = useState("")
   const [user, setUser] = useState<UserProfile | null>(null)
   const router = useRouter()
+  
+  const knownNotificationIds = useRef<Set<number>>(new Set())
+  const firstNotificationLoad = useRef(true)
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [notificationsLoading, setNotificationsLoading] = useState(false)
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -97,19 +102,58 @@ useEffect(() => {
     try {
       setNotificationsLoading(true)
 
-      const response = await fetch("http://127.0.0.1:8000/data/notifications/", {
-        method: "GET",
-        credentials: "include",
-      })
+      const response = await fetch(
+        "http://127.0.0.1:8000/data/notifications/",
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      )
 
       if (!response.ok) {
-        throw new Error("Erreur lors du chargement des notifications")
+        throw new Error(
+          "Erreur lors du chargement des notifications"
+        )
       }
 
       const data = await response.json()
 
+      const incomingNotifications: AppNotification[] =
+        data.notifications || []
+
       setUnreadCount(data.unread_count || 0)
-      setNotifications(data.notifications || [])
+      setNotifications(incomingNotifications)
+
+      // Premier chargement :
+      // mémoriser les notifications existantes sans popup.
+      if (firstNotificationLoad.current) {
+        incomingNotifications.forEach((notification) => {
+          knownNotificationIds.current.add(notification.id)
+        })
+
+        firstNotificationLoad.current = false
+        return
+      }
+
+      // Détecter seulement les nouvelles notifications.
+      const newNotifications = incomingNotifications.filter(
+        (notification) =>
+          !knownNotificationIds.current.has(notification.id)
+      )
+
+      newNotifications.forEach((notification) => {
+        toast({
+          variant:
+            notification.level === "error"
+              ? "destructive"
+              : "default",
+          title: notification.title,
+          description: notification.message,
+        })
+
+        knownNotificationIds.current.add(notification.id)
+      })
     } catch (error) {
       console.error("Erreur notifications :", error)
     } finally {
@@ -118,6 +162,16 @@ useEffect(() => {
   }
 
   fetchNotifications()
+
+  // Vérifier les nouvelles notifications toutes les 10 secondes.
+  const intervalId = window.setInterval(
+    fetchNotifications,
+    10000
+  )
+
+  return () => {
+    window.clearInterval(intervalId)
+  }
 }, [])
 
  return (
