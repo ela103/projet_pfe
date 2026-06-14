@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { MessageCircle, X, Send, ArrowLeft, Minus } from "lucide-react"
-
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 export function ChatbotWidget() {
   const [open, setOpen] = useState(false)
@@ -228,18 +229,85 @@ export function ChatbotWidget() {
               </div>
 
               <div className="flex-1 space-y-3 overflow-y-auto bg-white p-4">
-  {messages.map((msg, index) => (
-    <div
-      key={index}
-      className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-        msg.role === "user"
-          ? "ml-auto bg-purple-600 text-white"
-          : "bg-gray-100 text-black border border-gray-200"
-      }`}
-    >
-      {msg.content}
-    </div>
-  ))}
+  {messages.map((msg, index) => {
+    const normalizedContent = msg.content
+      .replace(/\\n/g, "\n")
+      .replace(
+        /\*\*(Analyse[^*]+)\*\*/g,
+        "\n\n**$1**\n\n"
+      )
+      .trim()
+
+    return (
+      <div
+        key={index}
+        className={` w-fit rounded-2xl px-4 py-3 text-sm ${
+          msg.role === "user"
+  ? "ml-auto max-w-[78%] bg-purple-600 text-white"
+  : "mr-auto max-w-[88%] border border-gray-200 bg-gray-100 text-black"
+        }`}
+      >
+        {msg.role === "bot" ? (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => (
+                <h1 className="mb-3 mt-2 text-lg font-bold">
+                  {children}
+                </h1>
+              ),
+
+              h2: ({ children }) => (
+                <h2 className="mb-3 mt-4 text-base font-bold">
+                  {children}
+                </h2>
+              ),
+
+              h3: ({ children }) => (
+                <h3 className="mb-2 mt-4 text-sm font-bold">
+                  {children}
+                </h3>
+              ),
+
+              p: ({ children }) => (
+                <p className="mb-3 leading-6 last:mb-0">
+                  {children}
+                </p>
+              ),
+
+              strong: ({ children }) => (
+                <strong className="font-bold text-purple-700">
+                  {children}
+                </strong>
+              ),
+
+              ul: ({ children }) => (
+                <ul className="mb-3 ml-5 list-disc space-y-1">
+                  {children}
+                </ul>
+              ),
+
+              ol: ({ children }) => (
+                <ol className="mb-3 ml-5 list-decimal space-y-1">
+                  {children}
+                </ol>
+              ),
+
+              li: ({ children }) => (
+                <li className="leading-6">
+                  {children}
+                </li>
+              ),
+            }}
+          >
+            {normalizedContent}
+          </ReactMarkdown>
+        ) : (
+          <p className="leading-6">{msg.content}</p>
+        )}
+      </div>
+    )
+  })}
 
   <div ref={messagesEndRef} />
 </div>

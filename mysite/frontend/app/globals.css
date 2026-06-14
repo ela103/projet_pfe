@@ -480,27 +480,27 @@
 [data-brand="violet"] {
   --brand-gradient: linear-gradient(
     135deg,
-    #f05bd8,
-    #ec4899,
-    #8b5cf6
+    #7c3aed,
+    #8b5cf6,
+    #ec4899
   );
 
   --brand-gradient-soft: linear-gradient(
     135deg,
-    rgba(240, 91, 216, 0.18),
-    rgba(236, 72, 153, 0.16),
-    rgba(139, 92, 246, 0.14)
+    rgba(124, 58, 237, 0.20),
+    rgba(139, 92, 246, 0.17),
+    rgba(236, 72, 153, 0.12)
   );
 
-  --brand-primary: #f05bd8;
-  --brand-secondary: #ec4899;
-  --brand-tertiary: #8b5cf6;
+  --brand-primary: #7c3aed;
+  --brand-secondary: #8b5cf6;
+  --brand-tertiary: #ec4899;
 
   --sidebar-gradient: linear-gradient(
     180deg,
-    #241326 0%,
-    #2b1430 55%,
-    #251538 100%
+    #120f24 0%,
+    #1a1433 55%,
+    #21153d 100%
   );
 }
 
@@ -531,15 +531,19 @@
   --sidebar-gradient: linear-gradient(180deg, #071c24 0%, #071a2e 55%, #10183a 100%);
 }
 :root {
-  --sidebar-bg: rgba(255, 255, 255, 0.94);
-  --sidebar-border: rgba(15, 23, 42, 0.08);
+  --sidebar-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-primary) 14%, #ffffff),
+    color-mix(in srgb, var(--brand-secondary) 10%, #ffffff)
+  );
+  --sidebar-border: rgba(15, 23, 42, 0.10);
   --sidebar-text: rgba(15, 23, 42, 0.88);
   --sidebar-muted: rgba(15, 23, 42, 0.50);
   --sidebar-section: rgba(15, 23, 42, 0.42);
-  --sidebar-hover: rgba(15, 23, 42, 0.05);
+  --sidebar-hover: rgba(15, 23, 42, 0.06);
   --sidebar-icon-bg: rgba(15, 23, 42, 0.06);
   --sidebar-pill-bg: rgba(15, 23, 42, 0.04);
-  --sidebar-shadow: 4px 0 32px rgba(15, 23, 42, 0.08);
+  --sidebar-shadow: 6px 0 34px rgba(15, 23, 42, 0.10);
 }
 
 .dark {
@@ -555,14 +559,14 @@
 }
 
 :root {
-  --dashboard-bg: #f7f8fc;
-  --dashboard-card: #ffffff;
-  --dashboard-card-soft: #f1f4fb;
-  --dashboard-border: rgba(15, 23, 42, 0.08);
+  --dashboard-bg: #eef3fb;
+  --dashboard-card: #fbfcff;
+  --dashboard-card-soft: #edf3fb;
+  --dashboard-border: rgba(15, 23, 42, 0.12);
   --dashboard-text: #0f172a;
   --dashboard-muted: #64748b;
-  --dashboard-line: rgba(15, 23, 42, 0.08);
-  --dashboard-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --dashboard-line: rgba(15, 23, 42, 0.10);
+  --dashboard-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
 }
 
 .dark {

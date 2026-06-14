@@ -9,6 +9,7 @@ import "./globals.css"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { BrandThemeInitializer } from "@/components/color-theme"
 
 export const metadata: Metadata = {
   title: "Smart Home Dashboard",
@@ -27,7 +28,7 @@ export default function RootLayout({
       lang="fr"
       suppressHydrationWarning
       className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
-      data-brand="purple"
+      data-brand="mobelite"
     >
       <body className="font-sans">
         <ThemeProvider
@@ -36,6 +37,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <BrandThemeInitializer />
+
           <Suspense fallback={null}>
             {children}
             <Analytics />

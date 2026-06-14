@@ -45,6 +45,27 @@ const THEMES = [
   },
 ] as const
 
+function applyBrandTheme(key: string) {
+  const theme = THEMES.find((item) => item.key === key) || THEMES[0]
+
+  document.documentElement.setAttribute("data-brand", theme.key)
+  document.documentElement.style.setProperty("--brand-primary", theme.primary)
+  document.documentElement.style.setProperty("--brand-secondary", theme.secondary)
+  document.documentElement.style.setProperty("--brand-tertiary", theme.tertiary)
+  document.documentElement.style.setProperty("--brand-gradient", theme.gradient)
+  localStorage.setItem("brand-theme", theme.key)
+
+  return theme.key
+}
+
+export function BrandThemeInitializer() {
+  useEffect(() => {
+    applyBrandTheme(localStorage.getItem("brand-theme") || "mobelite")
+  }, [])
+
+  return null
+}
+
 export function ColorThemePicker() {
   const [current, setCurrent] = useState<string>("mobelite")
 
@@ -54,18 +75,7 @@ applyTheme(saved)
   }, [])
 
   function applyTheme(key: string) {
-  const theme = THEMES.find((item) => item.key === key) || THEMES[0]
-
-  setCurrent(theme.key)
-
-  document.documentElement.setAttribute("data-brand", theme.key)
-
-  document.documentElement.style.setProperty("--brand-primary", theme.primary)
-  document.documentElement.style.setProperty("--brand-secondary", theme.secondary)
-  document.documentElement.style.setProperty("--brand-tertiary", theme.tertiary)
-  document.documentElement.style.setProperty("--brand-gradient", theme.gradient)
-
-  localStorage.setItem("brand-theme", theme.key)
+  setCurrent(applyBrandTheme(key))
 }
 
   return (

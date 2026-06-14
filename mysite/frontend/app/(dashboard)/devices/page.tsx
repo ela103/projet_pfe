@@ -520,8 +520,7 @@ const [deleteSiteMessage, setDeleteSiteMessage] = useState("")
 
   const tabs = [
     { key: "all", label: "Tous", count: websites.length },
-    { key: "connected", label: "Prêts", count: connectedCount },
-    { key: "incomplete", label: "À compléter", count: incompleteCount },
+    { key: "connected", label: "Connectés", count: connectedCount },
     { key: "active", label: "Site actif", count: activeWebsite ? 1 : 0 },
   ]
 
@@ -732,34 +731,31 @@ const handleDeleteWebsite = async () => {
       <div className="relative mx-auto max-w-7xl">
         {/* Header */}
 <div
-  className="mb-5 rounded-[24px] border p-5"
+  className="mb-6 rounded-none border-0 p-0"
   style={{
-    background:
-      "linear-gradient(135deg, color-mix(in srgb, var(--dashboard-card) 86%, transparent), color-mix(in srgb, var(--dashboard-card-soft) 68%, transparent))",
-    borderColor: "var(--dashboard-border)",
-    boxShadow:
-      "0 14px 32px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.04)",
+    background: "transparent",
+    borderColor: "transparent",
+    boxShadow: "none",
   }}
 >
   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
     <div>
       <p
-        className="mb-2 w-fit rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em]"
+        className="mb-4 text-[11px] font-black uppercase tracking-[0.22em]"
         style={{
-          background:
-            "color-mix(in srgb, var(--dashboard-card-soft) 72%, transparent)",
-          borderColor: "var(--dashboard-border)",
+          background: "transparent",
+          borderColor: "transparent",
           color: "var(--dashboard-muted)",
         }}
       >
         Gestion des sites
       </p>
 
-      <h1 className="text-[28px] font-black leading-none tracking-tight text-[var(--dashboard-text)]">
+      <h1 className="text-[32px] font-black leading-none tracking-tight text-[var(--dashboard-text)]">
         Mes sites
       </h1>
 
-      <p className="mt-2 max-w-xl text-[12px] font-semibold leading-5 text-[var(--dashboard-muted)]">
+      <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[var(--dashboard-muted)]">
         Gérez les sites connectés, vérifiez leur configuration et choisissez le
         site actif pour l’analyse.
       </p>
@@ -776,7 +772,7 @@ const handleDeleteWebsite = async () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Rechercher un site..."
-          className="h-10 w-full rounded-2xl border pl-10 pr-4 text-[13px] font-semibold outline-none sm:w-72"
+          className="h-10 w-full rounded-xl border pl-10 pr-4 text-[13px] font-semibold outline-none sm:w-72"
           style={{
             background:
               "color-mix(in srgb, var(--dashboard-card-soft) 82%, transparent)",
@@ -789,7 +785,7 @@ const handleDeleteWebsite = async () => {
       <button
         type="button"
         onClick={fetchWebsites}
-        className="flex h-10 items-center justify-center gap-2 rounded-2xl border px-4 text-[13px] font-black transition hover:bg-white/5"
+        className="flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-[13px] font-black transition hover:bg-white/5"
         style={{
           background:
             "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
@@ -807,11 +803,11 @@ const handleDeleteWebsite = async () => {
           setAddSiteMessage("")
           setShowAddSiteModal(true)
         }}
-        className="flex h-10 items-center justify-center gap-2 rounded-2xl px-5 text-[13px] font-black text-white transition hover:opacity-90"
+        className="flex h-12 items-center justify-center gap-2 rounded-[18px] px-6 text-sm font-black text-white transition hover:opacity-90"
         style={{
           background: "var(--brand-gradient)",
           boxShadow:
-            "0 12px 26px color-mix(in srgb, var(--brand-primary) 22%, transparent)",
+            "0 18px 40px color-mix(in srgb, var(--brand-primary) 28%, transparent)",
         }}
       >
         <Plus className="h-4 w-4" />
@@ -830,7 +826,7 @@ const handleDeleteWebsite = async () => {
       description: "Nombre total de sites enregistrés",
       color: "var(--brand-primary)",
       background:
-        "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 9%, var(--dashboard-card)), var(--dashboard-card))",
+        "var(--dashboard-card)",
     },
     {
       label: "Sites prêts",
@@ -838,7 +834,7 @@ const handleDeleteWebsite = async () => {
       description: "Sites correctement configurés",
       color: "var(--brand-secondary)",
       background:
-        "linear-gradient(135deg, color-mix(in srgb, var(--brand-secondary) 9%, var(--dashboard-card)), var(--dashboard-card))",
+        "var(--dashboard-card)",
     },
     {
       label: "Site actif",
@@ -846,7 +842,7 @@ const handleDeleteWebsite = async () => {
       description: "Site actuellement utilisé dans le dashboard",
       color: "var(--brand-tertiary)",
       background:
-        "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 9%, var(--dashboard-card)), color-mix(in srgb, var(--brand-tertiary) 7%, var(--dashboard-card)))",
+        "var(--dashboard-card)",
     },
   ].map((item) => {
     const isActiveCard = item.label === "Site actif"
@@ -854,33 +850,29 @@ const handleDeleteWebsite = async () => {
     return (
       <div
         key={item.label}
-        className={`rounded-[20px] border p-4 transition hover:-translate-y-0.5 ${
+        className={`relative overflow-hidden rounded-[18px] border px-4 py-3 transition hover:-translate-y-0.5 ${
           isActiveCard ? "sm:col-span-2 md:col-span-2" : ""
         }`}
         style={{
           background: item.background,
-          borderColor:
-            `color-mix(in srgb, ${item.color} 24%, var(--dashboard-border))`,
+          borderColor: "var(--dashboard-border)",
           boxShadow:
-            `0 14px 32px color-mix(in srgb, ${item.color} 13%, transparent)`,
+            "0 10px 24px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -18px 34px rgba(15,23,42,0.035)",
         }}
       >
+        <span
+          className="absolute bottom-3 left-0 top-3 w-1 rounded-r-full"
+          style={{ background: item.color }}
+        />
+
         <div className="flex h-full items-center justify-between gap-4">
-          <div className="min-w-0">
+          <div className="min-w-0 pl-2">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--dashboard-muted)]">
               {item.label}
             </p>
 
-            <p
-              className={`mt-2 truncate font-black leading-none text-[var(--dashboard-text)] ${
-                isActiveCard ? "text-[24px]" : "text-[22px]"
-              }`}
-            >
+            <p className="mt-1 truncate text-xl font-black leading-none text-[var(--dashboard-text)]">
               {item.value}
-            </p>
-
-            <p className="mt-2 text-[11px] font-semibold leading-5 text-[var(--dashboard-muted)]">
-              {item.description}
             </p>
           </div>
 
@@ -889,14 +881,20 @@ const handleDeleteWebsite = async () => {
               isActiveCard ? "h-11 w-11" : "h-10 w-10"
             }`}
             style={{
-              background: isActiveCard
-                ? "var(--brand-gradient)"
-                : `linear-gradient(135deg, ${item.color}, color-mix(in srgb, ${item.color} 70%, white))`,
+              background:
+                `linear-gradient(135deg, ${item.color}, color-mix(in srgb, ${item.color} 68%, var(--brand-tertiary)))`,
+              color: "white",
               boxShadow:
-                `0 8px 18px color-mix(in srgb, ${item.color} 20%, transparent)`,
+                `0 12px 24px color-mix(in srgb, ${item.color} 28%, transparent)`,
             }}
           >
-            <Globe className={isActiveCard ? "h-5 w-5" : "h-4 w-4"} />
+            {isActiveCard ? (
+              <BarChart3 className="h-5 w-5" />
+            ) : item.color === "var(--brand-secondary)" ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <Globe className="h-4 w-4" />
+            )}
           </div>
         </div>
       </div>
@@ -905,16 +903,7 @@ const handleDeleteWebsite = async () => {
 </div>
 
 {/* Filtres */}
-<div
-  className="mb-7 flex flex-wrap items-center gap-2 rounded-[22px] border p-2"
-  style={{
-    background:
-      "color-mix(in srgb, var(--dashboard-card) 80%, transparent)",
-    borderColor: "var(--dashboard-border)",
-    boxShadow:
-      "0 12px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.03)",
-  }}
->
+<div className="mb-7 flex flex-wrap items-center gap-2">
   {tabs.map((tab) => {
     const active = filter === tab.key
 
@@ -923,9 +912,10 @@ const handleDeleteWebsite = async () => {
         key={tab.key}
         type="button"
         onClick={() => setFilter(tab.key as FilterType)}
-        className="flex items-center gap-2 rounded-2xl px-4 py-2 text-[12px] font-black transition"
+        className="flex h-10 items-center gap-2 rounded-xl border px-4 text-[12px] font-black transition"
         style={{
-          background: active ? "var(--brand-gradient)" : "transparent",
+          background: active ? "var(--brand-gradient)" : "var(--dashboard-card)",
+          borderColor: active ? "transparent" : "var(--dashboard-border)",
           color: active ? "white" : "var(--dashboard-muted)",
           boxShadow: active
             ? "0 10px 22px color-mix(in srgb, var(--brand-primary) 20%, transparent)"
@@ -991,7 +981,7 @@ const handleDeleteWebsite = async () => {
 
         {/* Sites */}
         {!loading && !error && filteredWebsites.length > 0 && (
-          <div className="mt-10 grid gap-x-7 gap-y-12 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-x-6 gap-y-10 md:grid-cols-2 lg:grid-cols-3">
             {filteredWebsites
   .filter((website) => {
     const status = getWebsiteStatus(website)
@@ -1008,7 +998,7 @@ const handleDeleteWebsite = async () => {
               return (
                 <article
                   key={website.id}
-                  className="group relative overflow-visible rounded-[28px] border px-6 pb-6 pt-12 transition-all duration-300 hover:-translate-y-1"
+                  className="group relative overflow-visible rounded-[24px] border px-5 pb-5 pt-10 transition-all duration-300 hover:-translate-y-1"
                   style={{
                     background:
                       "linear-gradient(135deg, color-mix(in srgb, var(--dashboard-card) 92%, transparent), color-mix(in srgb, var(--dashboard-card-soft) 75%, transparent))",
@@ -1022,7 +1012,7 @@ const handleDeleteWebsite = async () => {
                 >
                   {/* Floating icon */}
                   <div
-                    className="absolute -top-7 left-7 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-105"
+                    className="absolute -top-6 left-6 flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-105"
                     style={{
                       background:
                         index % 3 === 0
@@ -1032,7 +1022,7 @@ const handleDeleteWebsite = async () => {
                           : "linear-gradient(135deg, var(--brand-secondary), var(--brand-tertiary))",
                     }}
                   >
-                    <WebsiteIcon className="h-7 w-7" />
+                    <WebsiteIcon className="h-6 w-6" />
                   </div>
 
                   {/* Active badge */}

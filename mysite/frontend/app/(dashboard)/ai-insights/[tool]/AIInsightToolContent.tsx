@@ -10,6 +10,8 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 type Period = "all" | "month" | "week" | "day"
 
@@ -289,11 +291,13 @@ lastRequestKeyRef.current = requestKey
       <div className="relative z-10 space-y-6">
         <button
           type="button"
-          onClick={() => router.push("/ai-insights")}
+          onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm font-bold text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour aux outils IA
+          {tool === "recommendations"
+          ? "Retour"
+          : "Retour aux outils IA"}
         </button>
 
         <div
@@ -482,9 +486,72 @@ lastRequestKeyRef.current = requestKey
               </div>
             </div>
           ) : (
-            <div className="whitespace-pre-line rounded-2xl bg-[var(--dashboard-card-soft)] p-5 text-sm font-semibold leading-7 text-[var(--dashboard-text)]">
-              {responseText}
-            </div>
+            <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-5 text-[var(--dashboard-text)]">
+  <ReactMarkdown
+    remarkPlugins={[remarkGfm]}
+    components={{
+      h1: ({ children }) => (
+        <h1 className="mb-4 mt-6 text-2xl font-black first:mt-0">
+          {children}
+        </h1>
+      ),
+
+      h2: ({ children }) => (
+        <h2 className="mb-3 mt-6 text-xl font-black first:mt-0">
+          {children}
+        </h2>
+      ),
+
+      h3: ({ children }) => (
+        <h3 className="mb-3 mt-5 text-base font-black first:mt-0">
+          {children}
+        </h3>
+      ),
+
+      p: ({ children }) => (
+        <p className="mb-4 text-sm font-semibold leading-7 last:mb-0">
+          {children}
+        </p>
+      ),
+
+      strong: ({ children }) => (
+        <strong className="font-black text-[var(--brand-primary)]">
+          {children}
+        </strong>
+      ),
+
+      ul: ({ children }) => (
+        <ul className="mb-4 ml-6 list-disc space-y-2">
+          {children}
+        </ul>
+      ),
+
+      ol: ({ children }) => (
+        <ol className="mb-4 ml-6 list-decimal space-y-2">
+          {children}
+        </ol>
+      ),
+
+      li: ({ children }) => (
+        <li className="text-sm font-semibold leading-7">
+          {children}
+        </li>
+      ),
+
+      blockquote: ({ children }) => (
+        <blockquote className="my-4 border-l-4 border-[var(--brand-primary)] pl-4 text-[var(--dashboard-muted)]">
+          {children}
+        </blockquote>
+      ),
+
+      hr: () => (
+        <hr className="my-6 border-[var(--dashboard-border)]" />
+      ),
+    }}
+  >
+    {responseText.replace(/\\n/g, "\n").trim()}
+  </ReactMarkdown>
+</div>
           )}
         </div>
       </div>

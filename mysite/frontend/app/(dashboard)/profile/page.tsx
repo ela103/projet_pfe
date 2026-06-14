@@ -2,24 +2,18 @@
 
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Switch } from "@/components/ui/switch"
 import {
   AlertTriangle,
-  Bell,
-  CheckCircle2,
-  Lock,
+  BadgeCheck,
+  Globe,
+  KeyRound,
   LogOut,
   Mail,
   Phone,
   ShieldCheck,
-  User,
-  X,
-  Calendar,
-  BadgeCheck,
-  Settings,
-  KeyRound,
   Users,
-  Globe,
+  X,
+  type LucideIcon,
 } from "lucide-react"
 
 type UserProfile = {
@@ -33,21 +27,11 @@ type UserProfile = {
   is_superuser: boolean
 }
 
-type AdminAccount = {
-  id: number
-  email: string
-  first_name: string
-  last_name: string
-  phone_number: string
-  is_active: boolean
-  is_staff: boolean
-  date_joined: string
-}
 function SmallIcon({
   icon: Icon,
   color,
 }: {
-  icon: any
+  icon: LucideIcon
   color: string
 }) {
   return (
@@ -63,51 +47,10 @@ function SmallIcon({
   )
 }
 
-function PreferenceRow({
-  title,
-  description,
-  checked,
-  onChange,
-}: {
-  title: string
-  description: string
-  checked: boolean
-  onChange: (value: boolean) => void
-}) {
-  return (
-    <div
-      className="flex items-center justify-between gap-4 rounded-[22px] px-4 py-4"
-      style={{
-        background: checked
-          ? "color-mix(in srgb, var(--brand-primary) 10%, var(--dashboard-card-soft))"
-          : "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
-      }}
-    >
-      <div>
-        <p className="text-[14px] font-black text-[var(--dashboard-text)]">
-          {title}
-        </p>
-        <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
-          {description}
-        </p>
-      </div>
-
-      <Switch checked={checked} onCheckedChange={onChange} />
-    </div>
-  )
-}
-
 export default function ProfilePage() {
-  const [seoNotifications, setSeoNotifications] = useState(true)
-  const [weeklyReports, setWeeklyReports] = useState(false)
-
   const [user, setUser] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-
-  const [admins, setAdmins] = useState<AdminAccount[]>([])
-  const [adminsLoading, setAdminsLoading] = useState(true)
-  const [adminsError, setAdminsError] = useState("")
 
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [oldPassword, setOldPassword] = useState("")
@@ -116,81 +59,33 @@ export default function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState("")
   const [passwordLoading, setPasswordLoading] = useState(false)
 
-  const [showAdminModal, setShowAdminModal] = useState(false)
-  const [adminFirstName, setAdminFirstName] = useState("")
-  const [adminLastName, setAdminLastName] = useState("")
-  const [adminEmail, setAdminEmail] = useState("")
-  const [adminPhone, setAdminPhone] = useState("")
-  const [adminPassword, setAdminPassword] = useState("")
-  const [adminMessage, setAdminMessage] = useState("")
-  const [adminLoading, setAdminLoading] = useState(false)
-const fetchAdmins = async () => {
-  try {
-    setAdminsLoading(true)
-    setAdminsError("")
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true)
+        setError("")
 
-    const response = await fetch("http://127.0.0.1:8000/api/admins/", {
-      method: "GET",
-      credentials: "include",
-    })
-
-    const data = await response.json()
-
-    if (!response.ok || !data.success) {
-      setAdminsError(
-        data.message || "Impossible de charger les comptes."
-      )
-      return
-    }
-
-    setAdmins(data.admins || [])
-  } catch {
-    setAdminsError("Erreur de connexion au serveur.")
-  } finally {
-    setAdminsLoading(false)
-  }
-}
-
-useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      setError("")
-
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/me/",
-        {
+        const response = await fetch("http://127.0.0.1:8000/api/me/", {
           method: "GET",
           credentials: "include",
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data.authenticated) {
+          setError("Impossible de récupérer les informations du profil.")
+          return
         }
-      )
 
-      const data = await response.json()
-
-      if (!response.ok || !data.authenticated) {
-        setError(
-          "Impossible de récupérer les informations du profil."
-        )
-        return
+        setUser(data)
+      } catch {
+        setError("Erreur de connexion au serveur.")
+      } finally {
+        setLoading(false)
       }
-
-      setUser(data)
-
-      // Seulement le superuser peut charger la liste des admins
-      if (data.is_superuser === true) {
-        await fetchAdmins()
-      } else {
-        setAdmins([])
-        setAdminsLoading(false)
-      }
-    } catch {
-      setError("Erreur de connexion au serveur.")
-    } finally {
-      setLoading(false)
     }
-  }
 
-  fetchProfile()
+    fetchProfile()
   }, [])
 
   const handleChangePassword = async () => {
@@ -248,64 +143,6 @@ useEffect(() => {
       setPasswordLoading(false)
     }
   }
-  const handleCreateAdmin = async () => {
-  setAdminMessage("")
-
-  if (!adminFirstName || !adminLastName || !adminEmail || !adminPassword) {
-    setAdminMessage("Veuillez remplir les champs obligatoires.")
-    return
-  }
-
-  if (adminPassword.length < 8) {
-    setAdminMessage("Le mot de passe doit contenir au moins 8 caractères.")
-    return
-  }
-
-  try {
-    setAdminLoading(true)
-
-    const response = await fetch("http://127.0.0.1:8000/api/admins/create/", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        first_name: adminFirstName,
-        last_name: adminLastName,
-        email: adminEmail,
-        phone_number: adminPhone,
-        password: adminPassword,
-      }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok || !data.success) {
-      setAdminMessage(data.message || "Erreur lors de l’ajout du compte.")
-      return
-    }
-
-    setAdminMessage(data.message || "Compte administrateur ajouté avec succès.")
-
-    setAdminFirstName("")
-    setAdminLastName("")
-    setAdminEmail("")
-    setAdminPhone("")
-    setAdminPassword("")
-
-    fetchAdmins()
-
-    setTimeout(() => {
-      setShowAdminModal(false)
-      setAdminMessage("")
-    }, 1200)
-  } catch {
-    setAdminMessage("Erreur de connexion au serveur.")
-  } finally {
-    setAdminLoading(false)
-  }
-}
 
   const fullName =
     `${user?.first_name || ""} ${user?.last_name || ""}`.trim() ||
@@ -329,7 +166,7 @@ useEffect(() => {
     return (
       <section className="flex min-h-[60vh] items-center justify-center px-4">
         <div
-          className="rounded-[26px] border p-6 text-center"
+          className="rounded-[24px] border p-6 text-center"
           style={{
             background: "var(--dashboard-card)",
             borderColor: "rgba(239,68,68,0.28)",
@@ -345,19 +182,21 @@ useEffect(() => {
   return (
     <section className="px-4 py-6 text-[var(--dashboard-text)] md:px-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* HEADER SIMPLE COMME LA PHOTO */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-[30px] font-black text-[var(--dashboard-text)]">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--dashboard-muted)]">
+              Espace personnel
+            </p>
+            <h1 className="mt-2 text-2xl font-black text-[var(--dashboard-text)]">
               Profil
             </h1>
-            <p className="mt-1 text-[13px] font-semibold text-[var(--dashboard-muted)]">
-              Informations du compte et préférences de l’administrateur.
+            <p className="mt-2 text-sm font-semibold text-[var(--dashboard-muted)]">
+              Informations du compte et préférences de l'administrateur.
             </p>
           </div>
 
           <div
-            className="rounded-full border px-4 py-2 text-[12px] font-black"
+            className="inline-flex w-fit items-center gap-2 rounded-full border px-4 py-2 text-xs font-black"
             style={{
               background:
                 "color-mix(in srgb, var(--brand-primary) 10%, transparent)",
@@ -366,110 +205,83 @@ useEffect(() => {
               color: "var(--brand-primary)",
             }}
           >
+            <BadgeCheck className="h-4 w-4" />
             Compte actif
           </div>
         </div>
 
-        {/* TOP GRID */}
-        <div className="grid gap-6 lg:grid-cols-[1.6fr_0.8fr]">
-          {/* CARTE PROFIL PRINCIPALE */}
+        <div>
           <div
-            className="rounded-[30px] border p-6"
+            className="rounded-[26px] border p-5 shadow-[var(--dashboard-shadow)]"
             style={{
               background:
-                "linear-gradient(135deg, color-mix(in srgb, var(--dashboard-card) 94%, transparent), color-mix(in srgb, var(--dashboard-card-soft) 76%, transparent))",
+                "linear-gradient(135deg, color-mix(in srgb, var(--dashboard-card) 92%, transparent), color-mix(in srgb, var(--brand-primary) 8%, var(--dashboard-card)))",
               borderColor: "var(--dashboard-border)",
-              boxShadow:
-                "0 18px 45px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.04)",
             }}
           >
-            <div className="flex flex-col gap-6 md:flex-row md:items-center">
-              <Avatar className="h-36 w-36 shrink-0 border-4 border-[var(--dashboard-card)] shadow-xl">
-                <AvatarFallback
-                  className="text-4xl font-black text-white"
-                  style={{ background: "var(--brand-gradient)" }}
-                >
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="min-w-0 flex-1">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="truncate text-[24px] font-black text-[var(--dashboard-text)]">
-                    {fullName}
-                  </h2>
-
-                  <button
-                    type="button"
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border transition hover:bg-white/5"
-                    style={{
-                      borderColor: "var(--dashboard-border)",
-                      color: "var(--brand-primary)",
-                    }}
+            <div className="grid gap-6 md:grid-cols-[140px_1fr] md:items-center">
+              <div className="relative w-fit">
+                <Avatar className="h-32 w-32 shrink-0 border-4 border-[var(--dashboard-card)] shadow-xl">
+                  <AvatarFallback
+                    className="text-4xl font-black text-white"
+                    style={{ background: "var(--brand-gradient)" }}
                   >
-                    <Settings className="h-4 w-4" />
-                  </button>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-xl font-black text-[var(--dashboard-text)]">
+                        {fullName}
+                      </h2>
+                      <span
+                        className="rounded-full px-3 py-1 text-[10px] font-black"
+                        style={{
+                          background:
+                            "color-mix(in srgb, #10b981 14%, var(--dashboard-card-soft))",
+                          color: "#10b981",
+                        }}
+                      >
+                        Active
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-[var(--dashboard-muted)]">
+                      Administrateur SEO
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-[var(--dashboard-card-soft)] px-3 py-1 text-[11px] font-black text-[var(--dashboard-muted)]">
+                    Smart SEO
+                  </span>
                 </div>
 
-                <div className="space-y-2 text-[13px] font-semibold text-[var(--dashboard-muted)]">
-                  <p>
-                    <span className="font-black text-[var(--dashboard-text)]">
-                      Rôle :
-                    </span>{" "}
-                    Administrateur SEO
-                  </p>
-
-                  <p>
-                    <span className="font-black text-[var(--dashboard-text)]">
-                      Plateforme :
-                    </span>{" "}
-                    Smart SEO Intelligence
-                  </p>
-
-                  <p>
-                    <span className="font-black text-[var(--dashboard-text)]">
-                      Statut :
-                    </span>{" "}
-                    Compte vérifié et sécurisé
-                  </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <ProfileInfo label="Rôle" value="Admin" />
+                  <ProfileInfo
+                    label="Accès"
+                    value={user?.is_superuser ? "Superuser" : "Staff"}
+                  />
+                  <ProfileInfo label="Statut" value="Vérifié" />
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
-                    style={{
-                      background:
-                        "color-mix(in srgb, var(--dashboard-card-soft) 80%, transparent)",
-                    }}
-                  >
-                    <SmallIcon icon={Mail} color="var(--brand-primary)" />
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
-                        Email
-                      </p>
-                      <p className="truncate text-[13px] font-black text-[var(--dashboard-text)]">
-                        {user?.email || "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
-                    style={{
-                      background:
-                        "color-mix(in srgb, var(--dashboard-card-soft) 80%, transparent)",
-                    }}
-                  >
-                    <SmallIcon icon={Phone} color="var(--brand-secondary)" />
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
-                        Téléphone
-                      </p>
-                      <p className="truncate text-[13px] font-black text-[var(--dashboard-text)]">
-                        {user?.phone_number || "—"}
-                      </p>
-                    </div>
-                  </div>
+                  <ContactCard
+                    icon={Mail}
+                    color="var(--brand-primary)"
+                    label="Email"
+                    value={user?.email || "-"}
+                  />
+                  <ContactCard
+                    icon={Phone}
+                    color="var(--brand-secondary)"
+                    label="Téléphone"
+                    value={user?.phone_number || "-"}
+                  />
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
@@ -490,79 +302,9 @@ useEffect(() => {
               </div>
             </div>
           </div>
-
-          {/* CARTE PREFERENCES A DROITE */}
-          <div
-            className="rounded-[30px] border p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, color-mix(in srgb, var(--dashboard-card) 94%, transparent), color-mix(in srgb, var(--dashboard-card-soft) 76%, transparent))",
-              borderColor: "var(--dashboard-border)",
-              boxShadow:
-                "0 18px 45px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.04)",
-            }}
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--dashboard-muted)]">
-                  Préférences
-                </p>
-                <h2 className="mt-1 text-[22px] font-black text-[var(--dashboard-text)]">
-                  Notifications
-                </h2>
-              </div>
-
-              <div
-                className="grid h-11 w-11 place-items-center rounded-2xl text-white"
-                style={{
-                  background: "var(--brand-gradient)",
-                  boxShadow:
-                    "0 12px 26px color-mix(in srgb, var(--brand-primary) 24%, transparent)",
-                }}
-              >
-                <Bell className="h-5 w-5" />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <PreferenceRow
-                title="Notifications SEO"
-                description="Recevoir les alertes importantes"
-                checked={seoNotifications}
-                onChange={setSeoNotifications}
-              />
-
-              <PreferenceRow
-                title="Rapports hebdomadaires"
-                description="Recevoir un rappel chaque semaine"
-                checked={weeklyReports}
-                onChange={setWeeklyReports}
-              />
-
-              <div
-                className="rounded-[22px] p-5"
-                style={{
-                  background: "var(--brand-gradient)",
-                  color: "white",
-                  boxShadow:
-                    "0 18px 36px color-mix(in srgb, var(--brand-primary) 25%, transparent)",
-                }}
-              >
-                <p className="text-[17px] font-black">
-                  Smart SEO Intelligence
-                </p>
-                <p className="mt-2 text-[12px] font-semibold text-white/80">
-                  Votre espace permet de suivre les données SEO, les
-                  recommandations et les rapports générés.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* BOTTOM GRID COMME LA PHOTO */}
         <div className="grid gap-6 lg:grid-cols-[1.6fr_0.8fr]">
-          {/* SECURITE / ACTIVITES */}
           <div
             className="rounded-[30px] border p-6"
             style={{
@@ -581,7 +323,7 @@ useEffect(() => {
                 Sécurité du compte
               </h2>
             </div>
-            
+
             <div className="relative space-y-4">
               <div className="pointer-events-none absolute left-[18px] top-6 h-[calc(100%-48px)] w-[2px] bg-[var(--dashboard-border)]" />
 
@@ -621,83 +363,87 @@ useEffect(() => {
                   Sécurité
                 </span>
               </button>
-              
-{user?.is_superuser === true && (<button
-  type="button"
-  onClick={() => {
-  window.location.href = "/profile/accounts"
-}}
-  className="relative flex w-full cursor-pointer items-center gap-4 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 hover:opacity-90"
-  style={{
-    background:
-      "color-mix(in srgb, var(--brand-secondary) 9%, var(--dashboard-card-soft))",
-  }}
->
-  <div
-    className="z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full text-white"
-    style={{ background: "var(--brand-tertiary)" }}
-  >
-    <Users className="h-5 w-5" />
-  </div>
 
-  <div className="min-w-0 flex-1">
-    <p className="text-[14px] font-black text-[var(--dashboard-text)]">
-      Gestion des comptes
-    </p>
-    <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
-      Ajouter, modifier ou supprimer les administrateurs.
-    </p>
-  </div>
+              {user?.is_superuser === true && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = "/profile/accounts"
+                  }}
+                  className="relative flex w-full cursor-pointer items-center gap-4 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 hover:opacity-90"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--brand-secondary) 9%, var(--dashboard-card-soft))",
+                  }}
+                >
+                  <div
+                    className="z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full text-white"
+                    style={{ background: "var(--brand-tertiary)" }}
+                  >
+                    <Users className="h-5 w-5" />
+                  </div>
 
-  <span
-    className="rounded-full px-3 py-1 text-[11px] font-black"
-    style={{
-      background:
-        "color-mix(in srgb, var(--brand-primary) 14%, transparent)",
-      color: "var(--brand-primary)",
-    }}
-  >
-    Gérer
-  </span>
-</button>)}
-<button
-  type="button"
-  onClick={() => {
-    window.location.href = "/devices"
-  }}
-  className="relative flex w-full cursor-pointer items-center gap-4 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 hover:opacity-90"
-  style={{
-    background:
-      "color-mix(in srgb, var(--brand-secondary) 9%, var(--dashboard-card-soft))",
-  }}
->
-  <div
-    className="z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full text-white"
-    style={{ background: "var(--brand-secondary)" }}
-  >
-    <Globe className="h-5 w-5" />
-  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-black text-[var(--dashboard-text)]">
+                      Gestion des comptes
+                    </p>
+                    <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
+                      Ajouter, modifier ou supprimer les administrateurs.
+                    </p>
+                  </div>
 
-  <div className="min-w-0 flex-1">
-    <p className="text-[14px] font-black text-[var(--dashboard-text)]">
-      Gestion des sites
-    </p>
-    <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
-      Consulter, ajouter ou gérer les sites web suivis.
-    </p>
-  </div>
+                  <span
+                    className="rounded-full px-3 py-1 text-[11px] font-black"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--brand-primary) 14%, transparent)",
+                      color: "var(--brand-primary)",
+                    }}
+                  >
+                    Gérer
+                  </span>
+                </button>
+              )}
 
-  <span
-    className="rounded-full px-3 py-1 text-[11px] font-black"
-    style={{
-      background:
-        "color-mix(in srgb, var(--brand-secondary) 14%, transparent)",
-      color: "var(--brand-secondary)",
-    }}
-  >
-    Ouvrir
-  </span>
-</button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/devices"
+                }}
+                className="relative flex w-full cursor-pointer items-center gap-4 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 hover:opacity-90"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--brand-secondary) 9%, var(--dashboard-card-soft))",
+                }}
+              >
+                <div
+                  className="z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full text-white"
+                  style={{ background: "var(--brand-secondary)" }}
+                >
+                  <Globe className="h-5 w-5" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-black text-[var(--dashboard-text)]">
+                    Gestion des sites
+                  </p>
+                  <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
+                    Consulter, ajouter ou gérer les sites web suivis.
+                  </p>
+                </div>
+
+                <span
+                  className="rounded-full px-3 py-1 text-[11px] font-black"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--brand-secondary) 14%, transparent)",
+                    color: "var(--brand-secondary)",
+                  }}
+                >
+                  Ouvrir
+                </span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -730,210 +476,64 @@ useEffect(() => {
               </button>
             </div>
           </div>
-          {/* MODAL AJOUT ADMIN */}
-{showAdminModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-    <div
-      className="w-full max-w-md rounded-[28px] border p-6"
-      style={{
-        background: "var(--dashboard-card)",
-        borderColor: "var(--dashboard-border)",
-        boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
-      }}
-    >
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-black text-[var(--dashboard-text)]">
-            Ajouter un administrateur
-          </h2>
 
-          <p className="mt-1 text-sm font-semibold text-[var(--dashboard-muted)]">
-            Créer un nouveau compte administrateur.
-          </p>
-        </div>
+          <div
+            className="relative overflow-hidden rounded-[30px] p-6 text-white"
+            style={{
+              background: "var(--brand-gradient)",
+              boxShadow:
+                "0 18px 44px color-mix(in srgb, var(--brand-primary) 24%, transparent)",
+            }}
+          >
+            <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-black/10 blur-3xl" />
 
-        <button
-          type="button"
-          onClick={() => {
-            setShowAdminModal(false)
-            setAdminMessage("")
-          }}
-          className="grid h-9 w-9 place-items-center rounded-xl border transition hover:bg-white/5"
-          style={{
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+            <div className="relative z-10 flex h-full flex-col justify-between gap-7">
+              <div>
+                <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+                  <ShieldCheck className="h-6 w-6 text-white" />
+                </div>
 
-      <div className="space-y-3">
-        <input
-          type="text"
-          placeholder="Prénom"
-          value={adminFirstName}
-          onChange={(e) => setAdminFirstName(e.target.value)}
-          className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/70">
+                  Espace sécurisé
+                </p>
 
-        <input
-          type="text"
-          placeholder="Nom"
-          value={adminLastName}
-          onChange={(e) => setAdminLastName(e.target.value)}
-          className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
+                <h2 className="mt-3 text-[26px] font-black leading-tight">
+                  Espace administrateur
+                </h2>
 
-        <input
-          type="email"
-          placeholder="Adresse email"
-          value={adminEmail}
-          onChange={(e) => setAdminEmail(e.target.value)}
-          className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
+                <p className="mt-3 text-[13px] font-semibold leading-6 text-white/80">
+                  Gérez votre compte, vos préférences et l'accès à la plateforme
+                  Smart SEO.
+                </p>
+              </div>
 
-        <input
-          type="text"
-          placeholder="Téléphone"
-          value={adminPhone}
-          onChange={(e) => setAdminPhone(e.target.value)}
-          className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
-
-        <input
-          type="password"
-          placeholder="Mot de passe"
-          value={adminPassword}
-          onChange={(e) => setAdminPassword(e.target.value)}
-          className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        />
-      </div>
-
-      {adminMessage && (
-        <p
-          className="mt-4 text-sm font-bold"
-          style={{
-            color: adminMessage.toLowerCase().includes("succès")
-              ? "#34d399"
-              : "#f87171",
-          }}
-        >
-          {adminMessage}
-        </p>
-      )}
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            setShowAdminModal(false)
-            setAdminMessage("")
-          }}
-          className="h-12 rounded-2xl border text-sm font-black transition hover:bg-white/5"
-          style={{
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
-        >
-          Annuler
-        </button>
-
-        <button
-          type="button"
-          onClick={handleCreateAdmin}
-          disabled={adminLoading}
-          className="h-12 rounded-2xl text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ background: "var(--brand-gradient)" }}
-        >
-          {adminLoading ? "Ajout..." : "Ajouter"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-         {/* CARTE A DROITE STYLE PHOTO */}
-<div
-  className="relative overflow-hidden rounded-[30px] p-6 text-white"
-  style={{
-    background: "var(--brand-gradient)",
-    boxShadow:
-      "0 18px 44px color-mix(in srgb, var(--brand-primary) 24%, transparent)",
-  }}
->
-  <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/20 blur-3xl" />
-  <div className="pointer-events-none absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-black/10 blur-3xl" />
-
-  <div className="relative z-10 flex h-full flex-col justify-between gap-7">
-    <div>
-      <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
-        <Calendar className="h-6 w-6 text-white" />
-      </div>
-
-      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/70">
-        Espace sécurisé
-      </p>
-
-      <h2 className="mt-3 text-[26px] font-black leading-tight">
-        Espace administrateur
-      </h2>
-
-      <p className="mt-3 text-[13px] font-semibold leading-6 text-white/80">
-        Gérez votre compte, vos préférences et l’accès à la plateforme Smart SEO.
-      </p>
-    </div>
-
-    <div className="space-y-3">
-      {[
-        "Accès sécurisé au dashboard",
-        "Notifications et rapports SEO",
-        "Suivi des performances web",
-      ].map((item) => (
-        <div
-          key={item}
-          className="flex items-center gap-3 rounded-2xl bg-white/12 px-4 py-3 ring-1 ring-white/15"
-        >
-          <span className="h-2 w-2 rounded-full bg-white" />
-          <p className="text-[13px] font-black text-white/90">{item}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
+              <div className="space-y-3">
+                {[
+                  "Accès sécurisé au dashboard",
+                  "Notifications et rapports SEO",
+                  "Suivi des performances web",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 rounded-2xl bg-white/12 px-4 py-3 ring-1 ring-white/15"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-white" />
+                    <p className="text-[13px] font-black text-white/90">
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* MODAL PASSWORD */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div
-            className="w-full max-w-md rounded-[28px] border p-6"
+            className="w-full max-w-md rounded-[24px] border p-6"
             style={{
               background: "var(--dashboard-card)",
               borderColor: "var(--dashboard-border)",
@@ -942,12 +542,11 @@ useEffect(() => {
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-[var(--dashboard-text)]">
+                <h2 className="text-lg font-black text-[var(--dashboard-text)]">
                   Modifier le mot de passe
                 </h2>
-
                 <p className="mt-1 text-sm font-semibold text-[var(--dashboard-muted)]">
-                  Saisissez l’ancien mot de passe puis le nouveau.
+                  Saisissez l'ancien mot de passe puis le nouveau.
                 </p>
               </div>
 
@@ -1051,5 +650,50 @@ useEffect(() => {
         </div>
       )}
     </section>
+  )
+}
+
+function ProfileInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="rounded-2xl px-4 py-3"
+      style={{ background: "var(--dashboard-card-soft)" }}
+    >
+      <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-black text-[var(--dashboard-text)]">
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function ContactCard({
+  icon,
+  color,
+  label,
+  value,
+}: {
+  icon: LucideIcon
+  color: string
+  label: string
+  value: string
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 rounded-2xl px-4 py-3"
+      style={{ background: "var(--dashboard-card-soft)" }}
+    >
+      <SmallIcon icon={icon} color={color} />
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
+          {label}
+        </p>
+        <p className="truncate text-[13px] font-black text-[var(--dashboard-text)]">
+          {value}
+        </p>
+      </div>
+    </div>
   )
 }

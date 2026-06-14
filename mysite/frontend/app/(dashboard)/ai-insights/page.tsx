@@ -30,22 +30,6 @@ const tools = [
     color: "#ef4444",
   },
   {
-    id: "ai-score",
-    title: "Score IA",
-    description:
-      "Génère un score global du site et un score IA pour chaque page à partir des données GA4, GSC et du contexte SEO.",
-    icon: Gauge,
-    color: "#14b8a6",
-  },
-  {
-    id: "recommendations",
-    title: "Recommandations SEO",
-    description:
-      "Propose des actions prioritaires pour améliorer les clics, impressions, CTR, positions et visibilité.",
-    icon: Lightbulb,
-    color: "#f59e0b",
-  },
-  {
     id: "weak-pages",
     title: "Pages à améliorer",
     description:

@@ -5,7 +5,7 @@ from .chat_ai import ask_ai
 from .ai_model import analyse_data, generate_recommendations, get_anomalies, get_weak_pages
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives
 
 from data_module.models import Website, Notification
 
@@ -562,15 +562,7 @@ def run_weekly_seo_summaries():
 
     email_subject = "Résumé hebdomadaire SEO — Tous les sites"
 
-    notification_message = (
-        f"Le résumé hebdomadaire de {len(summaries)} site(s) "
-        "a été généré et envoyé par e-mail."
-    )
-
-    if errors:
-        notification_message += (
-            f" {len(errors)} site(s) n’ont pas pu être analysés."
-        )
+    
 
     # -------------------------------------------------
     # Envoyer l'e-mail HTML

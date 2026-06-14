@@ -17,7 +17,7 @@ export default function DashboardLayout({
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Arrière-plan global adaptable au thème */}
-      <div className="absolute inset-0 bg-[#F5F7FB]" />
+      <div className="absolute inset-0 bg-[var(--dashboard-bg)]" />
 
       <div
         className="absolute inset-0 hidden dark:block"

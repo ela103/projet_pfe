@@ -42,4 +42,5 @@ urlpatterns = [
     path("dashboard/events-dw/",views.dashboard_events_dw,name="dashboard_events_dw"),
     path("dashboard/ga-events-dw/",views.ga_events_chart_dw,name="ga_events_chart_dw"),
     path("dashboard/gsc-pages-dw/",views.gsc_page_distribution_dw,name="gsc_page_distribution_dw"),
+    path("notifications/<int:notification_id>/read/",views.mark_notification_read,name="mark_notification_read"),
 ]

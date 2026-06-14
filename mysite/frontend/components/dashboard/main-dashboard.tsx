@@ -387,7 +387,13 @@ function SectionTitle({
         {title}
       </h3>
       {rightText ? (
-        <span className="text-[10px] font-semibold text-[var(--dashboard-muted)]">
+        <span
+          className="whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--brand-primary) 22%, var(--dashboard-card))",
+            color: "var(--brand-primary)",
+          }}
+        >
           {rightText}
         </span>
       ) : null}
@@ -429,9 +435,9 @@ function StatCard({
         </div>
 
         <span
-  className="rounded-full px-2 py-1 text-[10px] font-bold"
+  className="rounded-full px-2.5 py-1 text-[10px] font-bold"
   style={{
-    backgroundColor: `${color}22`,
+    backgroundColor: `color-mix(in srgb, ${color} 22%, var(--dashboard-card))`,
     color: color,
   }}
 >
@@ -520,8 +526,14 @@ function GaugeCard({
           </p>
         </div>
 
-        <span className="text-[11px] font-bold text-slate-500">
-          current
+        <span
+          className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--brand-primary) 22%, var(--dashboard-card))",
+            color: "var(--brand-primary)",
+          }}
+        >
+          GSC
         </span>
       </div>
 
@@ -1209,7 +1221,13 @@ function TopPagesCard({
           </p>
         </div>
 
-        <span className="text-[11px] font-bold text-[var(--brand-primary)]">
+        <span
+          className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--brand-primary) 22%, var(--dashboard-card))",
+            color: "var(--brand-primary)",
+          }}
+        >
           Top 5
         </span>
       </div>
@@ -1965,31 +1983,31 @@ style={{ borderColor: "var(--dashboard-border)" }}
 {/* ── FILTER BAR ── */}
 <div
   style={{
-    marginBottom: "20px",
+    marginBottom: "22px",
     background: "var(--dashboard-card)",
     border: "1px solid var(--dashboard-border)",
     borderRadius: "20px",
-    padding: "20px 24px",
-    backdropFilter: "blur(12px)",
+    padding: "12px",
+    backdropFilter: "none",
     boxShadow: "var(--dashboard-shadow)",
   }}
 >
   {/* Header row */}
   <div
     style={{
-      display: "flex",
+      display: "none",
       alignItems: "center",
-      gap: "10px",
-      marginBottom: "18px",
+      gap: "12px",
+      marginBottom: "16px",
       paddingBottom: "14px",
       borderBottom: "1px solid var(--dashboard-line)",
     }}
   >
     <div
       style={{
-        width: 34,
-        height: 34,
-        borderRadius: "10px",
+        width: 38,
+        height: 38,
+        borderRadius: "12px",
         background: "var(--brand-gradient)",
         display: "flex",
         alignItems: "center",
@@ -1999,9 +2017,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
         flexShrink: 0,
       }}
     >
-      <span style={{ color: "white", fontSize: "14px", fontWeight: 900 }}>
-        F
-      </span>
+      <CalendarDays className="h-5 w-5 text-white" strokeWidth={2.4} />
     </div>
 
     <div>
@@ -2044,24 +2060,109 @@ style={{ borderColor: "var(--dashboard-border)" }}
   {/* Inputs row */}
   <div
     style={{
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr  auto auto",
+      display: "flex",
+      flexWrap: "wrap",
       gap: "12px",
-      alignItems: "flex-end",
+      alignItems: "center",
+      padding: 0,
+      borderRadius: 0,
+      background: "transparent",
+      border: "none",
+      boxShadow: "none",
     }}
   >
-    
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        minHeight: "42px",
+        padding: "6px 12px",
+        borderRadius: "14px",
+        background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--dashboard-border) 72%, transparent)",
+        boxShadow: "none",
+      }}
+    >
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: "10px",
+          background: "var(--brand-gradient)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow:
+            "0 4px 12px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
+          flexShrink: 0,
+        }}
+      >
+        <CalendarDays className="h-4 w-4 text-white" strokeWidth={2.4} />
+      </div>
+
+      <div>
+        <p
+          style={{
+            margin: 0,
+            color: "var(--dashboard-text)",
+            fontSize: "12px",
+            fontWeight: 800,
+            lineHeight: 1.1,
+          }}
+        >
+          Période
+        </p>
+        <p
+          style={{
+            margin: "4px 0 0",
+            color: "var(--dashboard-muted)",
+            fontSize: "9px",
+            fontWeight: 700,
+          }}
+        >
+          Analyse
+        </p>
+      </div>
+    </div>
+
+    {(sitesError || statsError) && (
+      <div
+        style={{
+          gridColumn: "1 / -1",
+          color: "#fecaca",
+          fontSize: "11px",
+          fontWeight: 700,
+        }}
+      >
+        {sitesError || statsError}
+      </div>
+    )}
 
     {/* Date début */}
-    <div>
+    <div
+      style={{
+        minWidth: "210px",
+        flex: "1 1 210px",
+        padding: "6px 12px",
+        borderRadius: "14px",
+        background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
+        border: startDate
+          ? "1px solid var(--brand-secondary)"
+          : "1px solid var(--dashboard-border)",
+        boxShadow: startDate
+          ? "0 0 0 3px color-mix(in srgb, var(--brand-secondary) 12%, transparent)"
+          : "none",
+      }}
+    >
       <label
         style={{
           display: "block",
-          marginBottom: "6px",
-          fontSize: "10px",
-          fontWeight: 700,
+          marginBottom: "2px",
+          fontSize: "9px",
+          fontWeight: 800,
           textTransform: "uppercase",
-          letterSpacing: "0.1em",
+          letterSpacing: "0.09em",
           color: "var(--dashboard-muted)",
         }}
       >
@@ -2074,44 +2175,52 @@ style={{ borderColor: "var(--dashboard-border)" }}
         onChange={(e) => setStartDate(e.target.value)}
         style={{
           width: "100%",
-          height: "42px",
-          background: "var(--dashboard-card-soft)",
-          border: startDate
-            ? "1px solid var(--brand-secondary)"
-            : "1px solid var(--dashboard-border)",
-          borderRadius: "13px",
-          padding: "0 14px",
+          height: "24px",
+          background: "transparent",
+          border: "none",
+          borderRadius: "0",
+          padding: 0,
           fontSize: "13px",
-          fontWeight: 600,
+          fontWeight: 700,
           color: "var(--dashboard-text)",
           outline: "none",
           colorScheme: "dark",
           transition: "border-color 0.2s",
-          boxShadow: startDate
-            ? "0 0 0 3px color-mix(in srgb, var(--brand-secondary) 14%, transparent)"
-            : "none",
+          boxShadow: "none",
         }}
         onFocus={(e) => {
-          e.target.style.borderColor = "var(--brand-secondary)"
+          e.target.style.borderColor = "transparent"
         }}
         onBlur={(e) => {
-          e.target.style.borderColor = startDate
-            ? "var(--brand-secondary)"
-            : "var(--dashboard-border)"
+          e.target.style.borderColor = "transparent"
         }}
       />
     </div>
 
     {/* Date fin */}
-    <div>
+    <div
+      style={{
+        minWidth: "210px",
+        flex: "1 1 210px",
+        padding: "6px 12px",
+        borderRadius: "14px",
+        background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
+        border: endDate
+          ? "1px solid var(--brand-tertiary)"
+          : "1px solid var(--dashboard-border)",
+        boxShadow: endDate
+          ? "0 0 0 3px color-mix(in srgb, var(--brand-tertiary) 12%, transparent)"
+          : "none",
+      }}
+    >
       <label
         style={{
           display: "block",
-          marginBottom: "6px",
-          fontSize: "10px",
-          fontWeight: 700,
+          marginBottom: "2px",
+          fontSize: "9px",
+          fontWeight: 800,
           textTransform: "uppercase",
-          letterSpacing: "0.1em",
+          letterSpacing: "0.09em",
           color: "var(--dashboard-muted)",
         }}
       >
@@ -2124,30 +2233,24 @@ style={{ borderColor: "var(--dashboard-border)" }}
         onChange={(e) => setEndDate(e.target.value)}
         style={{
           width: "100%",
-          height: "42px",
-          background: "var(--dashboard-card-soft)",
-          border: endDate
-            ? "1px solid var(--brand-tertiary)"
-            : "1px solid var(--dashboard-border)",
-          borderRadius: "13px",
-          padding: "0 14px",
+          height: "24px",
+          background: "transparent",
+          border: "none",
+          borderRadius: "0",
+          padding: 0,
           fontSize: "13px",
-          fontWeight: 600,
+          fontWeight: 700,
           color: "var(--dashboard-text)",
           outline: "none",
           colorScheme: "dark",
           transition: "border-color 0.2s",
-          boxShadow: endDate
-            ? "0 0 0 3px color-mix(in srgb, var(--brand-tertiary) 14%, transparent)"
-            : "none",
+          boxShadow: "none",
         }}
         onFocus={(e) => {
-          e.target.style.borderColor = "var(--brand-tertiary)"
+          e.target.style.borderColor = "transparent"
         }}
         onBlur={(e) => {
-          e.target.style.borderColor = endDate
-            ? "var(--brand-tertiary)"
-            : "var(--dashboard-border)"
+          e.target.style.borderColor = "transparent"
         }}
       />
     </div>
@@ -2159,7 +2262,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
       style={{
         height: "42px",
         padding: "0 20px",
-        borderRadius: "13px",
+        borderRadius: "14px",
         border: "none",
         background: "var(--brand-gradient)",
         color: "white",
@@ -2196,13 +2299,13 @@ style={{ borderColor: "var(--dashboard-border)" }}
       }}
       style={{
         height: "42px",
-        padding: "0 16px",
-        borderRadius: "13px",
-        background: "var(--dashboard-card-soft)",
-        border: "1px solid var(--dashboard-border)",
+        padding: "0 12px",
+        borderRadius: "12px",
+        background: "transparent",
+        border: "1px solid transparent",
         color: "var(--dashboard-muted)",
         fontSize: "12px",
-        fontWeight: 600,
+        fontWeight: 700,
         cursor: "pointer",
         whiteSpace: "nowrap",
         transition: "all 0.2s",
@@ -2220,7 +2323,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
           "var(--dashboard-border)"
       }}
     >
-      Reset
+      Réinitialiser
     </button>
   </div>
 

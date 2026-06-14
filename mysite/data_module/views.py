@@ -1275,6 +1275,50 @@ def notifications_list(request):
         "notifications": data,
     })
 
+
+@csrf_exempt
+@require_POST
+def mark_notification_read(request, notification_id):
+    if not is_staff_user(request):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Accès réservé aux administrateurs.",
+            },
+            status=403,
+        )
+
+    try:
+        notification = Notification.objects.get(
+            id=notification_id
+        )
+    except Notification.DoesNotExist:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Notification introuvable.",
+            },
+            status=404,
+        )
+
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+
+    unread_count = Notification.objects.filter(
+        is_read=False
+    ).count()
+
+    return JsonResponse(
+        {
+            "success": True,
+            "notification_id": notification.id,
+            "is_read": True,
+            "unread_count": unread_count,
+        }
+    )
+
+
 def dashboard_events(request):
     website_id = request.GET.get("website_id")
     start_date = request.GET.get("start_date")

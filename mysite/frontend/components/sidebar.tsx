@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Sparkles,
   ShieldCheck,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react"
 
@@ -42,8 +43,8 @@ const sections: Section[] = [
     title: "Principal",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: Home },
-      { href: "/statistics", label: "Statistics", icon: BarChart3 },
       { href: "/ai-insights", label: "AI Insights", icon: BrainCircuit, badge: "AI" },
+      {href: "/chatbot",label: "Assistant IA",icon: MessageCircle,badge: "AI"},
     ],
   },
   {
@@ -51,7 +52,7 @@ const sections: Section[] = [
     items: [
       { href: "/analytics", label: "Google Analytics", icon: TrendingUp },
       { href: "/search-console", label: "Search Console", icon: Search },
-      { href: "/scraping", label: "Scraping SEO", icon: ShieldCheck },
+      
     ],
   },
   {
@@ -206,11 +207,9 @@ export function Sidebar({ onClose }: SidebarProps) {
                       background: active
                         ? "var(--brand-gradient-soft)"
                         : hovered
-                        ? "var(--sidebar-hover)"
+                        ? "var(--brand-gradient-soft)"
                         : "transparent",
-                      border: active
-                        ? "1px solid var(--sidebar-border)"
-                        : "1px solid transparent",
+                      border: "1px solid transparent",
                     }}
                   >
                     {/* Barre active */}
