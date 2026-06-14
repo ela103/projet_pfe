@@ -9,6 +9,7 @@ import {
   Loader2,
   RotateCcw,
   Sparkles,
+  Download,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -112,6 +113,8 @@ function AIInsightTimeFilter({
   onAnalyze: () => void
   loading: boolean
 }) {
+
+
   return (
     <div
       className="flex flex-col gap-3 rounded-[24px] border bg-[var(--dashboard-card)] p-4 shadow-[var(--dashboard-shadow)] md:flex-row md:items-center md:justify-between"
@@ -271,6 +274,67 @@ lastRequestKeyRef.current = requestKey
 
     fetchAIResponse()
   }, [tool, appliedPeriod, refreshKey])
+
+  async function handleExportGlobalAnalysisPdf() {
+    if (!responseText.trim()) {
+      setError("Aucune analyse à exporter.")
+      return
+    }
+
+    try {
+      setError("")
+
+    const websiteName =
+      localStorage.getItem("websiteName") ||
+      localStorage.getItem("selectedWebsiteName") ||
+      "Site sélectionné"
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/ai/export-global-analysis-pdf/",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          analysis: responseText,
+          website_name: websiteName,
+          period: appliedPeriod,
+        }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+
+        throw new Error(
+          errorData.error ||
+            "Erreur pendant la génération du PDF.",
+        )
+      }
+
+      const pdfBlob = await response.blob()
+      const pdfUrl = window.URL.createObjectURL(pdfBlob)
+
+      const downloadLink = document.createElement("a")
+
+      downloadLink.href = pdfUrl
+      downloadLink.download = "analyse-globale-seo.pdf"
+
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      downloadLink.remove()
+
+      window.URL.revokeObjectURL(pdfUrl)
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Impossible de générer le PDF.",
+      )
+    }
+  }
 
   if (!config) {
     return (
@@ -486,73 +550,93 @@ lastRequestKeyRef.current = requestKey
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-5 text-[var(--dashboard-text)]">
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
-    components={{
-      h1: ({ children }) => (
-        <h1 className="mb-4 mt-6 text-2xl font-black first:mt-0">
-          {children}
-        </h1>
-      ),
+  <div className="space-y-4">
+    {tool === "global-analysis" && responseText.trim() && (
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => void handleExportGlobalAnalysisPdf()}
+          className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition hover:-translate-y-0.5 hover:shadow-md"
+          style={{
+            background: "var(--dashboard-card)",
+            borderColor: "var(--dashboard-border)",
+            color: "var(--dashboard-text)",
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Exporter en PDF
+        </button>
+      </div>
+    )}
 
-      h2: ({ children }) => (
-        <h2 className="mb-3 mt-6 text-xl font-black first:mt-0">
-          {children}
-        </h2>
-      ),
+    <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-5 text-[var(--dashboard-text)]">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ children }) => (
+            <h1 className="mb-4 mt-6 text-2xl font-black first:mt-0">
+              {children}
+            </h1>
+          ),
 
-      h3: ({ children }) => (
-        <h3 className="mb-3 mt-5 text-base font-black first:mt-0">
-          {children}
-        </h3>
-      ),
+          h2: ({ children }) => (
+            <h2 className="mb-3 mt-6 text-xl font-black first:mt-0">
+              {children}
+            </h2>
+          ),
 
-      p: ({ children }) => (
-        <p className="mb-4 text-sm font-semibold leading-7 last:mb-0">
-          {children}
-        </p>
-      ),
+          h3: ({ children }) => (
+            <h3 className="mb-3 mt-5 text-base font-black first:mt-0">
+              {children}
+            </h3>
+          ),
 
-      strong: ({ children }) => (
-        <strong className="font-black text-[var(--brand-primary)]">
-          {children}
-        </strong>
-      ),
+          p: ({ children }) => (
+            <p className="mb-4 text-sm font-semibold leading-7 last:mb-0">
+              {children}
+            </p>
+          ),
 
-      ul: ({ children }) => (
-        <ul className="mb-4 ml-6 list-disc space-y-2">
-          {children}
-        </ul>
-      ),
+          strong: ({ children }) => (
+            <strong className="font-black text-[var(--brand-primary)]">
+              {children}
+            </strong>
+          ),
 
-      ol: ({ children }) => (
-        <ol className="mb-4 ml-6 list-decimal space-y-2">
-          {children}
-        </ol>
-      ),
+          ul: ({ children }) => (
+            <ul className="mb-4 ml-6 list-disc space-y-2">
+              {children}
+            </ul>
+          ),
 
-      li: ({ children }) => (
-        <li className="text-sm font-semibold leading-7">
-          {children}
-        </li>
-      ),
+          ol: ({ children }) => (
+            <ol className="mb-4 ml-6 list-decimal space-y-2">
+              {children}
+            </ol>
+          ),
 
-      blockquote: ({ children }) => (
-        <blockquote className="my-4 border-l-4 border-[var(--brand-primary)] pl-4 text-[var(--dashboard-muted)]">
-          {children}
-        </blockquote>
-      ),
+          li: ({ children }) => (
+            <li className="text-sm font-semibold leading-7">
+              {children}
+            </li>
+          ),
 
-      hr: () => (
-        <hr className="my-6 border-[var(--dashboard-border)]" />
-      ),
-    }}
-  >
-    {responseText.replace(/\\n/g, "\n").trim()}
-  </ReactMarkdown>
-</div>
-          )}
+          blockquote: ({ children }) => (
+            <blockquote className="my-4 border-l-4 border-[var(--brand-primary)] pl-4 text-[var(--dashboard-muted)]">
+              {children}
+            </blockquote>
+          ),
+
+          hr: () => (
+            <hr className="my-6 border-[var(--dashboard-border)]" />
+          ),
+        }}
+      >
+        {responseText.replace(/\\n/g, "\n").trim()}
+      </ReactMarkdown>
+    </div>
+  </div>
+)}
         </div>
       </div>
     </section>

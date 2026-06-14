@@ -15,6 +15,8 @@ from .views import (
     jwt_test,
     api_reset_password,
     api_csrf,
+    api_passkey_register_options,
+    api_passkey_register_verify,
 )
 
 urlpatterns = [
@@ -34,4 +36,6 @@ urlpatterns = [
     path("api/verify-otp/",api_verify_otp,name="api_verify_otp",),
     path("api/reset-password/",api_reset_password,name="api_reset_password",),
     path("api/csrf/", api_csrf, name="api_csrf"),
+    path("api/passkeys/register/options/",api_passkey_register_options,name="api_passkey_register_options"),
+    path("api/passkeys/register/verify/",api_passkey_register_verify,name="api_passkey_register_verify"),
 ]

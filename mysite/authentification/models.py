@@ -77,3 +77,41 @@ class PasswordResetOTP(models.Model):
 
     def __str__(self):
         return f"OTP de {self.user.email}"
+
+class PasskeyCredential(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="passkey_credentials",
+    )
+
+    credential_id = models.BinaryField(unique=True)
+    public_key = models.BinaryField()
+
+    sign_count = models.PositiveBigIntegerField(
+        default=0,
+    )
+
+    transports = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    device_name = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    last_used_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        device = self.device_name or "Passkey"
+        return f"{self.user.email} — {device}"

@@ -11,6 +11,30 @@ from .chat_ai import ask_ai
 from django.views.decorators.http import require_GET
 from .weekly_summary import generate_weekly_seo_summary
 
+import json
+import re
+
+from datetime import datetime
+from io import BytesIO
+from xml.sax.saxutils import escape
+
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    HRFlowable,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 def test_ai(request):
     pages = nlp_analysis()
@@ -45,6 +69,744 @@ def ai_chat(request):
 
     return JsonResponse({"error": "POST only"})
 
+
+
+@csrf_exempt
+@require_POST
+def export_global_analysis_pdf(request):
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+
+        analysis = str(data.get("analysis", "")).strip()
+        website_name = str(
+            data.get("website_name", "Site sélectionné")
+        ).strip()
+        period = str(data.get("period", "all")).strip()
+
+        if not analysis:
+            return JsonResponse(
+                {"error": "Aucune analyse à exporter."},
+                status=400,
+            )
+
+        period_labels = {
+            "today": "Aujourd’hui",
+            "day": "Aujourd’hui",
+            "7d": "7 derniers jours",
+            "week": "7 derniers jours",
+            "30d": "30 derniers jours",
+            "month": "30 derniers jours",
+            "90d": "90 derniers jours",
+            "year": "12 derniers mois",
+            "all": "Toutes les données",
+        }
+
+        period_label = period_labels.get(period, period)
+        generated_at = datetime.now().strftime("%d/%m/%Y à %H:%M")
+
+        buffer = BytesIO()
+
+        page_width, page_height = A4
+
+        left_margin = 16 * mm
+        right_margin = 16 * mm
+        top_margin = 17 * mm
+        bottom_margin = 18 * mm
+
+        content_width = (
+            page_width
+            - left_margin
+            - right_margin
+        )
+
+        document = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=left_margin,
+            rightMargin=right_margin,
+            topMargin=top_margin,
+            bottomMargin=bottom_margin,
+            title="Rapport d’analyse globale SEO",
+            author="AI Insights",
+            subject="Analyse globale des performances SEO",
+        )
+
+        styles = getSampleStyleSheet()
+
+        # Couleurs du rapport
+        brand_primary = colors.HexColor("#315CFF")
+        brand_secondary = colors.HexColor("#7B5CFF")
+        dark_text = colors.HexColor("#172033")
+        body_text = colors.HexColor("#475569")
+        muted_text = colors.HexColor("#64748B")
+        light_border = colors.HexColor("#E2E8F0")
+        soft_background = colors.HexColor("#F8FAFC")
+        analysis_background = colors.HexColor("#F4F6FF")
+        analysis_border = colors.HexColor("#D8DDFE")
+
+        # Styles
+        brand_style = ParagraphStyle(
+            name="BrandLabel",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8,
+            leading=10,
+            textColor=brand_primary,
+            spaceAfter=2 * mm,
+        )
+
+        title_style = ParagraphStyle(
+            name="ReportTitle",
+            parent=styles["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=21,
+            leading=25,
+            alignment=TA_LEFT,
+            textColor=dark_text,
+            spaceAfter=2 * mm,
+        )
+
+        subtitle_style = ParagraphStyle(
+            name="ReportSubtitle",
+            parent=styles["Normal"],
+            fontName="Helvetica",
+            fontSize=9,
+            leading=13,
+            alignment=TA_LEFT,
+            textColor=muted_text,
+        )
+
+        badge_style = ParagraphStyle(
+            name="Badge",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8.5,
+            leading=11,
+            alignment=TA_CENTER,
+            textColor=colors.white,
+        )
+
+        info_label_style = ParagraphStyle(
+            name="InfoLabel",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8,
+            leading=11,
+            textColor=muted_text,
+            spaceAfter=1 * mm,
+        )
+
+        info_value_style = ParagraphStyle(
+            name="InfoValue",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=9,
+            leading=12,
+            textColor=dark_text,
+        )
+
+        section_title_style = ParagraphStyle(
+            name="SectionTitle",
+            parent=styles["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=13,
+            leading=17,
+            textColor=dark_text,
+            spaceAfter=3 * mm,
+        )
+
+        analysis_heading_style = ParagraphStyle(
+            name="AnalysisHeading",
+            parent=styles["Heading3"],
+            fontName="Helvetica-Bold",
+            fontSize=11,
+            leading=15,
+            textColor=brand_primary,
+            spaceBefore=3 * mm,
+            spaceAfter=2 * mm,
+            leftIndent=4 * mm,
+            rightIndent=4 * mm,
+        )
+
+        analysis_body_style = ParagraphStyle(
+            name="AnalysisBody",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=9.3,
+            leading=14,
+            alignment=TA_LEFT,
+            textColor=body_text,
+            backColor=analysis_background,
+            borderColor=analysis_border,
+            borderWidth=0.6,
+            borderPadding=9,
+            borderRadius=5,
+            spaceAfter=3 * mm,
+            splitLongWords=True,
+        )
+
+        analysis_bullet_style = ParagraphStyle(
+            name="AnalysisBullet",
+            parent=analysis_body_style,
+            leftIndent=8 * mm,
+            firstLineIndent=-4 * mm,
+            bulletIndent=3 * mm,
+        )
+
+        footer_style = ParagraphStyle(
+            name="Footer",
+            parent=styles["Normal"],
+            fontName="Helvetica",
+            fontSize=7.5,
+            leading=10,
+            alignment=TA_CENTER,
+            textColor=muted_text,
+        )
+
+        story = []
+
+        # En-tête principal
+        header_left = [
+            Paragraph("AI INSIGHTS", brand_style),
+            Paragraph(
+                "Rapport d’analyse globale",
+                title_style,
+            ),
+            Paragraph(
+                "Synthèse des performances SEO et digitales",
+                subtitle_style,
+            ),
+        ]
+
+        badge = Table(
+            [[Paragraph("RAPPORT SEO", badge_style)]],
+            colWidths=[34 * mm],
+            rowHeights=[11 * mm],
+        )
+
+        badge.setStyle(
+            TableStyle(
+                [
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (-1, -1),
+                        brand_primary,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "ALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "CENTER",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        6,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        6,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        4,
+                    ),
+                ]
+            )
+        )
+
+        header_table = Table(
+            [[header_left, badge]],
+            colWidths=[
+                content_width - 38 * mm,
+                38 * mm,
+            ],
+        )
+
+        header_table.setStyle(
+            TableStyle(
+                [
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "TOP",
+                    ),
+                    (
+                        "ALIGN",
+                        (1, 0),
+                        (1, 0),
+                        "RIGHT",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                ]
+            )
+        )
+
+        story.append(header_table)
+        story.append(Spacer(1, 6 * mm))
+
+        # Ligne de séparation
+        story.append(
+            HRFlowable(
+                width="100%",
+                thickness=1,
+                color=light_border,
+                spaceBefore=0,
+                spaceAfter=5 * mm,
+            )
+        )
+
+        # Informations du rapport
+        info_data = [
+            [
+                Paragraph("SITE ANALYSÉ", info_label_style),
+                Paragraph("PÉRIODE", info_label_style),
+                Paragraph("DATE DE GÉNÉRATION", info_label_style),
+            ],
+            [
+                Paragraph(
+                    escape(website_name),
+                    info_value_style,
+                ),
+                Paragraph(
+                    escape(period_label),
+                    info_value_style,
+                ),
+                Paragraph(
+                    escape(generated_at),
+                    info_value_style,
+                ),
+            ],
+        ]
+
+        info_table = Table(
+            info_data,
+            colWidths=[
+                content_width * 0.38,
+                content_width * 0.27,
+                content_width * 0.35,
+            ],
+        )
+
+        info_table.setStyle(
+            TableStyle(
+                [
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (-1, -1),
+                        soft_background,
+                    ),
+                    (
+                        "BOX",
+                        (0, 0),
+                        (-1, -1),
+                        0.7,
+                        light_border,
+                    ),
+                    (
+                        "INNERGRID",
+                        (0, 0),
+                        (-1, -1),
+                        0.4,
+                        light_border,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "TOP",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        10,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        10,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, 0),
+                        8,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, 0),
+                        2,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 1),
+                        (-1, 1),
+                        2,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 1),
+                        (-1, 1),
+                        9,
+                    ),
+                ]
+            )
+        )
+
+        story.append(info_table)
+        story.append(Spacer(1, 7 * mm))
+
+        # Titre de la section analyse
+        section_title_table = Table(
+            [
+                [
+                    "",
+                    Paragraph(
+                        "Analyse globale",
+                        section_title_style,
+                    ),
+                ]
+            ],
+            colWidths=[
+                4 * mm,
+                content_width - 4 * mm,
+            ],
+        )
+
+        section_title_table.setStyle(
+            TableStyle(
+                [
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (0, 0),
+                        brand_primary,
+                    ),
+                    (
+                        "VALIGN",
+                        (0, 0),
+                        (-1, -1),
+                        "MIDDLE",
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "RIGHTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        0,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        3,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        3,
+                    ),
+                ]
+            )
+        )
+
+        story.append(section_title_table)
+        story.append(Spacer(1, 3 * mm))
+
+        # Préparation du contenu Markdown
+        normalized_analysis = (
+            analysis
+            .replace("\\n", "\n")
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+        )
+
+        def format_inline_markdown(text):
+            """
+            Convertit uniquement les éléments Markdown simples
+            utiles dans le PDF.
+            """
+            safe_text = escape(text)
+
+            safe_text = re.sub(
+                r"\*\*(.+?)\*\*",
+                r"<b>\1</b>",
+                safe_text,
+            )
+
+            safe_text = re.sub(
+                r"__(.+?)__",
+                r"<b>\1</b>",
+                safe_text,
+            )
+
+            safe_text = re.sub(
+                r"\*(.+?)\*",
+                r"<i>\1</i>",
+                safe_text,
+            )
+
+            return safe_text
+
+        lines = normalized_analysis.split("\n")
+
+        paragraph_lines = []
+
+        def append_paragraph():
+            if not paragraph_lines:
+                return
+
+            text = " ".join(paragraph_lines).strip()
+
+            if text:
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(text),
+                        analysis_body_style,
+                    )
+                )
+
+            paragraph_lines.clear()
+
+        for raw_line in lines:
+            line = raw_line.strip()
+
+            if not line:
+                append_paragraph()
+                continue
+
+            # Titres Markdown
+            if line.startswith("### "):
+                append_paragraph()
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(line[4:]),
+                        analysis_heading_style,
+                    )
+                )
+                continue
+
+            if line.startswith("## "):
+                append_paragraph()
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(line[3:]),
+                        analysis_heading_style,
+                    )
+                )
+                continue
+
+            if line.startswith("# "):
+                append_paragraph()
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(line[2:]),
+                        analysis_heading_style,
+                    )
+                )
+                continue
+
+            # Ligne entièrement en gras utilisée comme titre
+            if (
+                line.startswith("**")
+                and line.endswith("**")
+                and len(line) > 4
+            ):
+                append_paragraph()
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(line),
+                        analysis_heading_style,
+                    )
+                )
+                continue
+
+            # Listes à puces
+            if line.startswith("- ") or line.startswith("* "):
+                append_paragraph()
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(line[2:]),
+                        analysis_bullet_style,
+                        bulletText="•",
+                    )
+                )
+                continue
+
+            # Listes numérotées
+            numbered_match = re.match(
+                r"^(\d+)[\.\)]\s+(.+)$",
+                line,
+            )
+
+            if numbered_match:
+                append_paragraph()
+
+                number = numbered_match.group(1)
+                item_text = numbered_match.group(2)
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(item_text),
+                        analysis_bullet_style,
+                        bulletText=f"{number}.",
+                    )
+                )
+                continue
+
+            paragraph_lines.append(line)
+
+        append_paragraph()
+
+        # Pied du contenu
+        story.append(Spacer(1, 5 * mm))
+
+        story.append(
+            HRFlowable(
+                width="100%",
+                thickness=0.8,
+                color=light_border,
+                spaceBefore=0,
+                spaceAfter=3 * mm,
+            )
+        )
+
+        story.append(
+            Paragraph(
+                "Rapport généré automatiquement par AI Insights. "
+                "Les résultats dépendent des données GA4 et "
+                "Search Console disponibles.",
+                footer_style,
+            )
+        )
+
+        # Numéro de page
+        def add_page_number(canvas, doc):
+            canvas.saveState()
+
+            canvas.setStrokeColor(light_border)
+            canvas.setLineWidth(0.5)
+
+            canvas.line(
+                left_margin,
+                12 * mm,
+                page_width - right_margin,
+                12 * mm,
+            )
+
+            canvas.setFont("Helvetica", 7.5)
+            canvas.setFillColor(muted_text)
+
+            canvas.drawString(
+                left_margin,
+                8 * mm,
+                "AI Insights — Rapport SEO",
+            )
+
+            canvas.drawRightString(
+                page_width - right_margin,
+                8 * mm,
+                f"Page {doc.page}",
+            )
+
+            canvas.restoreState()
+
+        document.build(
+            story,
+            onFirstPage=add_page_number,
+            onLaterPages=add_page_number,
+        )
+
+        pdf_value = buffer.getvalue()
+        buffer.close()
+
+        response = HttpResponse(
+            pdf_value,
+            content_type="application/pdf",
+        )
+
+        response["Content-Disposition"] = (
+            'attachment; '
+            'filename="analyse-globale-seo.pdf"'
+        )
+
+        return response
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Les données JSON envoyées sont invalides."},
+            status=400,
+        )
+
+    except Exception as error:
+        print("Erreur export PDF :", error)
+
+        return JsonResponse(
+            {
+                "error": (
+                    "Impossible de générer le PDF : "
+                    f"{str(error)}"
+                )
+            },
+            status=500,
+        )
 @require_GET
 def weekly_seo_summary(request):
     website_id = request.GET.get("website_id")

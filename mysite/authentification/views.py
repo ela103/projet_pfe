@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -22,7 +22,11 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .formulaires import EmailAuthenticationForm
-from .models import User, PasswordResetOTP
+from .models import (
+    User,
+    PasswordResetOTP,
+    PasskeyCredential,
+)
 import secrets
 
 from datetime import timedelta
@@ -32,6 +36,19 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 from .models import PasswordResetOTP
+from django.conf import settings
+
+from webauthn import (
+    generate_registration_options,
+    options_to_json,
+    verify_registration_response,
+)
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
+    ResidentKeyRequirement,
+    UserVerificationRequirement,
+)
 
 NAME_REGEX = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")
 PHONE_REGEX = re.compile(r"^\d{8}$")
@@ -182,6 +199,230 @@ def api_me(request):
     return JsonResponse({
         "authenticated": False
     }, status=401)
+
+
+
+@csrf_exempt
+@require_POST
+def api_passkey_register_options(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Utilisateur non authentifié.",
+            },
+            status=401,
+        )
+
+    try:
+        user = request.user
+
+        existing_credentials = [
+            PublicKeyCredentialDescriptor(
+                id=bytes(credential.credential_id),
+                transports=credential.transports or None,
+            )
+            for credential in user.passkey_credentials.all()
+        ]
+
+        options = generate_registration_options(
+            rp_id=settings.WEBAUTHN_RP_ID,
+            rp_name=settings.WEBAUTHN_RP_NAME,
+            user_id=str(user.id).encode("utf-8"),
+            user_name=user.email,
+            user_display_name=(
+                f"{user.first_name} {user.last_name}".strip()
+                or user.email
+            ),
+            exclude_credentials=existing_credentials,
+            authenticator_selection=AuthenticatorSelectionCriteria(
+                resident_key=ResidentKeyRequirement.PREFERRED,
+                user_verification=UserVerificationRequirement.REQUIRED,
+            ),
+        )
+
+        # Le challenge doit être conservé côté serveur pour la vérification.
+        request.session["passkey_registration_challenge"] = (
+            options.challenge.hex()
+        )
+
+        request.session.modified = True
+
+        return HttpResponse(
+            options_to_json(options),
+            content_type="application/json",
+        )
+
+    except Exception as error:
+        print("Erreur options inscription passkey :", repr(error))
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": (
+                    "Impossible de préparer l’enregistrement "
+                    "de la passkey."
+                ),
+            },
+            status=500,
+        )
+    
+
+@csrf_exempt
+@require_POST
+def api_passkey_register_verify(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Utilisateur non authentifié.",
+            },
+            status=401,
+        )
+
+    try:
+        data = json.loads(request.body or "{}")
+
+        credential = data.get("credential")
+        device_name = str(
+            data.get("device_name", "Cet appareil")
+        ).strip()
+
+        if not credential:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "La réponse d’enregistrement "
+                        "WebAuthn est absente."
+                    ),
+                },
+                status=400,
+            )
+
+        challenge_hex = request.session.get(
+            "passkey_registration_challenge"
+        )
+
+        if not challenge_hex:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "Le challenge d’enregistrement "
+                        "est absent ou expiré."
+                    ),
+                },
+                status=400,
+            )
+
+        expected_challenge = bytes.fromhex(challenge_hex)
+
+        verification = verify_registration_response(
+            credential=credential,
+            expected_challenge=expected_challenge,
+            expected_origin=settings.WEBAUTHN_ORIGIN,
+            expected_rp_id=settings.WEBAUTHN_RP_ID,
+            require_user_verification=True,
+        )
+
+        credential_id = verification.credential_id
+
+        if PasskeyCredential.objects.filter(
+            credential_id=credential_id,
+        ).exists():
+            request.session.pop(
+                "passkey_registration_challenge",
+                None,
+            )
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "Cette passkey est déjà enregistrée."
+                    ),
+                },
+                status=409,
+            )
+
+        transports = (
+            credential
+            .get("response", {})
+            .get("transports", [])
+        )
+
+        saved_credential = PasskeyCredential.objects.create(
+            user=request.user,
+            credential_id=credential_id,
+            public_key=verification.credential_public_key,
+            sign_count=verification.sign_count,
+            transports=transports,
+            device_name=device_name or "Cet appareil",
+        )
+
+        # Le challenge ne doit pas pouvoir être réutilisé.
+        request.session.pop(
+            "passkey_registration_challenge",
+            None,
+        )
+        request.session.modified = True
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": (
+                    "La connexion avec cet appareil "
+                    "a été activée avec succès."
+                ),
+                "passkey": {
+                    "id": saved_credential.id,
+                    "device_name": saved_credential.device_name,
+                    "created_at": (
+                        saved_credential.created_at.isoformat()
+                    ),
+                },
+            },
+            status=201,
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Les données JSON sont invalides.",
+            },
+            status=400,
+        )
+
+    except ValueError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": (
+                    "Le challenge d’enregistrement "
+                    "est invalide."
+                ),
+            },
+            status=400,
+        )
+
+    except Exception as error:
+        print(
+            "Erreur vérification inscription passkey :",
+            repr(error),
+        )
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": (
+                    "La vérification de la passkey a échoué. "
+                    "Vérifiez l’origine et réessayez."
+                ),
+            },
+            status=400,
+        )
 @csrf_exempt
 @require_POST
 def api_change_password(request):

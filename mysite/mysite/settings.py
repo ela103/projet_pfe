@@ -150,12 +150,14 @@ STATIC_URL = "static/"
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
+    
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
+    
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -198,3 +200,6 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+WEBAUTHN_RP_ID = "localhost"
+WEBAUTHN_RP_NAME = "SEO Dashboard"
+WEBAUTHN_ORIGIN = "http://localhost:3000"
