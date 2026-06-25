@@ -95,13 +95,11 @@ def get_ga4_daily(property_id: str, days: int = 7) -> list[dict]:
         )
 
         page_path = normalize_ga_page_path(raw_page_path)
-
         day = date(
             int(date_value[0:4]),
             int(date_value[4:6]),
             int(date_value[6:8])
         )
-
         rows.append({
             "date": day,
             "page_path": page_path,

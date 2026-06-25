@@ -147,17 +147,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
-    
+    "http://localhost:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
-    
+    "http://localhost:3000",
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -203,3 +205,23 @@ SIMPLE_JWT = {
 WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_RP_NAME = "SEO Dashboard"
 WEBAUTHN_ORIGIN = "http://localhost:3000"
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:3000")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI",
+    "http://127.0.0.1:8000/api/oauth/google/callback/",
+)
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+GITHUB_REDIRECT_URI = os.getenv(
+    "GITHUB_REDIRECT_URI",
+    "http://127.0.0.1:8000/api/oauth/github/callback/",
+)
+LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID", "")
+LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET", "")
+LINKEDIN_REDIRECT_URI = os.getenv(
+    "LINKEDIN_REDIRECT_URI",
+    "http://127.0.0.1:8000/api/oauth/linkedin/callback/",
+)

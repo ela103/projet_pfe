@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import include
 from django.views.generic import RedirectView
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -28,6 +30,7 @@ urlpatterns = [
     
     path('', include('core.urls')),
     path('ai/', include('ai_module.urls')),
+    path('api/ai/', include('ai_module.urls')),
     path("", include("authentification.urls")),
     
     path('data/', include('data_module.urls')),
@@ -38,3 +41,6 @@ urlpatterns = [
     path("competitor/api/", include("competitor_module.urls")),
 
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

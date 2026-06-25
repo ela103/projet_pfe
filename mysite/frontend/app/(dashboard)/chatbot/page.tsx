@@ -20,6 +20,12 @@ type Message = {
   content: string
 }
 
+type ChatHistoryItem = {
+  id: number
+  question: string
+  answer: string
+}
+
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -43,6 +49,56 @@ Posez-moi votre question.`,
   const [loading, setLoading] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      try {
+        const websiteId = localStorage.getItem("websiteId")
+        const url = websiteId
+          ? `http://127.0.0.1:8000/api/ai/chat/history/?website_id=${websiteId}`
+          : "http://127.0.0.1:8000/api/ai/chat/history/"
+
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = await response.json()
+        const history: ChatHistoryItem[] = data.messages || []
+
+        if (history.length === 0) {
+          return
+        }
+
+        const restoredMessages = history
+          .slice()
+          .reverse()
+          .flatMap((item) => [
+            {
+              role: "user" as const,
+              content: item.question,
+            },
+            {
+              role: "assistant" as const,
+              content: item.answer,
+            },
+          ])
+
+        setMessages((previousMessages) => [
+          previousMessages[0],
+          ...restoredMessages,
+        ])
+      } catch (error) {
+        console.error("Erreur historique chatbot :", error)
+      }
+    }
+
+    void fetchChatHistory()
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -73,11 +129,14 @@ Posez-moi votre question.`,
         "http://127.0.0.1:8000/ai/chat/",
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: question,
+            question,
+            website_id: localStorage.getItem("websiteId"),
+            channel: "chatbot",
           }),
         },
       )
@@ -91,6 +150,7 @@ Posez-moi votre question.`,
       const data = await response.json()
 
       const assistantContent =
+        data.response?.text ??
         data.response ??
         data.answer ??
         data.message ??
@@ -146,7 +206,14 @@ Posez-moi votre question.`,
         >
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--brand-gradient)] text-white shadow-lg">
+              <div
+                className="grid h-12 w-12 place-items-center rounded-2xl text-white shadow-lg"
+                style={{
+                  background: "var(--brand-gradient)",
+                  boxShadow:
+                    "0 12px 26px color-mix(in srgb, var(--brand-primary) 22%, transparent)",
+                }}
+              >
                 <Bot className="h-6 w-6" />
               </div>
 
@@ -191,7 +258,14 @@ Posez-moi votre question.`,
                   }`}
                 >
                   {!isUser && (
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--brand-gradient)] text-white shadow-md">
+                    <div
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-md"
+                      style={{
+                        background: "var(--brand-gradient)",
+                        boxShadow:
+                          "0 10px 22px color-mix(in srgb, var(--brand-primary) 20%, transparent)",
+                      }}
+                    >
                       <Bot className="h-5 w-5" />
                     </div>
                   )}
@@ -296,7 +370,14 @@ Posez-moi votre question.`,
 
             {loading && (
               <div className="flex items-start gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--brand-gradient)] text-white">
+                <div
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-md"
+                  style={{
+                    background: "var(--brand-gradient)",
+                    boxShadow:
+                      "0 10px 22px color-mix(in srgb, var(--brand-primary) 20%, transparent)",
+                  }}
+                >
                   <Bot className="h-5 w-5" />
                 </div>
 
@@ -353,7 +434,12 @@ Posez-moi votre question.`,
               type="button"
               onClick={() => void handleSend()}
               disabled={!input.trim() || loading}
-              className="grid h-14 w-14 shrink-0 place-items-center rounded-[20px] bg-[var(--brand-gradient)] text-white shadow-lg transition duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-[20px] text-white shadow-lg transition duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+              style={{
+                background: "var(--brand-gradient)",
+                boxShadow:
+                  "0 12px 26px color-mix(in srgb, var(--brand-primary) 22%, transparent)",
+              }}
               aria-label="Envoyer le message"
             >
               <Send className="h-5 w-5" />

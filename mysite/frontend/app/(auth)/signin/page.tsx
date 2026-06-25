@@ -1,15 +1,62 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import {
+  BarChart3,
+  Bolt,
+  Chrome,
+  Eye,
+  EyeOff,
+  Github,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+} from "lucide-react"
+
+function TrafficVisual() {
+  return (
+    <div className="neon-traffic-visual" aria-hidden="true">
+      <div className="neon-traffic-visual__halo" />
+      <div className="neon-traffic-visual__frame">
+        <Image
+          src="/images/seo-traffic-neon.png"
+          alt=""
+          fill
+          sizes="(max-width: 880px) 520px, 560px"
+          className="neon-traffic-visual__image"
+          priority
+        />
+        <div className="neon-traffic-visual__scan" />
+      </div>
+      <span className="neon-traffic-visual__signal neon-traffic-visual__signal--one" />
+      <span className="neon-traffic-visual__signal neon-traffic-visual__signal--two" />
+      <span className="neon-traffic-visual__signal neon-traffic-visual__signal--three" />
+    </div>
+  )
+}
+
+function Feature({ icon: Icon, title, text }: { icon: typeof ShieldCheck; title: string; text: string }) {
+  return (
+    <div className="neon-feature">
+      <span className="neon-feature__icon"><Icon /></span>
+      <strong>{title}</strong>
+      <span>{text}</span>
+    </div>
+  )
+}
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
-
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -19,133 +66,145 @@ export default function SignInPage() {
 
     try {
       const response = await fetch("http://127.0.0.1:8000/api/login/", {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    email,
-    password,
-  }),
-})
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await response.json()
 
-const data = await response.json()
-
-if (response.ok && data.success) {
-  localStorage.setItem("access_token", data.access)
-  localStorage.setItem("refresh_token", data.refresh)
-
-  setMessage("")
-  router.push("/dashboard")
-  router.refresh()
-} else {
-  setMessage(data.message || "Email ou mot de passe incorrect")
-}
-    } catch (error) {
-      setMessage("Erreur serveur")
+      if (response.ok && data.success) {
+        localStorage.setItem("access_token", data.access)
+        localStorage.setItem("refresh_token", data.refresh)
+        router.push("/dashboard")
+        router.refresh()
+      } else {
+        setMessage(data.message || "Email ou mot de passe incorrect")
+      }
+    } catch {
+      setMessage("Impossible de contacter le serveur.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#120f2b]">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.35),_transparent_30%),linear-gradient(180deg,#6d28d9_0%,#241a59_36%,#17153b_72%,#1b1464_100%)]" />
-
-      {/* Inner frame glow */}
-      <div className="absolute inset-6 rounded-[2rem] border border-white/10 bg-black/10 shadow-[inset_0_0_80px_rgba(255,255,255,0.03)]" />
-
-      {/* Stars */}
-      <div className="absolute inset-0">
-        <span className="star left-[4%] top-[5%]" />
-        <span className="star left-[12%] top-[18%]" />
-        <span className="star left-[18%] top-[72%]" />
-        <span className="star left-[28%] top-[10%]" />
-        <span className="star left-[36%] top-[22%]" />
-        <span className="star left-[44%] top-[80%]" />
-        <span className="star left-[52%] top-[14%]" />
-        <span className="star left-[63%] top-[30%]" />
-        <span className="star left-[76%] top-[8%]" />
-        <span className="star left-[82%] top-[58%]" />
-        <span className="star left-[88%] top-[22%]" />
-        <span className="star left-[92%] top-[74%]" />
+    <main className="neon-login-page">
+      <div className="neon-grid" />
+      <div className="neon-orb neon-orb--one" />
+      <div className="neon-orb neon-orb--two" />
+      <div className="neon-particles" aria-hidden="true">
+        {Array.from({ length: 24 }).map((_, index) => (
+          <i key={index} style={{ "--particle": index } as React.CSSProperties} />
+        ))}
       </div>
 
-      {/* Floating balls */}
-      <div className="bubble bubble-xl left-[8%] top-[34%]" />
-      <div className="bubble bubble-lg left-[28%] top-[6%]" />
-      <div className="bubble bubble-md right-[10%] bottom-[10%]" />
-      <div className="bubble bubble-sm right-[18%] top-[24%]" />
-      <div className="bubble bubble-sm left-[22%] bottom-[18%]" />
-      <div className="bubble bubble-xs left-[70%] top-[18%]" />
-      <div className="bubble bubble-xs right-[6%] top-[12%]" />
-      <div className="bubble bubble-xs right-[24%] bottom-[30%]" />
-      <div className="bubble bubble-xs left-[78%] bottom-[18%]" />
-      <div className="bubble bubble-xs left-[16%] top-[28%]" />
+      <section className="neon-login-shell">
+        <div className="neon-intro">
+          <div className="neon-brand">
+            <span className="neon-brand__mark"><BarChart3 /></span>
+            <span>Smart<span>SEO</span></span>
+          </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(111,66,255,0.92),rgba(59,35,138,0.92))] p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-white">
-              Sign In
-            </h1>
-            <p className="mt-2 text-sm text-white/75">
-              Connectez-vous à votre dashboard intelligent
+          <div className="neon-intro__copy">
+            <span className="neon-kicker"><Sparkles /> Votre copilote SEO intelligent</span>
+            <h1>Heureux de vous <span>revoir !</span></h1>
+            <p>
+              Reprenez le contrôle de vos performances digitales grâce à des
+              analyses claires et des recommandations propulsées par l’IA.
             </p>
           </div>
 
-          <form className="grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-white/90">Email</label>
-              <input
-                type="email"
-                placeholder="Votre email"
-                className="h-12 rounded-full border border-white/10 bg-[#1d2048]/90 px-4 text-white placeholder:text-white/40 outline-none transition-all duration-300 hover:border-white/20 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20 focus:shadow-[0_0_25px_rgba(34,211,238,0.15)]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+          <TrafficVisual />
 
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-white/90">Password</label>
-              <input
-                type="password"
-                placeholder="Votre mot de passe"
-                className="h-12 rounded-full border border-white/10 bg-[#1d2048]/90 px-4 text-white placeholder:text-white/40 outline-none transition-all duration-300 hover:border-white/20 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20 focus:shadow-[0_0_25px_rgba(34,211,238,0.15)]"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="flex justify-end">
-            <Link
-               href="/forgot-password"
-               className="text-sm font-medium text-cyan-200 transition hover:text-white hover:underline"
-              >Mot de passe oublié ?
-           </Link>
-           </div>
-
-            {message && (
-              <p className="rounded-xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                {message}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="mt-2 h-12 rounded-full bg-[linear-gradient(90deg,#7c3aed,#6366f1,#60a5fa)] text-sm font-semibold text-white shadow-[0_10px_30px_rgba(96,165,250,0.25)] transition hover:scale-[1.02] hover:shadow-[0_14px_36px_rgba(124,58,237,0.35)] disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={loading}
-            >
-              {loading ? "Connexion..." : "Sign in"}
-            </button>
-          </form>
-
-          
+          <div className="neon-features">
+            <Feature icon={ShieldCheck} title="Sécurisé" text="Vos données sont protégées" />
+            <Feature icon={Bolt} title="Rapide" text="Des analyses instantanées" />
+            <Feature icon={UserRound} title="Intuitif" text="Une expérience simple" />
+          </div>
         </div>
-      </div>
+
+        <div className="neon-form-wrap">
+          <div className="neon-form-glow" />
+          <div className="neon-form-card">
+            <div className="neon-form-card__heading">
+              <span className="neon-form-card__eyebrow">ESPACE PERSONNEL</span>
+              <h2>Connexion</h2>
+              <p>Entrez vos identifiants pour accéder à votre compte</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="neon-form">
+              <label htmlFor="signin-email">Adresse email</label>
+              <div className="neon-input">
+                <Mail />
+                <input
+                  id="signin-email"
+                  type="email"
+                  placeholder="nom@entreprise.com"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </div>
+
+              <label htmlFor="signin-password">Mot de passe</label>
+              <div className="neon-input">
+                <LockKeyhole />
+                <input
+                  id="signin-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Votre mot de passe"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showPassword ? <EyeOff /> : <Eye />}
+                </button>
+              </div>
+
+              <div className="neon-form__options">
+                <label className="neon-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                  />
+                  <span /> Se souvenir de moi
+                </label>
+                <Link href="/forgot-password">Mot de passe oublié ?</Link>
+              </div>
+
+              {message && <p className="neon-form__error" role="alert">{message}</p>}
+
+              <button type="submit" className="neon-submit" disabled={loading}>
+                <span>{loading ? "Connexion en cours..." : "Se connecter"}</span>
+              </button>
+            </form>
+
+            <div className="neon-divider"><span>ou continuer avec</span></div>
+
+            <div className="neon-socials">
+              <button type="button" onClick={() => { window.location.href = "http://127.0.0.1:8000/api/oauth/google/start/" }} aria-label="Se connecter avec Google">
+                <Chrome /> Google
+              </button>
+              <button type="button" onClick={() => { window.location.href = "http://127.0.0.1:8000/api/oauth/github/start/" }} aria-label="Se connecter avec GitHub">
+                <Github /> GitHub
+              </button>
+            </div>
+
+            <p className="neon-signup">
+              Vous n’avez pas encore de compte ? <Link href="/signup">Créer un compte</Link>
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
   )
 }

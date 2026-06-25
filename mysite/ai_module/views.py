@@ -35,6 +35,8 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+from data_module.models import Website
+from .models import AIChatMessage, AIRecommendation
 
 def test_ai(request):
     pages = nlp_analysis()
@@ -56,18 +58,198 @@ def ai_chat(request):
     if request.method == "POST":
         data = json.loads(request.body.decode("utf-8"))
 
-        question = data.get("question", "")
+        question = data.get("question") or data.get("message", "")
         website_id = data.get("website_id")
         period = data.get("period", "all")
+        tool = data.get("tool", "")
+        channel = data.get("channel", "")
 
         print("website_id reçu :", website_id)
         print("period reçu :", period)
 
         result = ask_ai(question, website_id, period)
 
-        return JsonResponse({"response": result})
+        saved_recommendation_id = None
+        recommendation_save_reason = ""
+        result_intent = result.get("intent", "") if isinstance(result, dict) else ""
+        should_store_recommendation = (
+            tool == "recommendations"
+            or result_intent == "recommendations"
+            or "recommandation" in question.lower()
+            or "recommendation" in question.lower()
+        )
+
+        if not should_store_recommendation:
+            recommendation_save_reason = "not_recommendations_tool"
+        elif not website_id:
+            recommendation_save_reason = "missing_website_id"
+        elif not result:
+            recommendation_save_reason = "empty_ai_result"
+        else:
+            try:
+                website = Website.objects.get(id=website_id)
+                user = request.user if request.user.is_authenticated else None
+                text = str(result.get("text", "")).strip()
+
+                if text:
+                    recommendation = AIRecommendation.objects.create(
+                        user=user,
+                        website=website,
+                        tool=tool or "recommendations",
+                        period=period or "all",
+                        question=question,
+                        content=text,
+                        source=str(result.get("source", "") or ""),
+                        used_rag=bool(result.get("used_rag")),
+                        retrieved_documents_count=int(
+                            result.get("retrieved_documents_count") or 0
+                        ),
+                    )
+                    saved_recommendation_id = recommendation.id
+                    recommendation_save_reason = "saved"
+                else:
+                    recommendation_save_reason = "empty_ai_text"
+            except Website.DoesNotExist:
+                recommendation_save_reason = "website_not_found"
+
+        saved_chat_message_id = None
+        chat_message_save_reason = ""
+        should_store_chat_message = channel == "chatbot"
+
+        if not should_store_chat_message:
+            chat_message_save_reason = "not_chatbot_channel"
+        elif not request.user.is_authenticated:
+            chat_message_save_reason = "anonymous_user"
+        elif not question.strip():
+            chat_message_save_reason = "empty_question"
+        elif not isinstance(result, dict) or not str(result.get("text", "")).strip():
+            chat_message_save_reason = "empty_ai_answer"
+        else:
+            website = None
+
+            if website_id:
+                website = Website.objects.filter(id=website_id).first()
+
+            chat_message = AIChatMessage.objects.create(
+                user=request.user,
+                website=website,
+                question=question,
+                answer=str(result.get("text", "")).strip(),
+                intent=str(result.get("intent", "") or ""),
+                source=str(result.get("source", "") or ""),
+                used_rag=bool(result.get("used_rag")),
+                retrieved_documents_count=int(
+                    result.get("retrieved_documents_count") or 0
+                ),
+            )
+            saved_chat_message_id = chat_message.id
+            chat_message_save_reason = "saved"
+
+        return JsonResponse({
+            "response": result,
+            "recommendation_saved": bool(saved_recommendation_id),
+            "recommendation_id": saved_recommendation_id,
+            "recommendation_save_reason": recommendation_save_reason,
+            "chat_message_saved": bool(saved_chat_message_id),
+            "chat_message_id": saved_chat_message_id,
+            "chat_message_save_reason": chat_message_save_reason,
+            "recommendation_debug": {
+                "tool": tool,
+                "question": question,
+                "intent": result_intent,
+                "website_id": website_id,
+            },
+        })
 
     return JsonResponse({"error": "POST only"})
+
+
+@require_GET
+def ai_chat_history(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Authentification requise.",
+            },
+            status=401,
+        )
+
+    website_id = request.GET.get("website_id")
+
+    messages = AIChatMessage.objects.select_related(
+        "website",
+        "user",
+    ).filter(user=request.user)
+
+    if website_id:
+        messages = messages.filter(website_id=website_id)
+
+    data = []
+    for message in messages.order_by("-created_at")[:100]:
+        data.append({
+            "id": message.id,
+            "website_id": message.website_id,
+            "website_name": message.website.name if message.website else "",
+            "question": message.question,
+            "answer": message.answer,
+            "intent": message.intent,
+            "source": message.source,
+            "used_rag": message.used_rag,
+            "retrieved_documents_count": message.retrieved_documents_count,
+            "created_at": message.created_at.isoformat(),
+        })
+
+    return JsonResponse({
+        "success": True,
+        "messages": data,
+    })
+
+
+@require_GET
+def ai_recommendations_history(request):
+    website_id = request.GET.get("website_id")
+    period = request.GET.get("period")
+    status = request.GET.get("status")
+
+    recommendations = AIRecommendation.objects.select_related(
+        "website",
+        "user",
+    ).all()
+
+    if website_id:
+        recommendations = recommendations.filter(website_id=website_id)
+
+    if period:
+        recommendations = recommendations.filter(period=period)
+
+    if status:
+        recommendations = recommendations.filter(status=status)
+
+    data = []
+    for recommendation in recommendations[:100]:
+        data.append({
+            "id": recommendation.id,
+            "website_id": recommendation.website_id,
+            "website_name": recommendation.website.name,
+            "user_id": recommendation.user_id,
+            "user_email": recommendation.user.email if recommendation.user else "",
+            "tool": recommendation.tool,
+            "period": recommendation.period,
+            "question": recommendation.question,
+            "content": recommendation.content,
+            "source": recommendation.source,
+            "used_rag": recommendation.used_rag,
+            "retrieved_documents_count": recommendation.retrieved_documents_count,
+            "status": recommendation.status,
+            "created_at": recommendation.created_at.isoformat(),
+            "updated_at": recommendation.updated_at.isoformat(),
+        })
+
+    return JsonResponse({
+        "success": True,
+        "recommendations": data,
+    })
 
 
 
@@ -81,7 +263,15 @@ def export_global_analysis_pdf(request):
         website_name = str(
             data.get("website_name", "Site sélectionné")
         ).strip()
+        website_id = data.get("website_id")
         period = str(data.get("period", "all")).strip()
+
+        if website_id:
+            try:
+                website = Website.objects.get(id=website_id)
+                website_name = website.name
+            except Website.DoesNotExist:
+                pass
 
         if not analysis:
             return JsonResponse(
@@ -100,6 +290,16 @@ def export_global_analysis_pdf(request):
             "year": "12 derniers mois",
             "all": "Toutes les données",
         }
+
+        period_labels.update({
+            "today": "Jour sélectionné",
+            "day": "Jour sélectionné",
+            "7d": "Semaine sélectionnée",
+            "week": "Semaine sélectionnée",
+            "30d": "Mois sélectionné",
+            "month": "Mois sélectionné",
+            "all": "Vue globale",
+        })
 
         period_label = period_labels.get(period, period)
         generated_at = datetime.now().strftime("%d/%m/%Y à %H:%M")
@@ -236,21 +436,21 @@ def export_global_analysis_pdf(request):
             leading=14,
             alignment=TA_LEFT,
             textColor=body_text,
-            backColor=analysis_background,
-            borderColor=analysis_border,
-            borderWidth=0.6,
-            borderPadding=9,
-            borderRadius=5,
-            spaceAfter=3 * mm,
+            spaceAfter=2.5 * mm,
             splitLongWords=True,
         )
 
         analysis_bullet_style = ParagraphStyle(
             name="AnalysisBullet",
-            parent=analysis_body_style,
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=9.1,
+            leading=13.5,
+            textColor=body_text,
             leftIndent=8 * mm,
             firstLineIndent=-4 * mm,
             bulletIndent=3 * mm,
+            spaceAfter=1.5 * mm,
         )
 
         footer_style = ParagraphStyle(
@@ -571,6 +771,19 @@ def export_global_analysis_pdf(request):
             .replace("\\n", "\n")
             .replace("\r\n", "\n")
             .replace("\r", "\n")
+        )
+
+        normalized_analysis = re.sub(
+            r'periode\s+"?all"?',
+            f"periode {period_label.lower()}",
+            normalized_analysis,
+            flags=re.IGNORECASE,
+        )
+        normalized_analysis = re.sub(
+            r'p[eé]riode\s+"?all"?',
+            f"periode {period_label.lower()}",
+            normalized_analysis,
+            flags=re.IGNORECASE,
         )
 
         def format_inline_markdown(text):

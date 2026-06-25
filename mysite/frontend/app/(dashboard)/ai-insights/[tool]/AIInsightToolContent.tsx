@@ -8,8 +8,8 @@ import {
   Gauge,
   Loader2,
   RotateCcw,
-  Sparkles,
   Download,
+  History,
 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -36,6 +36,15 @@ type AIScoreData = {
     global_diagnosis: string
   }
   pages: AIScorePage[]
+}
+
+type AIRecommendationHistoryItem = {
+  id: number
+  website_name: string
+  period: string
+  content: string
+  status: string
+  created_at: string
 }
 
 const toolConfig: Record<
@@ -93,6 +102,35 @@ const periods = [
 function formatLabel(value?: string) {
   if (!value) return "Non défini"
   return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+const periodLabels: Record<string, string> = {
+  all: "Globale",
+  month: "Mois",
+  week: "Semaine",
+  day: "Jour",
+}
+
+function formatPeriod(value?: string) {
+  return periodLabels[value || "all"] || formatLabel(value)
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return value
+
+  return date.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function getRecommendationExcerpt(content: string) {
+  return content.replace(/[#*_`>-]/g, "").replace(/\s+/g, " ").trim()
 }
 
 function getScoreColor(score: number) {
@@ -181,13 +219,16 @@ export default function AIInsightToolContent({ tool }: { tool: string }) {
   const [period, setPeriod] = useState<Period>("all")
 const [appliedPeriod, setAppliedPeriod] = useState<Period>("all")
 const [refreshKey, setRefreshKey] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [responseText, setResponseText] = useState("")
+  const [recommendationHistory, setRecommendationHistory] = useState<
+    AIRecommendationHistoryItem[]
+  >([])
   const [aiScoreData, setAiScoreData] = useState<AIScoreData | null>(null)
   const [error, setError] = useState("")
-  const [source, setSource] = useState("")
-  const [usedRag, setUsedRag] = useState(false)
-  const [documentsCount, setDocumentsCount] = useState(0)
+  const [historyError, setHistoryError] = useState("")
 
   useEffect(() => {
     if (!config) {
@@ -196,12 +237,15 @@ const [refreshKey, setRefreshKey] = useState(0)
       return
     }
 
+    if (refreshKey === 0) {
+      setLoading(false)
+      return
+    }
+
     const fetchAIResponse = async () => {
+      let requestKey = ""
+
       try {
-        setLoading(true)
-        setError("")
-        setResponseText("")
-        setAiScoreData(null)
 
         const websiteId =
           localStorage.getItem("websiteId") ||
@@ -210,17 +254,22 @@ const [refreshKey, setRefreshKey] = useState(0)
         if (!websiteId) {
           throw new Error("Aucun site sélectionné.")
         }
-        const requestKey = `${tool}-${websiteId}-${appliedPeriod}-${refreshKey}`
+        requestKey = `${tool}-${websiteId}-${appliedPeriod}-${refreshKey}`
 
-if (lastRequestKeyRef.current === requestKey) {
-  return
-}
+        if (lastRequestKeyRef.current === requestKey) {
+          return
+        }
 
-lastRequestKeyRef.current = requestKey
+        lastRequestKeyRef.current = requestKey
+
+        setLoading(true)
+        setError("")
+        setResponseText("")
+        setAiScoreData(null)
 
         if (tool === "ai-score") {
           const response = await fetch(
-            `http://127.0.0.1:8000/api/gemini/score/?website_id=${websiteId}&period=${period}`,
+            `http://127.0.0.1:8000/api/gemini/score/?website_id=${websiteId}&period=${appliedPeriod}`,
             {
               method: "GET",
               credentials: "include",
@@ -234,9 +283,6 @@ lastRequestKeyRef.current = requestKey
           }
 
           setAiScoreData(data.data)
-          setSource("gemini")
-          setUsedRag(true)
-          setDocumentsCount(data.data?.pages?.length || 0)
           return
         }
 
@@ -250,6 +296,7 @@ lastRequestKeyRef.current = requestKey
          question: config.question,
          website_id: websiteId,
          period: appliedPeriod,
+         tool,
        }),
         })
 
@@ -261,19 +308,75 @@ lastRequestKeyRef.current = requestKey
 
         const result = data.response
 
+        if (lastRequestKeyRef.current !== requestKey) {
+          return
+        }
+
         setResponseText(result.text || "Aucune réponse générée.")
-        setSource(result.source || "unknown")
-        setUsedRag(Boolean(result.used_rag))
-        setDocumentsCount(Number(result.retrieved_documents_count || 0))
+        if (data.recommendation_saved) {
+          setHistoryRefreshKey((prev) => prev + 1)
+        }
       } catch (err: any) {
+        if (requestKey && lastRequestKeyRef.current !== requestKey) {
+          return
+        }
+
         setError(err.message || "Une erreur est survenue.")
       } finally {
-        setLoading(false)
+        if (!requestKey || lastRequestKeyRef.current === requestKey) {
+          setLoading(false)
+        }
       }
     }
 
     fetchAIResponse()
   }, [tool, appliedPeriod, refreshKey])
+
+  useEffect(() => {
+    if (tool !== "recommendations") {
+      return
+    }
+
+    const fetchRecommendationHistory = async () => {
+      try {
+        const websiteId =
+          localStorage.getItem("websiteId") ||
+          localStorage.getItem("selectedWebsiteId")
+
+        if (!websiteId) {
+          setRecommendationHistory([])
+          return
+        }
+
+        setHistoryLoading(true)
+        setHistoryError("")
+
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/ai/recommendations/history/?website_id=${websiteId}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        )
+
+        const data = await response.json()
+
+        if (!response.ok || data.success === false) {
+          throw new Error(
+            data.error || "Impossible de charger l'historique.",
+          )
+        }
+
+        setRecommendationHistory(data.recommendations || [])
+      } catch (err: any) {
+        setHistoryError(err.message || "Historique indisponible.")
+      } finally {
+        setHistoryLoading(false)
+      }
+    }
+
+    fetchRecommendationHistory()
+  }, [tool, historyRefreshKey])
 
   async function handleExportGlobalAnalysisPdf() {
     if (!responseText.trim()) {
@@ -284,9 +387,13 @@ lastRequestKeyRef.current = requestKey
     try {
       setError("")
 
-    const websiteName =
-      localStorage.getItem("websiteName") ||
-      localStorage.getItem("selectedWebsiteName") ||
+      const websiteId =
+        localStorage.getItem("websiteId") ||
+        localStorage.getItem("selectedWebsiteId")
+
+      const websiteName =
+        localStorage.getItem("websiteName") ||
+        localStorage.getItem("selectedWebsiteName") ||
       "Site sélectionné"
 
       const response = await fetch(
@@ -300,6 +407,7 @@ lastRequestKeyRef.current = requestKey
         body: JSON.stringify({
           analysis: responseText,
           website_name: websiteName,
+          website_id: websiteId,
           period: appliedPeriod,
         }),
         },
@@ -364,48 +472,22 @@ lastRequestKeyRef.current = requestKey
           : "Retour aux outils IA"}
         </button>
 
-        <div
-          className="rounded-[28px] border bg-[var(--dashboard-card)] p-6 shadow-[var(--dashboard-shadow)]"
-          style={{ borderColor: "var(--dashboard-border)" }}
-        >
+        <div className="py-3">
           <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--dashboard-muted)]">
                 AI Insights
               </p>
 
-              <h1 className="mt-2 text-3xl font-black tracking-tight">
+              <h1 className="mt-3 text-4xl font-black tracking-tight">
                 {config.title}
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm font-semibold text-[var(--dashboard-muted)]">
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-[var(--dashboard-muted)]">
                 {config.subtitle}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <span
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black text-white"
-                style={{ background: "var(--brand-gradient)" }}
-              >
-                <Sparkles className="h-4 w-4" />
-                Gemini
-              </span>
-
-              <span className="rounded-full bg-[var(--dashboard-card-soft)] px-4 py-2 text-xs font-black text-[var(--dashboard-muted)]">
-                {usedRag ? "RAG activé" : "Sans RAG"}
-              </span>
-
-              <span className="rounded-full bg-[var(--dashboard-card-soft)] px-4 py-2 text-xs font-black text-[var(--dashboard-muted)]">
-                Documents : {documentsCount}
-              </span>
-
-              {source ? (
-                <span className="rounded-full bg-[var(--dashboard-card-soft)] px-4 py-2 text-xs font-black text-[var(--dashboard-muted)]">
-                  Source : {source}
-                </span>
-              ) : null}
-            </div>
           </div>
         </div>
 
@@ -445,7 +527,18 @@ lastRequestKeyRef.current = requestKey
             </div>
           </div>
 
-          {loading ? (
+          {refreshKey === 0 ? (
+            <div className="flex min-h-[220px] items-center justify-center rounded-2xl bg-[var(--dashboard-card-soft)] p-5 text-center">
+              <div>
+                <p className="text-base font-black text-[var(--dashboard-text)]">
+                  Pret pour l'analyse IA
+                </p>
+                <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-[var(--dashboard-muted)]">
+                  Choisissez une periode, puis cliquez sur Analyser pour lancer Gemini.
+                </p>
+              </div>
+            </div>
+          ) : loading ? (
             <div className="flex min-h-[260px] items-center justify-center">
               <div className="flex items-center gap-3 rounded-2xl bg-[var(--dashboard-card-soft)] px-5 py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-[var(--brand-primary)]" />
@@ -638,6 +731,96 @@ lastRequestKeyRef.current = requestKey
   </div>
 )}
         </div>
+
+        {tool === "recommendations" && (
+          <div
+            className="rounded-[28px] border bg-[var(--dashboard-card)] p-6 shadow-[var(--dashboard-shadow)]"
+            style={{ borderColor: "var(--dashboard-border)" }}
+          >
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="grid h-11 w-11 place-items-center rounded-2xl text-white"
+                  style={{ backgroundColor: "var(--brand-primary)" }}
+                >
+                  <History className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-black">
+                    Historique des recommandations IA
+                  </h2>
+                  <p className="text-xs font-semibold text-[var(--dashboard-muted)]">
+                    Dernieres recommandations enregistrees pour le site actif.
+                  </p>
+                </div>
+              </div>
+
+              <span className="rounded-full bg-[var(--dashboard-card-soft)] px-4 py-2 text-xs font-black text-[var(--dashboard-muted)]">
+                {recommendationHistory.length} element(s)
+              </span>
+            </div>
+
+            {historyLoading ? (
+              <div className="flex items-center gap-3 rounded-2xl bg-[var(--dashboard-card-soft)] px-5 py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-[var(--brand-primary)]" />
+                <span className="text-sm font-bold text-[var(--dashboard-muted)]">
+                  Chargement de l'historique...
+                </span>
+              </div>
+            ) : historyError ? (
+              <div className="rounded-2xl bg-red-500/10 p-4 text-sm font-bold text-red-500">
+                {historyError}
+              </div>
+            ) : recommendationHistory.length === 0 ? (
+              <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-5 text-sm font-semibold text-[var(--dashboard-muted)]">
+                Aucune recommandation enregistree pour ce site.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                {recommendationHistory.map((recommendation) => (
+                  <details
+                    key={recommendation.id}
+                    className="group rounded-[22px] border bg-[var(--dashboard-card-soft)] p-5"
+                    style={{ borderColor: "var(--dashboard-border)" }}
+                  >
+                    <summary className="cursor-pointer list-none">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black">
+                            {recommendation.website_name}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold text-[var(--dashboard-muted)]">
+                            {formatPeriod(recommendation.period)} -{" "}
+                            {formatDateTime(recommendation.created_at)}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 rounded-full bg-[var(--brand-primary)]/15 px-3 py-1 text-xs font-black text-[var(--brand-primary)]">
+                          {formatLabel(recommendation.status)}
+                        </span>
+                      </div>
+
+                      <p className="mt-4 line-clamp-3 text-sm font-semibold leading-6 text-[var(--dashboard-muted)]">
+                        {getRecommendationExcerpt(recommendation.content)}
+                      </p>
+
+                      <p className="mt-3 text-xs font-black text-[var(--brand-primary)]">
+                        Voir le detail
+                      </p>
+                    </summary>
+
+                    <div className="mt-5 border-t border-[var(--dashboard-border)] pt-5 text-sm font-semibold leading-7 text-[var(--dashboard-text)]">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {recommendation.content.replace(/\\n/g, "\n").trim()}
+                      </ReactMarkdown>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   )

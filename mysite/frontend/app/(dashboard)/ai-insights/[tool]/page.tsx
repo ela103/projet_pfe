@@ -4,6 +4,7 @@ export function generateStaticParams() {
   return [
     { tool: "global-analysis" },
     { tool: "traffic-diagnosis" },
+    { tool: "recommendations" },
     { tool: "weak-pages" },
     { tool: "ga-analysis" },
     { tool: "gsc-analysis" },

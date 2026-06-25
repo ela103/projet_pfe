@@ -1,17 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useEffect, useRef, useState } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { startRegistration } from "@simplewebauthn/browser"
 import {
   AlertTriangle,
   BadgeCheck,
+  Camera,
   Globe,
   KeyRound,
+  Loader2,
   LogOut,
   Mail,
   Phone,
   ShieldCheck,
+  Trash2,
   Users,
   X,
   Fingerprint,
@@ -25,6 +28,7 @@ type UserProfile = {
   first_name: string
   last_name: string
   phone_number: string
+  profile_photo_url: string
   is_staff: boolean
   is_superuser: boolean
 }
@@ -63,6 +67,10 @@ export default function ProfilePage() {
   const [passkeyLoading, setPasskeyLoading] = useState(false)
   const [passkeyMessage, setPasskeyMessage] = useState("")
   const [passkeySuccess, setPasskeySuccess] = useState(false)
+  const [photoLoading, setPhotoLoading] = useState(false)
+  const [photoMessage, setPhotoMessage] = useState("")
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -230,6 +238,94 @@ const handleRegisterPasskey = async () => {
     setPasskeyLoading(false)
   }
 }
+
+  const handlePhotoChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const photo = event.target.files?.[0]
+    event.target.value = ""
+
+    if (!photo) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(photo.type)) {
+      setPhotoMessage("Choisissez une image JPG, PNG ou WebP.")
+      return
+    }
+
+    if (photo.size > 5 * 1024 * 1024) {
+      setPhotoMessage("La photo ne doit pas dépasser 5 Mo.")
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("photo", photo)
+
+    try {
+      setPhotoLoading(true)
+      setPhotoMessage("")
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/profile/photo/",
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        },
+      )
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setPhotoMessage(data.message || "Impossible d’enregistrer la photo.")
+        return
+      }
+
+      setUser((current) =>
+        current
+          ? { ...current, profile_photo_url: data.profile_photo_url }
+          : current,
+      )
+      setPhotoMessage("Photo mise à jour.")
+    } catch {
+      setPhotoMessage("Erreur de connexion au serveur.")
+    } finally {
+      setPhotoLoading(false)
+    }
+  }
+
+  const handlePhotoDelete = async () => {
+    if (!user?.profile_photo_url || photoLoading) return
+
+    if (!window.confirm("Supprimer votre photo de profil ?")) return
+
+    try {
+      setPhotoLoading(true)
+      setPhotoMessage("")
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/profile/photo/",
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      )
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setPhotoMessage(data.message || "Impossible de supprimer la photo.")
+        return
+      }
+
+      setUser((current) =>
+        current ? { ...current, profile_photo_url: "" } : current,
+      )
+      setPhotoMessage("Photo supprimée.")
+    } catch {
+      setPhotoMessage("Erreur de connexion au serveur.")
+    } finally {
+      setPhotoLoading(false)
+    }
+  }
+
   const fullName =
     `${user?.first_name || ""} ${user?.last_name || ""}`.trim() ||
     "Administrateur"
@@ -308,6 +404,13 @@ const handleRegisterPasskey = async () => {
             <div className="grid gap-6 md:grid-cols-[140px_1fr] md:items-center">
               <div className="relative w-fit">
                 <Avatar className="h-32 w-32 shrink-0 border-4 border-[var(--dashboard-card)] shadow-xl">
+                  {user?.profile_photo_url && (
+                    <AvatarImage
+                      src={user.profile_photo_url}
+                      alt={`Photo de profil de ${fullName}`}
+                      className="object-cover"
+                    />
+                  )}
                   <AvatarFallback
                     className="text-4xl font-black text-white"
                     style={{ background: "var(--brand-gradient)" }}
@@ -315,7 +418,53 @@ const handleRegisterPasskey = async () => {
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={handlePhotoChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={photoLoading}
+                  className="absolute bottom-1 right-1 grid h-10 w-10 place-items-center rounded-full border-4 border-[var(--dashboard-card)] text-white shadow-lg transition hover:scale-105 disabled:cursor-wait disabled:opacity-70"
+                  style={{ background: "var(--brand-gradient)" }}
+                  aria-label="Choisir une photo de profil"
+                  title="Changer la photo"
+                >
+                  {photoLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                </button>
+                {user?.profile_photo_url && (
+                  <button
+                    type="button"
+                    onClick={() => void handlePhotoDelete()}
+                    disabled={photoLoading}
+                    className="absolute bottom-1 left-1 grid h-10 w-10 place-items-center rounded-full border-4 border-[var(--dashboard-card)] bg-red-500 text-white shadow-lg transition hover:scale-105 hover:bg-red-600 disabled:cursor-wait disabled:opacity-70"
+                    aria-label="Supprimer la photo de profil"
+                    title="Supprimer la photo"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+                {photoMessage && (
+                  <p
+                    className="mt-2 max-w-32 text-center text-[10px] font-bold leading-4"
+                    style={{
+                      color: photoMessage.includes("mise à jour") ||
+                        photoMessage.includes("supprimée")
+                        ? "#10b981"
+                        : "#ef4444",
+                    }}
+                  >
+                    {photoMessage}
+                  </p>
+                )}
               </div>
 
               <div className="min-w-0">
@@ -674,23 +823,35 @@ const handleRegisterPasskey = async () => {
       </div>
 
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/75 px-4 py-8 backdrop-blur-md">
           <div
-            className="w-full max-w-md rounded-[24px] border p-6"
+            className="max-h-[calc(100vh-4rem)] w-full max-w-lg overflow-y-auto rounded-[30px] border p-7"
             style={{
-              background: "var(--dashboard-card)",
-              borderColor: "var(--dashboard-border)",
-              boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+              background:
+                "linear-gradient(145deg, var(--dashboard-card), color-mix(in srgb, var(--brand-primary) 5%, var(--dashboard-card)))",
+              borderColor:
+                "color-mix(in srgb, var(--brand-primary) 40%, var(--dashboard-border))",
+              boxShadow:
+                "0 35px 100px rgba(0,0,0,0.52), 0 0 55px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
             }}
           >
-            <div className="mb-5 flex items-start justify-between gap-4">
+            <div
+              className="-mx-7 -mt-7 mb-7 flex items-center justify-between gap-4 rounded-t-[29px] px-6 py-4"
+              style={{ background: "var(--brand-gradient)" }}
+            >
               <div>
-                <h2 className="text-lg font-black text-[var(--dashboard-text)]">
-                  Modifier le mot de passe
-                </h2>
-                <p className="mt-1 text-sm font-semibold text-[var(--dashboard-muted)]">
-                  Saisissez l'ancien mot de passe puis le nouveau.
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="hidden">
+                    Sécurité du compte
+                  </p>
+                  <KeyRound className="h-5 w-5 shrink-0 text-white" />
+                  <h2 className="text-lg font-black text-white">
+                    Modifier le mot de passe
+                  </h2>
+                  <p className="hidden">
+                    Créez un accès robuste et unique pour protéger votre compte.
+                  </p>
+                </div>
               </div>
 
               <button
@@ -699,78 +860,101 @@ const handleRegisterPasskey = async () => {
                   setShowPasswordModal(false)
                   setPasswordMessage("")
                 }}
-                className="grid h-9 w-9 place-items-center rounded-xl border transition hover:bg-white/5"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25"
                 style={{
-                  borderColor: "var(--dashboard-border)",
-                  color: "var(--dashboard-text)",
+                  color: "white",
                 }}
+                aria-label="Fermer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              <input
-                type="password"
-                placeholder="Ancien mot de passe"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-                className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-                style={{
-                  background: "var(--dashboard-card-soft)",
-                  borderColor: "var(--dashboard-border)",
-                  color: "var(--dashboard-text)",
-                }}
-              />
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-xs font-black text-[var(--dashboard-text)]">
+                  Mot de passe actuel
+                </span>
+                <div className="relative">
+                  <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
+                  <input
+                    type="password"
+                    placeholder="Mot de passe actuel"
+                    value={oldPassword}
+                    onChange={(event) => setOldPassword(event.target.value)}
+                    autoComplete="current-password"
+                    className="h-13 w-full rounded-2xl border bg-[var(--dashboard-card-soft)] pl-11 pr-4 text-sm font-semibold text-[var(--dashboard-text)] outline-none transition focus:-translate-y-0.5 focus:shadow-lg"
+                    style={{ borderColor: "var(--dashboard-border)" }}
+                  />
+                </div>
+              </label>
 
-              <input
-                type="password"
-                placeholder="Nouveau mot de passe"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-                style={{
-                  background: "var(--dashboard-card-soft)",
-                  borderColor: "var(--dashboard-border)",
-                  color: "var(--dashboard-text)",
-                }}
-              />
+              <label className="block">
+                <span className="mb-2 block text-xs font-black text-[var(--dashboard-text)]">
+                  Nouveau mot de passe
+                </span>
+                <div className="relative">
+                  <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
+                  <input
+                    type="password"
+                    placeholder="Nouveau mot de passe"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    autoComplete="new-password"
+                    className="h-13 w-full rounded-2xl border bg-[var(--dashboard-card-soft)] pl-11 pr-4 text-sm font-semibold text-[var(--dashboard-text)] outline-none transition focus:-translate-y-0.5 focus:shadow-lg"
+                    style={{ borderColor: "var(--dashboard-border)" }}
+                  />
+                </div>
+              </label>
 
-              <input
-                type="password"
-                placeholder="Confirmer le nouveau mot de passe"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-12 w-full rounded-2xl border px-4 text-sm font-semibold outline-none"
-                style={{
-                  background: "var(--dashboard-card-soft)",
-                  borderColor: "var(--dashboard-border)",
-                  color: "var(--dashboard-text)",
-                }}
-              />
+              <label className="block">
+                <span className="mb-2 block text-xs font-black text-[var(--dashboard-text)]">
+                  Confirmer le nouveau mot de passe
+                </span>
+                <div className="relative">
+                  <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
+                  <input
+                    type="password"
+                    placeholder="Confirmation du mot de passe"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    autoComplete="new-password"
+                    className="h-13 w-full rounded-2xl border bg-[var(--dashboard-card-soft)] pl-11 pr-4 text-sm font-semibold text-[var(--dashboard-text)] outline-none transition focus:-translate-y-0.5 focus:shadow-lg"
+                    style={{
+                      borderColor:
+                        confirmPassword && confirmPassword === newPassword
+                          ? "rgba(16,185,129,.55)"
+                          : "var(--dashboard-border)",
+                    }}
+                  />
+                </div>
+              </label>
             </div>
 
             {passwordMessage && (
               <p
-                className="mt-4 text-sm font-bold"
+                className="mt-4 rounded-2xl px-4 py-3 text-xs font-bold"
                 style={{
                   color: passwordMessage.toLowerCase().includes("succès")
-                    ? "#34d399"
-                    : "#f87171",
+                    ? "#10b981"
+                    : "#ef4444",
+                  background: passwordMessage.toLowerCase().includes("succès")
+                    ? "rgba(16,185,129,.10)"
+                    : "rgba(239,68,68,.10)",
                 }}
               >
                 {passwordMessage}
               </p>
             )}
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setShowPasswordModal(false)
                   setPasswordMessage("")
                 }}
-                className="h-12 rounded-2xl border text-sm font-black transition hover:bg-white/5"
+                className="h-12 rounded-2xl border px-7 text-sm font-black transition hover:bg-[var(--dashboard-card-soft)]"
                 style={{
                   borderColor: "var(--dashboard-border)",
                   color: "var(--dashboard-text)",
@@ -783,10 +967,10 @@ const handleRegisterPasskey = async () => {
                 type="button"
                 onClick={handleChangePassword}
                 disabled={passwordLoading}
-                className="h-12 rounded-2xl text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-12 rounded-2xl px-8 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ background: "var(--brand-gradient)" }}
               >
-                {passwordLoading ? "Modification..." : "Enregistrer"}
+                {passwordLoading ? "Modification..." : "Mettre à jour"}
               </button>
             </div>
           </div>

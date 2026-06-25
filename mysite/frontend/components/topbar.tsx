@@ -26,6 +26,8 @@ type UserProfile = {
   first_name: string
   last_name: string
   phone_number: string
+  is_staff: boolean
+  is_superuser: boolean
 }
 type AppNotification = {
   id: number
@@ -280,7 +282,10 @@ const openNotification = async (
             <span className="sr-only">Open notifications</span>
 
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+              <span
+                className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white"
+                style={{ background: "var(--brand-gradient)" }}
+              >
                 {unreadCount}
               </span>
             )}
@@ -295,7 +300,14 @@ const openNotification = async (
               <span className="text-sm font-black">Notifications</span>
 
               {unreadCount > 0 && (
-                <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-500">
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-bold"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--brand-primary) 12%, transparent)",
+                    color: "var(--brand-primary)",
+                  }}
+                >
                   {unreadCount} nouvelle{unreadCount > 1 ? "s" : ""}
                 </span>
               )}
@@ -314,14 +326,14 @@ const openNotification = async (
             ) : (
               <div className="max-h-80 overflow-y-auto">
                 {notifications.map((notification) => {
-                  const levelClass =
+                  const levelColor =
                     notification.level === "error"
-                      ? "border-l-red-500"
+                      ? "var(--brand-tertiary)"
                       : notification.level === "warning"
-                      ? "border-l-orange-500"
+                      ? "color-mix(in srgb, var(--brand-secondary) 58%, var(--brand-tertiary))"
                       : notification.level === "success"
-                      ? "border-l-emerald-500"
-                      : "border-l-blue-500"
+                      ? "var(--brand-secondary)"
+                      : "var(--brand-primary)"
 
                   return (
                     <DropdownMenuItem
@@ -330,7 +342,8 @@ const openNotification = async (
     event.preventDefault()
     openNotification(notification)
   }}
-  className={`flex cursor-pointer flex-col items-start gap-1 rounded-xl border-l-4 ${levelClass} px-3 py-3 focus:bg-[var(--dashboard-card-soft)]`}
+  className="flex cursor-pointer flex-col items-start gap-1 rounded-xl border-l-4 px-3 py-3 focus:bg-[var(--dashboard-card-soft)]"
+  style={{ borderLeftColor: levelColor }}
 >
                       <div className="flex w-full items-center justify-between gap-2">
                         <span className="text-sm font-bold text-[var(--dashboard-text)]">
@@ -338,7 +351,10 @@ const openNotification = async (
                         </span>
 
                         {!notification.is_read && (
-                          <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[10px] font-black text-white"
+                            style={{ background: "var(--brand-gradient)" }}
+                          >
                             Nouveau
                           </span>
                         )}
@@ -386,15 +402,25 @@ const openNotification = async (
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem asChild>
-              <button className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold">
-                Manage users
-              </button>
-            </DropdownMenuItem>
+            {user?.is_superuser ? (
+              <DropdownMenuItem asChild>
+                <button
+                  type="button"
+                  onClick={() => router.push("/profile/accounts")}
+                  className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold"
+                >
+                  Gestion des admins
+                </button>
+              </DropdownMenuItem>
+            ) : null}
 
             <DropdownMenuItem asChild>
-              <button className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold">
-                Network
+              <button
+                type="button"
+                onClick={() => router.push("/api-connections")}
+                className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold"
+              >
+                Connexions API
               </button>
             </DropdownMenuItem>
 

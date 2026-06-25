@@ -105,11 +105,6 @@ class DimPage(models.Model):
 
 
 class FactGAMetrics(models.Model):
-    """
-    Table de faits contenant les métriques générales
-    provenant de Google Analytics 4.
-    """
-
     website = models.ForeignKey(
         DimWebsite,
         on_delete=models.PROTECT,

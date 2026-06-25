@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
+import { SmartSEOLogo } from "./smartseo-logo"
 import {
   Home,
   Bell,
@@ -14,9 +15,6 @@ import {
   Globe,
   UserRound,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
   ShieldCheck,
   MessageCircle,
   type LucideIcon,
@@ -97,64 +95,20 @@ export function Sidebar({ onClose }: SidebarProps) {
         boxShadow: "var(--sidebar-shadow)",
       }}
     >
-      {/* Toggle */}
-<button
-  type="button"
-  onClick={() => setOpen((v) => !v)}
-  className="absolute right-4 top-6 z-30 grid h-8 w-8 place-items-center rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
-  style={{
-    background: "color-mix(in srgb, var(--brand-primary) 18%, transparent)",
-    border: "1px solid color-mix(in srgb, var(--brand-primary) 35%, transparent)",
-    color: "var(--brand-primary)",
-  }}
-  aria-label={open ? "Réduire le menu" : "Ouvrir le menu"}
-  title={open ? "Réduire" : "Ouvrir"}
->
-  {open ? (
-    <ChevronLeft className="h-4 w-4" strokeWidth={3} />
-  ) : (
-    <ChevronRight className="h-4 w-4" strokeWidth={3} />
-  )}
-</button>
-
-
       {/* Logo */}
-      <div
-        className={`relative z-10 mb-8 flex items-center ${
-          open ? "gap-3" : "justify-center"
-        }`}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="relative z-10 mb-8 flex w-full cursor-pointer items-center justify-center rounded-2xl transition duration-200 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+        aria-label={open ? "Réduire le menu" : "Ouvrir le menu"}
+        title={open ? "Cliquer pour réduire le menu" : "Cliquer pour ouvrir le menu"}
       >
-        <div
-          className="grid size-11 shrink-0 place-items-center rounded-2xl"
-          style={{
-            background: "var(--brand-gradient)",
-            boxShadow: "0 10px 24px rgba(15,23,42,0.18)",
-          }}
-        >
-          <Sparkles className="size-5 text-white" />
-        </div>
-
-        {open && (
-          <div className="overflow-hidden">
-            <p
-              className="text-lg font-black leading-none"
-              style={{
-                background: "var(--brand-gradient)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Smart SEO
-            </p>
-            <p
-              className="mt-1 text-xs font-medium"
-              style={{ color: "var(--sidebar-muted)" }}
-            >
-              Analytics AI
-            </p>
-          </div>
+        {open ? (
+          <SmartSEOLogo className="h-28 w-auto max-w-[185px] shrink-0 text-[var(--sidebar-text)]" />
+        ) : (
+          <SmartSEOLogo compact className="size-[52px] shrink-0" />
         )}
-      </div>
+      </button>
 
       {/* Navigation */}
       <nav className="relative z-10 flex flex-1 flex-col gap-7 overflow-y-auto overflow-x-hidden">

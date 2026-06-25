@@ -1,11 +1,13 @@
 import json
 import re
+from urllib.parse import urlencode
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.http import JsonResponse,HttpResponse
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -49,6 +51,14 @@ from webauthn.helpers.structs import (
     ResidentKeyRequirement,
     UserVerificationRequirement,
 )
+from webauthn import (
+    generate_registration_options,
+    generate_authentication_options,
+    options_to_json,
+    verify_registration_response,
+    verify_authentication_response,
+)
+import requests
 
 NAME_REGEX = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")
 PHONE_REGEX = re.compile(r"^\d{8}$")
@@ -185,6 +195,12 @@ def api_logout(request):
     })
 def api_me(request):
     if request.user.is_authenticated:
+        profile_photo_url = ""
+        if request.user.profile_photo:
+            profile_photo_url = request.build_absolute_uri(
+                request.user.profile_photo.url
+            )
+
         return JsonResponse({
             "authenticated": True,
             "id": request.user.id,
@@ -192,6 +208,7 @@ def api_me(request):
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
             "phone_number": request.user.phone_number,
+            "profile_photo_url": profile_photo_url,
             "is_staff": request.user.is_staff,
             "is_superuser": request.user.is_superuser,
         })
@@ -199,6 +216,87 @@ def api_me(request):
     return JsonResponse({
         "authenticated": False
     }, status=401)
+
+
+@csrf_exempt
+@require_http_methods(["POST", "DELETE"])
+def api_profile_photo(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"success": False, "message": "Utilisateur non authentifié."},
+            status=401,
+        )
+
+    if request.method == "DELETE":
+        current_photo = request.user.profile_photo
+
+        if current_photo:
+            current_photo.delete(save=False)
+            request.user.profile_photo = None
+            request.user.save(update_fields=["profile_photo"])
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Photo de profil supprimée.",
+                "profile_photo_url": "",
+            }
+        )
+
+    photo = request.FILES.get("photo")
+
+    if photo is None:
+        return JsonResponse(
+            {"success": False, "message": "Veuillez sélectionner une image."},
+            status=400,
+        )
+
+    if photo.size > 5 * 1024 * 1024:
+        return JsonResponse(
+            {"success": False, "message": "La photo ne doit pas dépasser 5 Mo."},
+            status=400,
+        )
+
+    extension = photo.name.rsplit(".", 1)[-1].lower() if "." in photo.name else ""
+    allowed_extensions = {"jpg", "jpeg", "png", "webp"}
+
+    if extension not in allowed_extensions:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Formats autorisés : JPG, PNG et WebP.",
+            },
+            status=400,
+        )
+
+    header = photo.read(12)
+    photo.seek(0)
+    is_jpeg = header.startswith(b"\xff\xd8\xff")
+    is_png = header.startswith(b"\x89PNG\r\n\x1a\n")
+    is_webp = header.startswith(b"RIFF") and header[8:12] == b"WEBP"
+
+    if not (is_jpeg or is_png or is_webp):
+        return JsonResponse(
+            {"success": False, "message": "Le fichier sélectionné n’est pas une image valide."},
+            status=400,
+        )
+
+    previous_photo = request.user.profile_photo
+    request.user.profile_photo = photo
+    request.user.save(update_fields=["profile_photo"])
+
+    if previous_photo and previous_photo.name != request.user.profile_photo.name:
+        previous_photo.delete(save=False)
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "Photo de profil mise à jour.",
+            "profile_photo_url": request.build_absolute_uri(
+                request.user.profile_photo.url
+            ),
+        }
+    )
 
 
 
@@ -1050,7 +1148,285 @@ def api_admin_create(request):
             },
             status=500,
         )
+@csrf_exempt
+@require_POST
+def api_passkey_login_options(request):
+    try:
+        data = json.loads(request.body or "{}")
+        email = data.get("email", "").strip().lower()
 
+        if not email:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "Saisissez votre adresse email avant "
+                        "d’utiliser la connexion avec cet appareil."
+                    ),
+                },
+                status=400,
+            )
+
+        try:
+            user = User.objects.get(
+                email__iexact=email,
+                is_active=True,
+            )
+        except User.DoesNotExist:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "Aucune passkey disponible pour ce compte."
+                    ),
+                },
+                status=400,
+            )
+
+        passkeys = user.passkey_credentials.all()
+
+        if not passkeys.exists():
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "Aucune connexion par passkey n’est "
+                        "activée pour ce compte."
+                    ),
+                },
+                status=400,
+            )
+
+        allowed_credentials = [
+            PublicKeyCredentialDescriptor(
+                id=bytes(passkey.credential_id),
+            )
+            for passkey in passkeys
+        ]
+
+        options = generate_authentication_options(
+            rp_id=settings.WEBAUTHN_RP_ID,
+            allow_credentials=allowed_credentials,
+            user_verification=UserVerificationRequirement.REQUIRED,
+        )
+
+        request.session["passkey_login_challenge"] = (
+            options.challenge.hex()
+        )
+        request.session["passkey_login_user_id"] = user.id
+        request.session.modified = True
+
+        return HttpResponse(
+            options_to_json(options),
+            content_type="application/json",
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Les données JSON sont invalides.",
+            },
+            status=400,
+        )
+
+    except Exception as error:
+        print(
+            "Erreur options connexion passkey :",
+            repr(error),
+        )
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": (
+                    "Impossible de préparer la connexion "
+                    "avec cet appareil."
+                ),
+            },
+            status=500,
+        )
+
+@csrf_exempt
+@require_POST
+def api_passkey_login_verify(request):
+    try:
+        data = json.loads(request.body or "{}")
+        credential = data.get("credential")
+
+        if not credential:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "La réponse WebAuthn est absente.",
+                },
+                status=400,
+            )
+
+        challenge_hex = request.session.get(
+            "passkey_login_challenge"
+        )
+        user_id = request.session.get(
+            "passkey_login_user_id"
+        )
+
+        if not challenge_hex or not user_id:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "La demande de connexion est absente "
+                        "ou expirée."
+                    ),
+                },
+                status=400,
+            )
+
+        try:
+            user = User.objects.get(
+                id=user_id,
+                is_active=True,
+            )
+        except User.DoesNotExist:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "Utilisateur introuvable.",
+                },
+                status=404,
+            )
+
+        credential_id_text = credential.get("id", "")
+
+        if not credential_id_text:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "L’identifiant de la passkey est absent."
+                    ),
+                },
+                status=400,
+            )
+
+        # Recherche de la passkey parmi celles de l’utilisateur.
+        # La vérification finale est effectuée cryptographiquement
+        # par verify_authentication_response.
+        registered_passkey = None
+
+        for passkey in user.passkey_credentials.all():
+            import base64
+
+            stored_id = bytes(passkey.credential_id)
+
+            encoded_id = (
+                base64.urlsafe_b64encode(stored_id)
+                .rstrip(b"=")
+                .decode("ascii")
+            )
+
+            if encoded_id == credential_id_text:
+                registered_passkey = passkey
+                break
+
+        if registered_passkey is None:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "Cette passkey n’est pas associée "
+                        "à ce compte."
+                    ),
+                },
+                status=404,
+            )
+
+        verification = verify_authentication_response(
+            credential=credential,
+            expected_challenge=bytes.fromhex(
+                challenge_hex
+            ),
+            expected_rp_id=settings.WEBAUTHN_RP_ID,
+            expected_origin=settings.WEBAUTHN_ORIGIN,
+            credential_public_key=bytes(
+                registered_passkey.public_key
+            ),
+            credential_current_sign_count=(
+                registered_passkey.sign_count
+            ),
+            require_user_verification=True,
+        )
+
+        registered_passkey.sign_count = (
+            verification.new_sign_count
+        )
+        registered_passkey.last_used_at = timezone.now()
+        registered_passkey.save(
+            update_fields=[
+                "sign_count",
+                "last_used_at",
+            ]
+        )
+
+        # Même résultat que la connexion normale
+        login(request, user)
+
+        refresh = RefreshToken.for_user(user)
+
+        request.session.pop(
+            "passkey_login_challenge",
+            None,
+        )
+        request.session.pop(
+            "passkey_login_user_id",
+            None,
+        )
+        request.session.modified = True
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": (
+                    "Connexion avec cet appareil réussie."
+                ),
+                "redirect": "/dashboard",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "is_staff": user.is_staff,
+                    "is_superuser": user.is_superuser,
+                },
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Les données JSON sont invalides.",
+            },
+            status=400,
+        )
+
+    except Exception as error:
+        print(
+            "Erreur connexion passkey :",
+            repr(error),
+        )
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message": (
+                    "La connexion avec cet appareil a échoué."
+                ),
+            },
+            status=400,
+        )
 @csrf_exempt
 @require_http_methods(["PUT", "PATCH"])
 def api_admin_update(request, admin_id):
@@ -1327,6 +1703,527 @@ def jwt_test(request):
         }
     })
 from django.views.decorators.csrf import ensure_csrf_cookie
+
+
+def build_frontend_url(path, query=None):
+    frontend_url = getattr(
+        settings,
+        "FRONTEND_URL",
+        "http://127.0.0.1:3000",
+    ).rstrip("/")
+
+    target_url = f"{frontend_url}{path}"
+
+    if query:
+        target_url = f"{target_url}?{urlencode(query)}"
+
+    return target_url
+
+
+def redirect_to_oauth_error(message):
+    return redirect(
+        build_frontend_url(
+            "/auth/oauth/callback",
+            {"error": message},
+        )
+    )
+
+
+def get_or_create_oauth_user(email, first_name="", last_name="", provider="OAuth"):
+    normalized_email = normalize_email(email)
+
+    try:
+        return User.objects.get(email__iexact=normalized_email)
+    except User.DoesNotExist:
+        pass
+
+    if not first_name:
+        first_name = normalized_email.split("@", 1)[0][:25] or "Utilisateur"
+
+    user = User.objects.create_user(
+        email=normalized_email,
+        password=None,
+        first_name=first_name[:25],
+        last_name=(last_name or provider)[:25],
+        is_active=True,
+    )
+
+    return user
+
+
+@require_GET
+def google_oauth_start(request):
+    google_client_id = getattr(settings, "GOOGLE_CLIENT_ID", "")
+    google_redirect_uri = getattr(
+        settings,
+        "GOOGLE_REDIRECT_URI",
+        "http://127.0.0.1:8000/api/oauth/google/callback/",
+    )
+
+    if not google_client_id:
+        return redirect_to_oauth_error(
+            "La connexion Google n'est pas configurée."
+        )
+
+    state = secrets.token_urlsafe(32)
+    request.session["google_oauth_state"] = state
+    request.session.modified = True
+
+    params = {
+        "client_id": google_client_id,
+        "redirect_uri": google_redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    }
+
+    return redirect(
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        + urlencode(params)
+    )
+
+
+@require_GET
+def google_oauth_callback(request):
+    google_client_id = getattr(settings, "GOOGLE_CLIENT_ID", "")
+    google_client_secret = getattr(settings, "GOOGLE_CLIENT_SECRET", "")
+    google_redirect_uri = getattr(
+        settings,
+        "GOOGLE_REDIRECT_URI",
+        "http://127.0.0.1:8000/api/oauth/google/callback/",
+    )
+
+    error = request.GET.get("error")
+
+    if error:
+        return redirect_to_oauth_error(
+            "La connexion Google a été annulée."
+        )
+
+    state = request.GET.get("state", "")
+    expected_state = request.session.get("google_oauth_state")
+
+    if not expected_state or state != expected_state:
+        return redirect_to_oauth_error(
+            "La session Google est invalide ou expirée."
+        )
+
+    code = request.GET.get("code")
+
+    if not code:
+        return redirect_to_oauth_error(
+            "Google n'a pas retourné de code de connexion."
+        )
+
+    try:
+        token_response = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": google_client_id,
+                "client_secret": google_client_secret,
+                "redirect_uri": google_redirect_uri,
+                "grant_type": "authorization_code",
+            },
+            timeout=12,
+        )
+        token_response.raise_for_status()
+
+        access_token = token_response.json().get("access_token")
+
+        if not access_token:
+            return redirect_to_oauth_error(
+                "Google n'a pas retourné de jeton d'accès."
+            )
+
+        userinfo_response = requests.get(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=12,
+        )
+        userinfo_response.raise_for_status()
+
+        profile = userinfo_response.json()
+        email = profile.get("email", "")
+
+        if not email or not profile.get("email_verified", False):
+            return redirect_to_oauth_error(
+                "L'email Google n'est pas vérifié."
+            )
+
+        user = get_or_create_oauth_user(
+            email=email,
+            first_name=profile.get("given_name", ""),
+            last_name=profile.get("family_name", ""),
+        )
+
+        if not user.is_active:
+            return redirect_to_oauth_error(
+                "Ce compte est désactivé."
+            )
+
+        login(request, user)
+
+        refresh = RefreshToken.for_user(user)
+
+        request.session.pop("google_oauth_state", None)
+        request.session.modified = True
+
+        return redirect(
+            build_frontend_url(
+                "/auth/oauth/callback",
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+            )
+        )
+
+    except requests.RequestException as error:
+        print("Erreur OAuth Google :", repr(error))
+
+        return redirect_to_oauth_error(
+            "Impossible de valider la connexion Google."
+        )
+
+    except Exception as error:
+        print("Erreur callback Google :", repr(error))
+
+        return redirect_to_oauth_error(
+            "Une erreur est survenue pendant la connexion Google."
+        )
+
+
+def get_primary_github_email(access_token):
+    emails_response = requests.get(
+        "https://api.github.com/user/emails",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+        },
+        timeout=12,
+    )
+    emails_response.raise_for_status()
+
+    emails = emails_response.json()
+
+    for email_data in emails:
+        if email_data.get("primary") and email_data.get("verified"):
+            return email_data.get("email", "")
+
+    for email_data in emails:
+        if email_data.get("verified"):
+            return email_data.get("email", "")
+
+    return ""
+
+
+@require_GET
+def github_oauth_start(request):
+    github_client_id = getattr(settings, "GITHUB_CLIENT_ID", "")
+    github_redirect_uri = getattr(
+        settings,
+        "GITHUB_REDIRECT_URI",
+        "http://127.0.0.1:8000/api/oauth/github/callback/",
+    )
+
+    if not github_client_id:
+        return redirect_to_oauth_error(
+            "La connexion GitHub n'est pas configurée."
+        )
+
+    state = secrets.token_urlsafe(32)
+    request.session["github_oauth_state"] = state
+    request.session.modified = True
+
+    params = {
+        "client_id": github_client_id,
+        "redirect_uri": github_redirect_uri,
+        "scope": "read:user user:email",
+        "state": state,
+        "allow_signup": "true",
+    }
+
+    return redirect(
+        "https://github.com/login/oauth/authorize?"
+        + urlencode(params)
+    )
+
+
+@require_GET
+def github_oauth_callback(request):
+    github_client_id = getattr(settings, "GITHUB_CLIENT_ID", "")
+    github_client_secret = getattr(settings, "GITHUB_CLIENT_SECRET", "")
+    github_redirect_uri = getattr(
+        settings,
+        "GITHUB_REDIRECT_URI",
+        "http://127.0.0.1:8000/api/oauth/github/callback/",
+    )
+
+    error = request.GET.get("error")
+
+    if error:
+        return redirect_to_oauth_error(
+            "La connexion GitHub a été annulée."
+        )
+
+    state = request.GET.get("state", "")
+    expected_state = request.session.get("github_oauth_state")
+
+    if not expected_state or state != expected_state:
+        return redirect_to_oauth_error(
+            "La session GitHub est invalide ou expirée."
+        )
+
+    code = request.GET.get("code")
+
+    if not code:
+        return redirect_to_oauth_error(
+            "GitHub n'a pas retourné de code de connexion."
+        )
+
+    try:
+        token_response = requests.post(
+            "https://github.com/login/oauth/access_token",
+            data={
+                "client_id": github_client_id,
+                "client_secret": github_client_secret,
+                "code": code,
+                "redirect_uri": github_redirect_uri,
+            },
+            headers={"Accept": "application/json"},
+            timeout=12,
+        )
+        token_response.raise_for_status()
+
+        token_data = token_response.json()
+
+        if token_data.get("error"):
+            return redirect_to_oauth_error(
+                "GitHub a refusé la connexion."
+            )
+
+        access_token = token_data.get("access_token")
+
+        if not access_token:
+            return redirect_to_oauth_error(
+                "GitHub n'a pas retourné de jeton d'accès."
+            )
+
+        profile_response = requests.get(
+            "https://api.github.com/user",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.github+json",
+            },
+            timeout=12,
+        )
+        profile_response.raise_for_status()
+
+        profile = profile_response.json()
+        email = profile.get("email") or get_primary_github_email(access_token)
+
+        if not email:
+            return redirect_to_oauth_error(
+                "Aucun email vérifié n'est disponible sur ce compte GitHub."
+            )
+
+        display_name = profile.get("name") or profile.get("login") or ""
+        name_parts = display_name.split(" ", 1)
+        first_name = name_parts[0] if name_parts else ""
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        user = get_or_create_oauth_user(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            provider="GitHub",
+        )
+
+        if not user.is_active:
+            return redirect_to_oauth_error(
+                "Ce compte est désactivé."
+            )
+
+        login(request, user)
+
+        refresh = RefreshToken.for_user(user)
+
+        request.session.pop("github_oauth_state", None)
+        request.session.modified = True
+
+        return redirect(
+            build_frontend_url(
+                "/auth/oauth/callback",
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+            )
+        )
+
+    except requests.RequestException as error:
+        print("Erreur OAuth GitHub :", repr(error))
+
+        return redirect_to_oauth_error(
+            "Impossible de valider la connexion GitHub."
+        )
+
+    except Exception as error:
+        print("Erreur callback GitHub :", repr(error))
+
+        return redirect_to_oauth_error(
+            "Une erreur est survenue pendant la connexion GitHub."
+        )
+
+
+@require_GET
+def linkedin_oauth_start(request):
+    linkedin_client_id = getattr(settings, "LINKEDIN_CLIENT_ID", "")
+    linkedin_redirect_uri = getattr(
+        settings,
+        "LINKEDIN_REDIRECT_URI",
+        "http://127.0.0.1:8000/api/oauth/linkedin/callback/",
+    )
+
+    if not linkedin_client_id:
+        return redirect_to_oauth_error(
+            "La connexion LinkedIn n'est pas configurée."
+        )
+
+    state = secrets.token_urlsafe(32)
+    request.session["linkedin_oauth_state"] = state
+    request.session.modified = True
+
+    params = {
+        "client_id": linkedin_client_id,
+        "redirect_uri": linkedin_redirect_uri,
+        "response_type": "code",
+        "scope": "openid profile email",
+        "state": state,
+    }
+
+    return redirect(
+        "https://www.linkedin.com/oauth/v2/authorization?"
+        + urlencode(params)
+    )
+
+
+@require_GET
+def linkedin_oauth_callback(request):
+    linkedin_client_id = getattr(settings, "LINKEDIN_CLIENT_ID", "")
+    linkedin_client_secret = getattr(settings, "LINKEDIN_CLIENT_SECRET", "")
+    linkedin_redirect_uri = getattr(
+        settings,
+        "LINKEDIN_REDIRECT_URI",
+        "http://127.0.0.1:8000/api/oauth/linkedin/callback/",
+    )
+
+    error = request.GET.get("error")
+
+    if error:
+        return redirect_to_oauth_error(
+            "La connexion LinkedIn a été annulée."
+        )
+
+    state = request.GET.get("state", "")
+    expected_state = request.session.get("linkedin_oauth_state")
+
+    if not expected_state or state != expected_state:
+        return redirect_to_oauth_error(
+            "La session LinkedIn est invalide ou expirée."
+        )
+
+    code = request.GET.get("code")
+
+    if not code:
+        return redirect_to_oauth_error(
+            "LinkedIn n'a pas retourné de code de connexion."
+        )
+
+    try:
+        token_response = requests.post(
+            "https://www.linkedin.com/oauth/v2/accessToken",
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "client_id": linkedin_client_id,
+                "client_secret": linkedin_client_secret,
+                "redirect_uri": linkedin_redirect_uri,
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            timeout=12,
+        )
+        token_response.raise_for_status()
+
+        access_token = token_response.json().get("access_token")
+
+        if not access_token:
+            return redirect_to_oauth_error(
+                "LinkedIn n'a pas retourné de jeton d'accès."
+            )
+
+        userinfo_response = requests.get(
+            "https://api.linkedin.com/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=12,
+        )
+        userinfo_response.raise_for_status()
+
+        profile = userinfo_response.json()
+        email = profile.get("email", "")
+
+        if not email or profile.get("email_verified") is False:
+            return redirect_to_oauth_error(
+                "L'email LinkedIn n'est pas disponible ou vérifié."
+            )
+
+        user = get_or_create_oauth_user(
+            email=email,
+            first_name=profile.get("given_name", ""),
+            last_name=profile.get("family_name", ""),
+            provider="LinkedIn",
+        )
+
+        if not user.is_active:
+            return redirect_to_oauth_error(
+                "Ce compte est désactivé."
+            )
+
+        login(request, user)
+
+        refresh = RefreshToken.for_user(user)
+
+        request.session.pop("linkedin_oauth_state", None)
+        request.session.modified = True
+
+        return redirect(
+            build_frontend_url(
+                "/auth/oauth/callback",
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+            )
+        )
+
+    except requests.RequestException as error:
+        print("Erreur OAuth LinkedIn :", repr(error))
+
+        return redirect_to_oauth_error(
+            "Impossible de valider la connexion LinkedIn."
+        )
+
+    except Exception as error:
+        print("Erreur callback LinkedIn :", repr(error))
+
+        return redirect_to_oauth_error(
+            "Une erreur est survenue pendant la connexion LinkedIn."
+        )
 
 
 @ensure_csrf_cookie

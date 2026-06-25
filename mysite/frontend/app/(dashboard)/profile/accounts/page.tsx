@@ -359,6 +359,63 @@ export default function AccountsPage() {
     })
   }
 
+  const isAccessDenied =
+    adminsError.toLowerCase().includes("administrateur principal") ||
+    adminsError.toLowerCase().includes("accès refus")
+
+  if (!adminsLoading && isAccessDenied) {
+    return (
+      <section className="px-4 py-6 text-[var(--dashboard-text)] md:px-6">
+        <div className="mx-auto max-w-3xl space-y-5">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/profile"
+            }}
+            className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black transition hover:text-[var(--dashboard-text)]"
+            style={{
+              background: "var(--dashboard-card)",
+              borderColor: "var(--dashboard-border)",
+              color: "var(--dashboard-muted)",
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour au profil
+          </button>
+
+          <div
+            className="rounded-[26px] border p-6 shadow-[var(--dashboard-shadow)]"
+            style={{
+              background: "var(--dashboard-card)",
+              borderColor: "var(--dashboard-border)",
+            }}
+          >
+            <div
+              className="mb-5 grid h-14 w-14 place-items-center rounded-2xl text-white"
+              style={{ background: "var(--brand-gradient)" }}
+            >
+              <ShieldCheck className="h-7 w-7" />
+            </div>
+
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--dashboard-muted)]">
+              Acces limite
+            </p>
+
+            <h1 className="mt-2 text-2xl font-black">
+              Gestion reservee au superadmin
+            </h1>
+
+            <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[var(--dashboard-muted)]">
+              Votre compte peut utiliser le dashboard, les sites et les
+              analyses, mais la creation et la gestion des autres comptes
+              administrateurs sont reservees au superadmin.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="px-4 py-6 text-[var(--dashboard-text)] md:px-6">
       <div className="mx-auto max-w-6xl space-y-5">
@@ -800,7 +857,7 @@ function AdminRow({
     "var(--brand-primary)",
     "var(--brand-secondary)",
     "var(--brand-tertiary)",
-    "#10b981",
+    "color-mix(in srgb, var(--brand-primary) 52%, var(--brand-tertiary))",
     "#f59e0b",
   ]
   const accent = accentColors[index % accentColors.length]
@@ -939,20 +996,28 @@ function AdminModal({
   children: ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/75 px-4 py-8 backdrop-blur-md">
       <div
-        className="w-full max-w-md rounded-[24px] border p-6 shadow-2xl"
+        className="max-h-[calc(100vh-4rem)] w-full max-w-[500px] overflow-y-auto rounded-[30px] border p-6"
         style={{
-          background: "var(--dashboard-card)",
-          borderColor: "var(--dashboard-border)",
+          background:
+            "linear-gradient(145deg, var(--dashboard-card), color-mix(in srgb, var(--brand-primary) 5%, var(--dashboard-card)))",
+          borderColor:
+            "color-mix(in srgb, var(--brand-primary) 40%, var(--dashboard-border))",
+          boxShadow:
+            "0 35px 100px rgba(0,0,0,0.52), 0 0 55px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
         }}
       >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-black text-[var(--dashboard-text)]">
+        <div
+          className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[29px] px-6 py-4"
+          style={{ background: "var(--brand-gradient)" }}
+        >
+          <div className="flex items-center gap-3">
+            <Users className="h-5 w-5 shrink-0 text-white" />
+            <h2 className="text-lg font-black text-white">
               {title}
             </h2>
-            <p className="mt-1 text-sm font-semibold text-[var(--dashboard-muted)]">
+            <p className="hidden">
               {description}
             </p>
           </div>
@@ -960,10 +1025,9 @@ function AdminModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-xl border transition hover:bg-black/5 dark:hover:bg-white/5"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25"
             style={{
-              borderColor: "var(--dashboard-border)",
-              color: "var(--dashboard-text)",
+              color: "white",
             }}
           >
             <X className="h-4 w-4" />
@@ -1004,7 +1068,7 @@ function ThemedInput({
       type={type}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-11 w-full rounded-xl border px-4 text-sm font-semibold outline-none transition focus:border-[var(--brand-primary)]"
+      className="h-12 w-full rounded-[18px] border px-4 text-sm font-semibold outline-none transition focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/10"
       style={{
         background: "var(--dashboard-card-soft)",
         borderColor: "var(--dashboard-border)",

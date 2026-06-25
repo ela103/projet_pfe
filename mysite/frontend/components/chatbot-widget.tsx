@@ -72,6 +72,7 @@ export function ChatbotWidget() {
   body: JSON.stringify({
     question: currentInput,
     website_id: currentWebsiteId,
+    channel: "chatbot",
    
   }),
 })
@@ -119,37 +120,49 @@ export function ChatbotWidget() {
             handleOpen()
           }
         }}
-        className="fixed bottom-6 right-6 z-50 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 p-4 text-white shadow-lg transition hover:scale-105"
+        className="fixed bottom-6 right-6 z-50 rounded-full p-4 text-white shadow-lg transition hover:scale-105"
+        style={{
+          backgroundColor: "var(--brand-primary)",
+          backgroundImage: "var(--brand-gradient)",
+          boxShadow:
+            "0 14px 34px color-mix(in srgb, var(--brand-primary) 36%, transparent)",
+        }}
       >
         {open ? <X size={22} /> : <MessageCircle size={22} />}
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[340px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#09051f] shadow-2xl">
+        <div className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[340px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--dashboard-card)] shadow-2xl">
           {screen === "welcome" && (
-            <div className="relative flex h-full flex-col items-center justify-between overflow-hidden rounded-3xl bg-[#09051f] px-6 pb-6 pt-8 text-white">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.38),transparent_28%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.20),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(217,70,239,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.18),transparent_28%),linear-gradient(180deg,#16063a_0%,#0b0224_55%,#050312_100%)]" />
+            <div className="relative flex h-full flex-col items-center justify-between overflow-hidden rounded-3xl bg-[var(--dashboard-card)] px-6 pb-5 pt-7 text-white">
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(circle at top left, color-mix(in srgb, var(--brand-primary) 38%, transparent), transparent 30%), radial-gradient(circle at top right, color-mix(in srgb, var(--brand-secondary) 28%, transparent), transparent 30%), radial-gradient(circle at bottom left, color-mix(in srgb, var(--brand-tertiary) 22%, transparent), transparent 32%), linear-gradient(180deg, color-mix(in srgb, var(--dashboard-card) 70%, #050312), #050312)",
+                }}
+              />
 
-              <div className="absolute -left-12 top-16 h-32 w-32 rounded-full bg-fuchsia-500/20 blur-3xl animate-pulse" />
-              <div className="absolute right-0 top-24 h-24 w-24 rounded-full bg-cyan-400/20 blur-3xl animate-pulse" />
-              <div className="absolute bottom-24 left-0 h-28 w-28 rounded-full bg-violet-400/20 blur-3xl animate-pulse" />
-              <div className="absolute bottom-10 right-8 h-36 w-36 rounded-full bg-indigo-500/20 blur-3xl animate-pulse" />
+              <div className="absolute -left-12 top-16 h-32 w-32 animate-pulse rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
+              <div className="absolute right-0 top-24 h-24 w-24 animate-pulse rounded-full bg-[var(--brand-secondary)]/20 blur-3xl" />
+              <div className="absolute bottom-24 left-0 h-28 w-28 animate-pulse rounded-full bg-[var(--brand-tertiary)]/20 blur-3xl" />
+              <div className="absolute bottom-10 right-8 h-36 w-36 animate-pulse rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
 
               <div className="absolute left-1/2 top-[43%] h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-              <div className="absolute left-1/2 top-[43%] h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-300/10" />
-              <div className="absolute left-1/2 top-[43%] h-[295px] w-[295px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/10" />
+              <div className="absolute left-1/2 top-[43%] h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--brand-primary)]/15" />
+              <div className="absolute left-1/2 top-[43%] h-[295px] w-[295px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--brand-secondary)]/15" />
 
-              <div className="absolute left-8 top-24 h-4 w-4 animate-[floatUp_6s_ease-in-out_infinite] rounded-full bg-cyan-300/80 shadow-[0_0_18px_rgba(103,232,249,0.85)]" />
-              <div className="absolute right-10 top-40 h-3 w-3 animate-[floatUp_7s_ease-in-out_infinite] rounded-full bg-fuchsia-300/80 shadow-[0_0_18px_rgba(244,114,182,0.8)] [animation-delay:1s]" />
-              <div className="absolute left-14 bottom-44 h-5 w-5 animate-[floatUp_8s_ease-in-out_infinite] rounded-full bg-violet-300/80 shadow-[0_0_20px_rgba(196,181,253,0.85)] [animation-delay:2s]" />
-              <div className="absolute right-16 bottom-36 h-4 w-4 animate-[floatUp_6.5s_ease-in-out_infinite] rounded-full bg-sky-300/80 shadow-[0_0_20px_rgba(125,211,252,0.85)] [animation-delay:1.5s]" />
+              <div className="absolute left-8 top-24 h-4 w-4 animate-[floatUp_6s_ease-in-out_infinite] rounded-full bg-[var(--brand-secondary)]/80 shadow-[0_0_18px_color-mix(in_srgb,var(--brand-secondary)_80%,transparent)]" />
+              <div className="absolute right-10 top-40 h-3 w-3 animate-[floatUp_7s_ease-in-out_infinite] rounded-full bg-[var(--brand-tertiary)]/80 shadow-[0_0_18px_color-mix(in_srgb,var(--brand-tertiary)_80%,transparent)] [animation-delay:1s]" />
+              <div className="absolute left-14 bottom-44 h-5 w-5 animate-[floatUp_8s_ease-in-out_infinite] rounded-full bg-[var(--brand-primary)]/80 shadow-[0_0_20px_color-mix(in_srgb,var(--brand-primary)_80%,transparent)] [animation-delay:2s]" />
+              <div className="absolute right-16 bottom-36 h-4 w-4 animate-[floatUp_6.5s_ease-in-out_infinite] rounded-full bg-[var(--brand-secondary)]/80 shadow-[0_0_20px_color-mix(in_srgb,var(--brand-secondary)_80%,transparent)] [animation-delay:1.5s]" />
               <div className="absolute left-1/2 top-20 h-2.5 w-2.5 animate-[floatUp_7.5s_ease-in-out_infinite] rounded-full bg-white/80 shadow-[0_0_14px_rgba(255,255,255,0.8)] [animation-delay:0.8s]" />
 
               <div className="absolute left-12 top-16 h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)] animate-pulse" />
-              <div className="absolute right-20 top-20 h-1 w-1 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(186,230,253,0.9)] animate-pulse [animation-delay:0.8s]" />
-              <div className="absolute left-20 top-52 h-1 w-1 rounded-full bg-fuchsia-200 shadow-[0_0_10px_rgba(245,208,254,0.9)] animate-pulse [animation-delay:1.3s]" />
+              <div className="absolute right-20 top-20 h-1 w-1 animate-pulse rounded-full bg-[var(--brand-secondary)] shadow-[0_0_10px_color-mix(in_srgb,var(--brand-secondary)_85%,transparent)] [animation-delay:0.8s]" />
+              <div className="absolute left-20 top-52 h-1 w-1 animate-pulse rounded-full bg-[var(--brand-tertiary)] shadow-[0_0_10px_color-mix(in_srgb,var(--brand-tertiary)_85%,transparent)] [animation-delay:1.3s]" />
               <div className="absolute right-12 bottom-52 h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)] animate-pulse [animation-delay:1.7s]" />
-              <div className="absolute left-10 bottom-28 h-1 w-1 rounded-full bg-violet-200 shadow-[0_0_10px_rgba(221,214,254,0.95)] animate-pulse [animation-delay:0.5s]" />
+              <div className="absolute left-10 bottom-28 h-1 w-1 animate-pulse rounded-full bg-[var(--brand-primary)] shadow-[0_0_10px_color-mix(in_srgb,var(--brand-primary)_85%,transparent)] [animation-delay:0.5s]" />
 
               <button
                 onClick={handleClose}
@@ -158,41 +171,60 @@ export function ChatbotWidget() {
                 <X size={18} />
               </button>
 
-              <div className="relative z-10 mt-2 rounded-full border border-white/10 bg-violet-400/20 px-4 py-1 text-xs font-medium text-violet-100 shadow-[0_0_25px_rgba(139,92,246,0.25)] backdrop-blur-md">
-                Personal AI Buddy
+              <div
+                className="relative z-10 rounded-full border border-white/10 px-4 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur-md"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--brand-primary) 28%, transparent)",
+                  boxShadow:
+                    "0 0 25px color-mix(in srgb, var(--brand-primary) 25%, transparent)",
+                }}
+              >
+                Assistant IA personnel
               </div>
 
-              <div className="relative z-10 flex flex-1 items-center justify-center">
-                <div className="absolute h-56 w-56 rounded-full bg-violet-500/20 blur-3xl" />
+              <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center py-2">
+                <div className="absolute h-52 w-52 rounded-full bg-[var(--brand-primary)]/20 blur-3xl" />
                 <img
                   src="/robot.png"
                   alt="AI Robot"
-                  className="relative z-10 max-h-[280px] w-auto object-contain drop-shadow-[0_0_40px_rgba(139,92,246,0.38)]"
+                  className="relative z-10 max-h-[255px] w-auto object-contain"
+                  style={{
+                    filter:
+                      "drop-shadow(0 0 40px color-mix(in srgb, var(--brand-primary) 38%, transparent))",
+                  }}
                   onError={(e) => {
                     e.currentTarget.style.display = "none"
                   }}
                 />
               </div>
 
-              <div className="relative z-10 mb-4 text-center">
-                <h2 className="text-4xl font-extrabold leading-tight tracking-tight">
-                  How may I help you today!
-                  <br />
+              <div className="relative z-10 mb-4 max-w-[320px] text-center">
+                <h2 className="text-[31px] font-extrabold leading-[1.22] tracking-tight">
+                  Comment puis-je vous aider aujourd'hui ?
                 </h2>
               </div>
 
               <button
                 onClick={() => setScreen("chat")}
-                className="relative z-10 w-full rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(139,92,246,0.6)] transition hover:scale-105"
+                className="relative z-10 w-full rounded-[22px] px-4 py-4 text-base font-bold text-white transition hover:scale-[1.02]"
+                style={{
+                  background: "var(--brand-gradient)",
+                  boxShadow:
+                    "0 0 20px color-mix(in srgb, var(--brand-primary) 45%, transparent)",
+                }}
               >
-                Get Started
+                Commencer
               </button>
             </div>
           )}
 
           {screen === "chat" && (
             <>
-              <div className="flex items-center justify-between bg-gradient-to-r from-purple-700 to-indigo-700 px-4 py-4 text-white">
+              <div
+                className="flex items-center justify-between px-4 py-4 text-white"
+                style={{ background: "var(--brand-gradient)" }}
+              >
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setScreen("welcome")}
@@ -202,8 +234,8 @@ export function ChatbotWidget() {
                   </button>
 
                   <div>
-                    <h3 className="text-sm font-semibold">AI Assistant</h3>
-                    <p className="text-xs text-white/80">Smart SEO Chatbot</p>
+                    <h3 className="text-sm font-semibold">Assistant IA</h3>
+                    <p className="text-xs text-white/80">Assistant SEO intelligent</p>
                   </div>
                 </div>
 
@@ -243,9 +275,14 @@ export function ChatbotWidget() {
         key={index}
         className={` w-fit rounded-2xl px-4 py-3 text-sm ${
           msg.role === "user"
-  ? "ml-auto max-w-[78%] bg-purple-600 text-white"
+  ? "ml-auto max-w-[78%] text-white"
   : "mr-auto max-w-[88%] border border-gray-200 bg-gray-100 text-black"
         }`}
+        style={
+          msg.role === "user"
+            ? { background: "var(--brand-gradient)" }
+            : undefined
+        }
       >
         {msg.role === "bot" ? (
           <ReactMarkdown
@@ -276,7 +313,7 @@ export function ChatbotWidget() {
               ),
 
               strong: ({ children }) => (
-                <strong className="font-bold text-purple-700">
+                <strong className="font-bold text-[var(--brand-primary)]">
                   {children}
                 </strong>
               ),
@@ -320,13 +357,14 @@ export function ChatbotWidget() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") sendMessage()
                   }}
-                  placeholder="Écrire un message..."
-                  className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm text-black outline-none focus:border-purple-500"
+                  placeholder="Ecrire un message..."
+                  className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm text-black outline-none focus:border-[var(--brand-primary)]"
                 />
 
                 <button
                   onClick={sendMessage}
-                  className="rounded-xl bg-purple-600 p-2 text-white transition hover:bg-purple-700"
+                  className="rounded-xl p-2 text-white transition hover:opacity-90"
+                  style={{ background: "var(--brand-gradient)" }}
                 >
                   <Send size={16} />
                 </button>

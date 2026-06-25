@@ -324,15 +324,7 @@ export default function SearchConsolePage() {
     position: Number(item.position.toFixed(2)),
   }))
 
-  const opportunities = useMemo(() => {
-    return topKeywords
-      .filter((item) => {
-        const clicks = Number(item.total_clicks || 0)
-        const impressions = Number(item.total_impressions || 0)
-        return impressions > 0 && clicks === 0
-      })
-      .slice(0, 5)
-  }, [topKeywords])
+  const opportunities: TopKeyword[] = []
 
   const handleApply = () => {
     setAppliedStartDate(startDate)
@@ -358,8 +350,8 @@ const pieColors = [
   "var(--brand-primary)",
   "var(--brand-secondary)",
   "var(--brand-tertiary)",
-  "#0ea5e9",
-  "#f97316",
+  "color-mix(in srgb, var(--brand-primary) 52%, var(--brand-tertiary))",
+  "color-mix(in srgb, var(--brand-secondary) 58%, var(--brand-tertiary))",
 ]
   const seoPagesChartData = topPages.slice(0, 6).map((item) => ({
   page:
@@ -396,55 +388,71 @@ const pieColors = [
             </p>
           </div>
 
-          <Card className="p-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[160px_160px_100px_90px] md:items-end">
-              <div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[178px_178px_104px_116px] md:items-end">
+              <div className="min-w-0">
                 <label className="mb-2 block text-[10px] font-black uppercase text-[var(--dashboard-muted)]">
-                  Start date
+                  Date début
                 </label>
 
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold outline-none"
-                  style={{ borderColor: "var(--dashboard-border)" }}
+                  className="h-10 w-full rounded-2xl border px-3 text-[12px] font-bold text-[var(--dashboard-text)] outline-none transition hover:border-[var(--brand-primary)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/15"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
+                    borderColor: "var(--dashboard-border)",
+                    colorScheme: "dark",
+                  }}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="mb-2 block text-[10px] font-black uppercase text-[var(--dashboard-muted)]">
-                  End date
+                  Date fin
                 </label>
 
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold outline-none"
-                  style={{ borderColor: "var(--dashboard-border)" }}
+                  className="h-10 w-full rounded-2xl border px-3 text-[12px] font-bold text-[var(--dashboard-text)] outline-none transition hover:border-[var(--brand-primary)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/15"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
+                    borderColor: "var(--dashboard-border)",
+                    colorScheme: "dark",
+                  }}
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleApply}
-                className="h-10 rounded-xl text-[12px] font-black text-white transition hover:opacity-90"
-                style={{ background: "var(--brand-gradient)" }}
+                className="h-10 rounded-2xl px-4 text-[12px] font-black text-white transition hover:-translate-y-0.5 hover:opacity-95"
+                style={{
+                  background: "var(--brand-gradient)",
+                  boxShadow:
+                    "0 8px 18px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
+                }}
               >
-                Apply
+                Appliquer
               </button>
 
               <button
                 type="button"
                 onClick={handleReset}
-                className="h-10 rounded-xl border px-3 text-[12px] font-black text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
-                style={{ borderColor: "var(--dashboard-border)" }}
+                className="h-10 rounded-2xl border px-4 text-[12px] font-black text-[var(--dashboard-muted)] transition hover:border-[var(--brand-primary)] hover:text-[var(--dashboard-text)]"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--dashboard-card-soft) 88%, transparent)",
+                  borderColor: "var(--dashboard-border)",
+                }}
               >
-                Reset
+                Réinitialiser
               </button>
-            </div>
-          </Card>
+          </div>
         </div>
 
         {error ? (
@@ -573,7 +581,7 @@ const pieColors = [
   )}
 </Card>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4">
           <Card className="p-5">
             <SectionTitle title="CTR et position" rightText="Qualité SEO" />
 
@@ -633,7 +641,7 @@ const pieColors = [
             )}
           </Card>
 
-          <Card className="p-5">
+          <Card className="hidden">
             <SectionTitle title="Opportunités SEO" rightText="Impressions sans clics" />
 
             {opportunities.length === 0 ? (

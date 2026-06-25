@@ -33,7 +33,7 @@ if (!cleanName) {
 }
 
 if (cleanName.length < 5) {
-  setError("Le nom du site doit contenir au moins 2 caractères.")
+  setError("Le nom du site doit contenir au moins 5 caractères.")
   return
 }
 
@@ -130,7 +130,7 @@ try {
         {/* en-tête simple */}
         <div className="mb-6">
           <div
-            className="mb-3 grid h-14 w-14 place-items-center rounded-2xl text-white"
+            className="hidden"
             style={{
               background: "var(--brand-gradient)",
               boxShadow:
@@ -166,14 +166,18 @@ try {
               "0 18px 42px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
-          <div className="mb-6">
-            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--dashboard-muted)]">
+          <div
+            className="-mx-6 -mt-6 mb-7 flex items-center gap-3 rounded-t-[27px] px-6 py-4 text-white md:-mx-7 md:-mt-7"
+            style={{ background: "var(--brand-gradient)" }}
+          >
+            <Globe className="h-5 w-5 shrink-0" />
+            <p className="hidden">
               Informations du site
             </p>
-            <h2 className="mt-2 text-[24px] font-black text-[var(--dashboard-text)]">
-              Configuration Google
+            <h2 className="text-lg font-black text-white">
+              Configuration du site
             </h2>
-            <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
+            <p className="hidden">
               Remplissez les champs ci-dessous pour enregistrer le site.
             </p>
           </div>
@@ -181,7 +185,7 @@ try {
           <div className="space-y-5">
             {/* nom */}
             <div>
-              <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.14em] text-[var(--dashboard-muted)]">
+              <label className="mb-2 block text-xs font-black text-[var(--dashboard-text)]">
                 Nom du site
               </label>
 
@@ -194,7 +198,7 @@ try {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Exemple : Travel Agency"
+                  placeholder="Nom du site"
                   minLength={5}
                   maxLength={20}
                   required
@@ -214,7 +218,7 @@ try {
 
             {/* ga4 */}
             <div>
-              <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.14em] text-[var(--dashboard-muted)]">
+              <label className="mb-2 block text-xs font-black text-[var(--dashboard-text)]">
                 GA4 Property ID
               </label>
 
@@ -234,7 +238,7 @@ try {
 
     setGa4PropertyId(value)
   }}
-  placeholder="Exemple : 12345678"
+  placeholder="12345678"
   minLength={8}
   maxLength={8}
   required
@@ -254,7 +258,7 @@ try {
 
             {/* gsc */}
             <div>
-              <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.14em] text-[var(--dashboard-muted)]">
+              <label className="mb-2 block text-xs font-black text-[var(--dashboard-text)]">
                 URL Google Search Console
               </label>
 
@@ -267,7 +271,7 @@ try {
   type="url"
   value={gscSiteUrl}
   onChange={(e) => setGscSiteUrl(e.target.value)}
-  placeholder="Exemple : https://example.com/"
+  placeholder="https://example.com/"
   required
   className="w-full rounded-2xl border pl-11 pr-4 text-[14px] font-bold outline-none transition"
   style={{

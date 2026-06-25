@@ -19,7 +19,7 @@ const tools = [
     description:
       "Analyse les KPI, le trafic, la visibilité SEO et les performances générales du site sélectionné.",
     icon: Search,
-    color: "#3b82f6",
+    color: "var(--brand-primary)",
   },
   {
     id: "traffic-diagnosis",
@@ -27,7 +27,7 @@ const tools = [
     description:
       "Identifie les causes possibles d’un trafic faible, instable ou en baisse.",
     icon: LineChart,
-    color: "#ef4444",
+    color: "var(--brand-secondary)",
   },
   {
     id: "weak-pages",
@@ -35,7 +35,7 @@ const tools = [
     description:
       "Repère les pages qui nécessitent une optimisation prioritaire.",
     icon: FileWarning,
-    color: "#22c55e",
+    color: "var(--brand-tertiary)",
   },
   {
     id: "ga-analysis",
@@ -43,7 +43,7 @@ const tools = [
     description:
       "Analyse les utilisateurs, sessions, pages vues et engagement.",
     icon: BarChart3,
-    color: "#8b5cf6",
+    color: "color-mix(in srgb, var(--brand-primary) 52%, var(--brand-tertiary))",
   },
   {
     id: "gsc-analysis",
@@ -51,7 +51,7 @@ const tools = [
     description:
       "Explique les clics, impressions, CTR, positions et opportunités SEO.",
     icon: BrainCircuit,
-    color: "#06b6d4",
+    color: "var(--brand-primary)",
   },
 ]
 
@@ -111,7 +111,7 @@ export default function AIInsightsPage() {
                 <div
                   className="mb-8 inline-grid h-14 w-14 place-items-center rounded-2xl"
                   style={{
-                    backgroundColor: `color-mix(in srgb, ${tool.color} 16%, transparent)`,
+                    backgroundColor: `color-mix(in srgb, ${tool.color} 16%, var(--dashboard-card))`,
                     color: tool.color,
                   }}
                 >

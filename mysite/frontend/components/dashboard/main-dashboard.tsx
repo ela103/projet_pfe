@@ -16,7 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { Bell, CalendarDays, Search } from "lucide-react"
+import { ArrowRight, Bell, CalendarDays, RotateCcw, Search } from "lucide-react"
 
 
 type Website = {
@@ -59,6 +59,7 @@ type TaskItem = {
   title: string
   subtitle: string
 }
+
 type TopKeyword = {
   query: string
   total_clicks: number
@@ -895,7 +896,9 @@ function WeeklyBarsCard({
   return cleanPage
 }
   return (
-    <Card className="p-4">
+    <Card className="relative p-4">
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)]" />
+      <div className="relative z-10">
       <SectionTitle title="Top 10 pages visitées" rightText="Google Analytics" />
 
       <div className="h-[190px]">
@@ -919,11 +922,16 @@ function WeeklyBarsCard({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.slice(0, 10)}>
+            <BarChart data={data.slice(0, 10)} margin={{ top: 8, right: 6, left: 6, bottom: 0 }}>
+              <CartesianGrid
+                vertical={false}
+                stroke="rgba(255,255,255,0.05)"
+                strokeDasharray="3 8"
+              />
               <XAxis
   dataKey="page"
   tickFormatter={formatPageLabel}
-  tick={{ fill: "#64748b", fontSize: 10 }}
+  tick={{ fill: "#9ca3af", fontSize: 10, fontWeight: 700 }}
   axisLine={false}
   tickLine={false}
 />
@@ -931,13 +939,13 @@ function WeeklyBarsCard({
               <YAxis hide />
 
               <Tooltip
-  cursor={{ fill: "rgba(255,255,255,0.03)" }}
+  cursor={{ fill: "rgba(139,92,246,0.08)" }}
   formatter={(value: number) => [`${value} vues`, "Pages vues"]}
   labelFormatter={(label) => `Page : ${label}`}
   contentStyle={{
-    background: "#17182d",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "12px",
+    background: "rgba(23,24,45,0.96)",
+    border: "1px solid rgba(167,139,250,0.28)",
+    borderRadius: "14px",
     color: "white",
   }}
 />
@@ -946,10 +954,14 @@ function WeeklyBarsCard({
                 dataKey="page_views"
                 fill="var(--brand-primary)"
                 radius={[8, 8, 0, 0]}
+                style={{
+                  filter: "drop-shadow(0 0 8px color-mix(in srgb, var(--brand-primary) 42%, transparent))",
+                }}
               />
             </BarChart>
           </ResponsiveContainer>
         )}
+      </div>
       </div>
     </Card>
   )
@@ -1100,32 +1112,75 @@ function CalendarCard({
   )
 }
 
-function TasksCard({
-  rows,
+type PeriodSummary = {
+  label: string
+  sessions: number
+  clicks: number
+  impressions: number
+  ctr: number
+}
+
+function PeriodSummaryCard({
+  summary,
 }: {
-  rows: TaskItem[]
+  summary: PeriodSummary
 }) {
+  const rows = [
+    {
+      label: "Sessions",
+      value: summary.sessions.toLocaleString("fr-FR"),
+      helper: "Google Analytics",
+      tone: "#8b5cf6",
+    },
+    {
+      label: "Clics",
+      value: summary.clicks.toLocaleString("fr-FR"),
+      helper: "Search Console",
+      tone: "#14b8a6",
+    },
+    {
+      label: "Impressions",
+      value: summary.impressions.toLocaleString("fr-FR"),
+      helper: "Visibilité Google",
+      tone: "#f59e0b",
+    },
+    {
+      label: "CTR",
+      value: `${summary.ctr.toFixed(1)}%`,
+      helper: "Clics / impressions",
+      tone: "#ff4fb8",
+    },
+  ]
+
   return (
     <Card className="p-4">
-      <SectionTitle title="Tasks" rightText="Today, 27 Nov +" />
+      <SectionTitle title="Résumé période" rightText={summary.label} />
 
       <div className="space-y-3">
-        {rows.map((task, index) => (
+        {rows.map((item) => (
           <div
-            key={index}
-            className="border-b pb-3 last:border-b-0"
-style={{ borderColor: "var(--dashboard-border)" }}
+            key={item.label}
+            className="flex items-center justify-between gap-3 border-b pb-3 last:border-b-0"
+            style={{ borderColor: "var(--dashboard-border)" }}
           >
-            <div className="mb-1">
-              <span className="rounded-full bg-[#ff4fb8]/15 px-2 py-0.5 text-[9px] font-black text-[#ff4fb8]">
-                {task.tag}
-              </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-black text-[var(--dashboard-text)]">
+                {item.label}
+              </p>
+              <p className="mt-1 text-[10px] font-semibold text-[var(--dashboard-muted)]">
+                {item.helper}
+              </p>
             </div>
 
-            <p className="text-[11px] font-bold text-white">{task.title}</p>
-            <p className="mt-1 text-[10px] font-semibold text-slate-500">
-              {task.subtitle}
-            </p>
+            <span
+              className="shrink-0 rounded-full px-3 py-1 text-[11px] font-black"
+              style={{
+                backgroundColor: `${item.tone}22`,
+                color: item.tone,
+              }}
+            >
+              {item.value}
+            </span>
           </div>
         ))}
       </div>
@@ -1316,6 +1371,7 @@ export function MainDashboard() {
 
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  const [dateFilterError, setDateFilterError] = useState("")
   const [appliedStartDate, setAppliedStartDate] = useState("")
   const [appliedEndDate, setAppliedEndDate] = useState("")
   const [topKeywords, setTopKeywords] = useState<TopKeyword[]>([])
@@ -1929,7 +1985,23 @@ const miniPageViewsChart = useMemo(() => {
     },
   ]
 
+  const periodSummary: PeriodSummary = {
+    label: selectedCalendarDate
+      ? "Date sélectionnée"
+      : "Période active",
+    sessions: totalSessions,
+    clicks: totalClicks,
+    impressions: totalImpressions,
+    ctr,
+  }
+
   const handleApplyDateFilter = () => {
+    if (startDate && endDate && startDate > endDate) {
+      setDateFilterError("La date de fin doit être postérieure à la date de début.")
+      return
+    }
+
+    setDateFilterError("")
     setSelectedCalendarDate(null)
     setAppliedStartDate(startDate)
     setAppliedEndDate(endDate)
@@ -2075,33 +2147,33 @@ style={{ borderColor: "var(--dashboard-border)" }}
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "10px",
+        gap: "9px",
         minHeight: "42px",
-        padding: "6px 12px",
-        borderRadius: "14px",
-        background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--dashboard-border) 72%, transparent)",
+        padding: "0",
+        borderRadius: "0",
+        background: "transparent",
+        border: "none",
         boxShadow: "none",
       }}
     >
       <div
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: "10px",
+          width: 28,
+          height: 28,
+          borderRadius: "9px",
           background: "var(--brand-gradient)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           boxShadow:
-            "0 4px 12px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
+            "0 4px 10px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
           flexShrink: 0,
         }}
       >
-        <CalendarDays className="h-4 w-4 text-white" strokeWidth={2.4} />
+        <CalendarDays className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
       </div>
 
-      <div>
+      <div style={{ minWidth: "108px" }}>
         <p
           style={{
             margin: 0,
@@ -2109,12 +2181,27 @@ style={{ borderColor: "var(--dashboard-border)" }}
             fontSize: "12px",
             fontWeight: 800,
             lineHeight: 1.1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Période d'analyse
+        </p>
+        <p
+          style={{
+            display: "none",
+            margin: 0,
+            color: "var(--dashboard-text)",
+            fontSize: "12.5px",
+            fontWeight: 800,
+            lineHeight: 1.1,
+            whiteSpace: "nowrap",
           }}
         >
           Période
         </p>
         <p
           style={{
+            display: "none",
             margin: "4px 0 0",
             color: "var(--dashboard-muted)",
             fontSize: "9px",
@@ -2126,7 +2213,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
       </div>
     </div>
 
-    {(sitesError || statsError) && (
+    {(sitesError || statsError || dateFilterError) && (
       <div
         style={{
           gridColumn: "1 / -1",
@@ -2135,16 +2222,17 @@ style={{ borderColor: "var(--dashboard-border)" }}
           fontWeight: 700,
         }}
       >
-        {sitesError || statsError}
+        {sitesError || statsError || dateFilterError}
       </div>
     )}
 
     {/* Date début */}
     <div
       style={{
-        minWidth: "210px",
-        flex: "1 1 210px",
-        padding: "6px 12px",
+        minWidth: "220px",
+        flex: "1 1 220px",
+        height: "46px",
+        padding: "5px 13px",
         borderRadius: "14px",
         background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
         border: startDate
@@ -2171,16 +2259,21 @@ style={{ borderColor: "var(--dashboard-border)" }}
 
       <input
         type="date"
+        lang="fr-FR"
+        max={endDate || undefined}
         value={startDate}
-        onChange={(e) => setStartDate(e.target.value)}
+        onChange={(e) => {
+          setStartDate(e.target.value)
+          setDateFilterError("")
+        }}
         style={{
           width: "100%",
-          height: "24px",
+          height: "20px",
           background: "transparent",
           border: "none",
           borderRadius: "0",
           padding: 0,
-          fontSize: "13px",
+          fontSize: "12.5px",
           fontWeight: 700,
           color: "var(--dashboard-text)",
           outline: "none",
@@ -2197,12 +2290,19 @@ style={{ borderColor: "var(--dashboard-border)" }}
       />
     </div>
 
+    <ArrowRight
+      className="hidden h-4 w-4 shrink-0 xl:block"
+      style={{ color: "var(--dashboard-muted)" }}
+      aria-hidden="true"
+    />
+
     {/* Date fin */}
     <div
       style={{
-        minWidth: "210px",
-        flex: "1 1 210px",
-        padding: "6px 12px",
+        minWidth: "220px",
+        flex: "1 1 220px",
+        height: "46px",
+        padding: "5px 13px",
         borderRadius: "14px",
         background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
         border: endDate
@@ -2229,16 +2329,21 @@ style={{ borderColor: "var(--dashboard-border)" }}
 
       <input
         type="date"
+        lang="fr-FR"
+        min={startDate || undefined}
         value={endDate}
-        onChange={(e) => setEndDate(e.target.value)}
+        onChange={(e) => {
+          setEndDate(e.target.value)
+          setDateFilterError("")
+        }}
         style={{
           width: "100%",
-          height: "24px",
+          height: "20px",
           background: "transparent",
           border: "none",
           borderRadius: "0",
           padding: 0,
-          fontSize: "13px",
+          fontSize: "12.5px",
           fontWeight: 700,
           color: "var(--dashboard-text)",
           outline: "none",
@@ -2260,18 +2365,18 @@ style={{ borderColor: "var(--dashboard-border)" }}
       type="button"
       onClick={handleApplyDateFilter}
       style={{
-        height: "42px",
-        padding: "0 20px",
-        borderRadius: "14px",
+        height: "46px",
+        padding: "0 17px",
+        borderRadius: "13px",
         border: "none",
         background: "var(--brand-gradient)",
         color: "white",
-        fontSize: "13px",
+        fontSize: "12.5px",
         fontWeight: 700,
         cursor: "pointer",
         whiteSpace: "nowrap",
         boxShadow:
-          "0 4px 16px color-mix(in srgb, var(--brand-primary) 35%, transparent)",
+          "0 6px 16px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
         transition: "opacity 0.2s, transform 0.2s",
       }}
       onMouseEnter={(e) => {
@@ -2289,6 +2394,8 @@ style={{ borderColor: "var(--dashboard-border)" }}
     {/* Bouton Réinitialiser */}
     <button
       type="button"
+      aria-label="Réinitialiser la période"
+      title="Réinitialiser"
       onClick={() => {
         
         setStartDate("")
@@ -2296,18 +2403,21 @@ style={{ borderColor: "var(--dashboard-border)" }}
         setAppliedStartDate("")
         setAppliedEndDate("")
         setSelectedCalendarDate(null)
+        setDateFilterError("")
       }}
       style={{
-        height: "42px",
-        padding: "0 12px",
-        borderRadius: "12px",
-        background: "transparent",
-        border: "1px solid transparent",
+        height: "46px",
+        width: "46px",
+        padding: 0,
+        borderRadius: "13px",
+        background: "color-mix(in srgb, var(--dashboard-card) 55%, transparent)",
+        border: "1px solid var(--dashboard-border)",
         color: "var(--dashboard-muted)",
         fontSize: "12px",
         fontWeight: 700,
         cursor: "pointer",
-        whiteSpace: "nowrap",
+        display: "grid",
+        placeItems: "center",
         transition: "all 0.2s",
       }}
       onMouseEnter={(e) => {
@@ -2323,7 +2433,8 @@ style={{ borderColor: "var(--dashboard-border)" }}
           "var(--dashboard-border)"
       }}
     >
-      Réinitialiser
+      <RotateCcw className="h-4 w-4" />
+      <span className="sr-only">Réinitialiser</span>
     </button>
   </div>
 
@@ -2544,7 +2655,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
            selectedDate={selectedCalendarDate}
            onSelectDate={setSelectedCalendarDate}
            />
-            <TasksCard rows={taskRows} />
+            <PeriodSummaryCard summary={periodSummary} />
           </aside>
         </div>
       </div>

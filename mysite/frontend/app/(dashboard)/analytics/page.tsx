@@ -444,7 +444,7 @@ if (eventName === "first_visit") {
     "var(--brand-primary)",
     "var(--brand-secondary)",
     "var(--brand-tertiary)",
-    "#14b8a6",
+    "color-mix(in srgb, var(--brand-primary) 52%, var(--brand-tertiary))",
     "#f97316",
     "#64748b",
   ]
@@ -472,53 +472,69 @@ if (eventName === "first_visit") {
             </p>
           </div>
 
-          <Card className="p-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[160px_160px_100px_90px] md:items-end">
-              <div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[178px_178px_104px_116px] md:items-end">
+              <div className="min-w-0">
                 <label className="mb-2 block text-[10px] font-black uppercase text-[var(--dashboard-muted)]">
-                  Start date
+                  Date début
                 </label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold outline-none"
-                  style={{ borderColor: "var(--dashboard-border)" }}
+                  className="h-10 w-full rounded-2xl border px-3 text-[12px] font-bold text-[var(--dashboard-text)] outline-none transition hover:border-[var(--brand-primary)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/15"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
+                    borderColor: "var(--dashboard-border)",
+                    colorScheme: "dark",
+                  }}
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="mb-2 block text-[10px] font-black uppercase text-[var(--dashboard-muted)]">
-                  End date
+                  Date fin
                 </label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="h-10 w-full rounded-xl border bg-[var(--dashboard-card-soft)] px-3 text-[12px] font-semibold outline-none"
-                  style={{ borderColor: "var(--dashboard-border)" }}
+                  className="h-10 w-full rounded-2xl border px-3 text-[12px] font-bold text-[var(--dashboard-text)] outline-none transition hover:border-[var(--brand-primary)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/15"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
+                    borderColor: "var(--dashboard-border)",
+                    colorScheme: "dark",
+                  }}
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleApply}
-                className="h-10 rounded-xl text-[12px] font-black text-white transition hover:opacity-90"
-                style={{ background: "var(--brand-gradient)" }}
+                className="h-10 rounded-2xl px-4 text-[12px] font-black text-white transition hover:-translate-y-0.5 hover:opacity-95"
+                style={{
+                  background: "var(--brand-gradient)",
+                  boxShadow:
+                    "0 8px 18px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
+                }}
               >
-                Apply
+                Appliquer
               </button>
 
               <button
                 type="button"
                 onClick={handleReset}
-                className="h-10 rounded-xl border px-3 text-[12px] font-black text-[var(--dashboard-muted)] transition hover:text-[var(--dashboard-text)]"
-                style={{ borderColor: "var(--dashboard-border)" }}
+                className="h-10 rounded-2xl border px-4 text-[12px] font-black text-[var(--dashboard-muted)] transition hover:border-[var(--brand-primary)] hover:text-[var(--dashboard-text)]"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--dashboard-card-soft) 88%, transparent)",
+                  borderColor: "var(--dashboard-border)",
+                }}
               >
-                Reset
+                Réinitialiser
               </button>
-            </div>
-          </Card>
+          </div>
         </div>
 
         {error ? (

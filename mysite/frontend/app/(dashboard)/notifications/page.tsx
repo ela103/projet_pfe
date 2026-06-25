@@ -177,18 +177,38 @@ export default function NotificationsPage() {
 
   const getNotificationIcon = (level: AppNotification["level"]) => {
     if (level === "error") {
-      return <AlertTriangle className="h-5 w-5 text-red-500" />
+      return (
+        <AlertTriangle
+          className="h-5 w-5"
+          style={{ color: "var(--brand-tertiary)" }}
+        />
+      )
     }
 
     if (level === "warning") {
-      return <AlertTriangle className="h-5 w-5 text-amber-500" />
+      return (
+        <AlertTriangle
+          className="h-5 w-5"
+          style={{
+            color:
+              "color-mix(in srgb, var(--brand-secondary) 58%, var(--brand-tertiary))",
+          }}
+        />
+      )
     }
 
     if (level === "success") {
-      return <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+      return (
+        <CheckCircle2
+          className="h-5 w-5"
+          style={{ color: "var(--brand-secondary)" }}
+        />
+      )
     }
 
-    return <Info className="h-5 w-5 text-blue-500" />
+    return (
+      <Info className="h-5 w-5" style={{ color: "var(--brand-primary)" }} />
+    )
   }
 
   const getLevelLabel = (level: AppNotification["level"]) => {
@@ -202,31 +222,32 @@ export default function NotificationsPage() {
     if (level === "error") {
       return {
         background:
-          "color-mix(in srgb, #ef4444 12%, var(--dashboard-card-soft))",
-        color: "#ef4444",
+          "color-mix(in srgb, var(--brand-tertiary) 12%, var(--dashboard-card-soft))",
+        color: "var(--brand-tertiary)",
       }
     }
 
     if (level === "warning") {
       return {
         background:
-          "color-mix(in srgb, #f59e0b 14%, var(--dashboard-card-soft))",
-        color: "#d97706",
+          "color-mix(in srgb, var(--brand-secondary) 12%, var(--dashboard-card-soft))",
+        color:
+          "color-mix(in srgb, var(--brand-secondary) 58%, var(--brand-tertiary))",
       }
     }
 
     if (level === "success") {
       return {
         background:
-          "color-mix(in srgb, #10b981 14%, var(--dashboard-card-soft))",
-        color: "#10b981",
+          "color-mix(in srgb, var(--brand-secondary) 14%, var(--dashboard-card-soft))",
+        color: "var(--brand-secondary)",
       }
     }
 
     return {
       background:
-        "color-mix(in srgb, #3b82f6 12%, var(--dashboard-card-soft))",
-      color: "#3b82f6",
+        "color-mix(in srgb, var(--brand-primary) 12%, var(--dashboard-card-soft))",
+      color: "var(--brand-primary)",
     }
   }
 

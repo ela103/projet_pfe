@@ -1,0 +1,160 @@
+@startuml
+title Diagramme de classes global — SmartSEO
+
+left to right direction
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide methods
+
+skinparam class {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+  ArrowColor #64748B
+  FontColor #0F172A
+}
+
+package "Authentification et comptes" #F3E8FF {
+  class User <<Utilisateur>> {
+    + id : BigInteger
+    + email : Email [unique]
+    + first_name : String
+    + last_name : String
+    + phone_number : String
+    + profile_photo : File
+    + is_active : Boolean
+    + is_staff : Boolean
+    + date_joined : DateTime
+  }
+
+  class PasswordResetOTP <<Code de vérification>> {
+    + id : BigInteger
+    + code_hash : String
+    + expires_at : DateTime
+    + is_used : Boolean
+    + attempts : Integer
+    + created_at : DateTime
+  }
+}
+
+package "Gestion des sites et données opérationnelles" #E0F2FE {
+  class Website <<Site web>> {
+    + id : BigInteger
+    + name : String
+    + ga4_property_id : String
+    + gsc_site_url : URL
+    + created_at : DateTime
+  }
+
+  class GAMetrics <<Métriques GA4>> {
+    + id : BigInteger
+    + date : Date
+    + page_path : Text
+    + active_users : Integer
+    + sessions : Integer
+    + page_views : Integer
+    + engaged_sessions : Integer
+    + engagement_rate : Float
+    + average_session_duration : Float
+    + screen_page_views_per_user : Float
+  }
+
+  class GSCMetrics <<Métriques GSC>> {
+    + id : BigInteger
+    + date : Date
+    + page : Text
+    + query : Text
+    + clicks : Integer
+    + impressions : Integer
+    + ctr : Float
+    + position : Float
+  }
+
+  class GAEvent <<Événement GA4>> {
+    + id : BigInteger
+    + date : Date
+    + page_path : Text
+    + event_name : String
+    + event_count : Integer
+    + users : Integer
+    + event_count_per_user : Float
+    + total_revenue : Float
+  }
+
+  class Notification <<Notification>> {
+    + id : BigInteger
+    + title : String
+    + message : Text
+    + level : Enum
+    + source : String
+    + is_read : Boolean
+    + created_at : DateTime
+  }
+}
+
+package "Intelligence artificielle" #ECFDF5 {
+  class AIRecommendation <<Recommandation IA>> {
+    + id : BigInteger
+    + tool : String
+    + period : String
+    + question : Text
+    + content : Text
+    + source : String
+    + used_rag : Boolean
+    + retrieved_documents_count : Integer
+    + status : Enum
+    + created_at : DateTime
+    + updated_at : DateTime
+  }
+
+  class AIChatMessage <<Conversation IA>> {
+    + id : BigInteger
+    + question : Text
+    + answer : Text
+    + intent : String
+    + source : String
+    + used_rag : Boolean
+    + retrieved_documents_count : Integer
+    + created_at : DateTime
+  }
+
+  class Recommendation <<Recommandation métier>> {
+    + id : BigInteger
+    + type : String
+    + page : String
+    + action : Text
+    + priority : String
+    + created_at : DateTime
+  }
+}
+
+' Relations d'authentification
+User "1" -- "0..*" PasswordResetOTP : possède >
+
+' Relations opérationnelles
+User "0..1" -- "0..*" Website : ajoute >
+Website "1" -- "0..*" GAMetrics : possède >
+Website "1" -- "0..*" GSCMetrics : possède >
+Website "1" -- "0..*" GAEvent : possède >
+
+' Relations IA
+User "0..1" -- "0..*" AIRecommendation : génère >
+Website "1" -- "0..*" AIRecommendation : concerne >
+User "1" -- "0..*" AIChatMessage : échange >
+Website "0..1" -- "0..*" AIChatMessage : contextualise >
+
+legend right
+  |= Élément |= Signification |
+  | Trait plein | Relation par clé étrangère |
+endlegend
+
+note bottom
+  Entités volontairement exclues :
+  PasskeyCredential, ScrapedPage, ScrapedCompetitorPage,
+  MLScores, AIPageScore, AISiteScore, module concurrentiel
+  et toutes les dimensions/tables de faits du Data Warehouse.
+end note
+
+@enduml

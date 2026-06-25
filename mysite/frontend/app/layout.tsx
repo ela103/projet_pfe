@@ -12,10 +12,13 @@ import { Toaster } from "@/components/ui/toaster"
 import { BrandThemeInitializer } from "@/components/color-theme"
 
 export const metadata: Metadata = {
-  title: "Smart Home Dashboard",
+  title: "SmartSEO",
   description:
-    "This is a modern, customizable smart home dashboard built with Next.js, React, and Tailwind CSS.",
-  generator: "Smart Home Dashboard",
+    "Dashboard SEO intelligent pour Google Analytics, Search Console et recommandations IA.",
+  generator: "SmartSEO",
+  icons: {
+    icon: "/smartseo-mark.svg",
+  },
 }
 
 export default function RootLayout({

@@ -32,6 +32,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField("Prénom", max_length=25)
     last_name = models.CharField("Nom", max_length=25)
     phone_number = models.CharField("Téléphone", max_length=20, blank=True)
+    profile_photo = models.FileField(
+        "Photo de profil",
+        upload_to="profile_photos/%Y/%m/",
+        blank=True,
+        null=True,
+    )
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
