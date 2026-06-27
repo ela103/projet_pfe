@@ -41,8 +41,8 @@ const sections: Section[] = [
     title: "Principal",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: Home },
-      { href: "/ai-insights", label: "AI Insights", icon: BrainCircuit, badge: "AI" },
-      {href: "/chatbot",label: "Assistant IA",icon: MessageCircle,badge: "AI"},
+      { href: "/ai-insights", label: "AI Insights", icon: BrainCircuit },
+      { href: "/chatbot", label: "Assistant IA", icon: MessageCircle },
     ],
   },
   {
@@ -63,7 +63,7 @@ const sections: Section[] = [
   {
     title: "Compte",
     items: [
-      { href: "/devices", label: "Mes sites", icon: Globe },
+      { href: "/devices", label: "Les sites", icon: Globe },
       { href: "/profile", label: "Profil", icon: UserRound },
       { href: "/signin", label: "Logout", icon: LogOut },
     ],
@@ -99,14 +99,20 @@ export function Sidebar({ onClose }: SidebarProps) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative z-10 mb-8 flex w-full cursor-pointer items-center justify-center rounded-2xl transition duration-200 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+        className={`group relative z-10 mb-5 flex w-full cursor-pointer items-center justify-center rounded-2xl transition duration-200 focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] ${
+          open ? "px-2 py-1" : "min-h-[52px]"
+        }`}
         aria-label={open ? "Réduire le menu" : "Ouvrir le menu"}
         title={open ? "Cliquer pour réduire le menu" : "Cliquer pour ouvrir le menu"}
       >
         {open ? (
-          <SmartSEOLogo className="h-28 w-auto max-w-[185px] shrink-0 text-[var(--sidebar-text)]" />
+          <div className="flex w-full items-center justify-center rounded-2xl px-2 py-1.5 transition duration-200 group-hover:bg-[var(--sidebar-pill-bg)]">
+            <SmartSEOLogo className="h-[102px] w-auto max-w-[180px] shrink-0 text-[var(--sidebar-text)]" />
+          </div>
         ) : (
-          <SmartSEOLogo compact className="size-[52px] shrink-0" />
+          <div className="grid size-11 place-items-center rounded-2xl transition duration-200">
+            <SmartSEOLogo compact className="size-11 shrink-0" />
+          </div>
         )}
       </button>
 

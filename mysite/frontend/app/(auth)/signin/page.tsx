@@ -4,8 +4,8 @@ import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { SmartSEOLogo } from "@/components/smartseo-logo"
 import {
-  BarChart3,
   Bolt,
   Chrome,
   Eye,
@@ -102,13 +102,15 @@ export default function SignInPage() {
       <section className="neon-login-shell">
         <div className="neon-intro">
           <div className="neon-brand">
-            <span className="neon-brand__mark"><BarChart3 /></span>
+            <span className="neon-brand__mark">
+              <SmartSEOLogo compact />
+            </span>
             <span>Smart<span>SEO</span></span>
           </div>
 
           <div className="neon-intro__copy">
-            <span className="neon-kicker"><Sparkles /> Votre copilote SEO intelligent</span>
-            <h1>Heureux de vous <span>revoir !</span></h1>
+            
+            <h1>Connectez-vous à votre espace <span>Smart SEO</span></h1>
             <p>
               Reprenez le contrôle de vos performances digitales grâce à des
               analyses claires et des recommandations propulsées par l’IA.
@@ -199,9 +201,7 @@ export default function SignInPage() {
               </button>
             </div>
 
-            <p className="neon-signup">
-              Vous n’avez pas encore de compte ? <Link href="/signup">Créer un compte</Link>
-            </p>
+            
           </div>
         </div>
       </section>

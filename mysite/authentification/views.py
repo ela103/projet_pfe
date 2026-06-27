@@ -34,7 +34,8 @@ import secrets
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import escape
 from django.utils import timezone
 
 from .models import PasswordResetOTP
@@ -618,6 +619,106 @@ def serialize_user(user):
         "date_joined": user.date_joined.isoformat(),
     }
 
+
+def build_password_reset_email(user, code):
+    first_name = escape((user.first_name or "").strip())
+    greeting_name = f" {first_name}" if first_name else ""
+
+    text_body = (
+        f"Bonjour{greeting_name},\n\n"
+        f"Votre code de vérification SmartSEO est : {code}\n\n"
+        "Ce code est valable pendant 5 minutes.\n"
+        "Ne communiquez ce code à personne.\n\n"
+        "Si vous n’avez pas demandé cette opération, vous pouvez ignorer ce message.\n\n"
+        "SmartSEO"
+    )
+
+    html_body = f"""
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <style>
+      @media (prefers-color-scheme: light) {{
+        .page {{ background: #f3f6ff !important; }}
+        .card {{ background: #ffffff !important; color: #172033 !important; }}
+        .muted {{ color: #667085 !important; }}
+        .soft {{ background: #f5f3ff !important; }}
+      }}
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background:#070817;font-family:Inter,Segoe UI,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="page" style="background:radial-gradient(circle at top left,#3b1d8f 0,#070817 38%,#050714 100%);padding:16px 10px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:390px;">
+            <tr>
+              <td style="padding:0 0 10px;text-align:center;">
+                <div style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#ffffff;font-size:14px;font-weight:800;letter-spacing:-.3px;">
+                  Smart<span style="color:#8b5cf6;">SEO</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="card" style="overflow:hidden;border-radius:22px;background:#0d1024;color:#ffffff;border:1px solid rgba(139,92,246,.35);box-shadow:0 18px 48px rgba(0,0,0,.32);">
+                <div style="height:5px;background:linear-gradient(90deg,#8b5cf6,#6366f1,#18c7e8);"></div>
+                <div style="padding:20px 20px 18px;">
+                  <div style="width:38px;height:38px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#315cff);margin:0 auto 14px;text-align:center;line-height:38px;color:#ffffff;font-size:18px;font-weight:900;">
+                    ✓
+                  </div>
+
+                  <h1 style="margin:0;text-align:center;font-size:20px;line-height:1.2;font-weight:850;letter-spacing:-.5px;">
+                    Code de vérification
+                  </h1>
+
+                  <p class="muted" style="margin:8px 0 0;text-align:center;color:#aab2ca;font-size:12px;line-height:1.5;">
+                    Bonjour{greeting_name}, utilisez ce code pour réinitialiser votre mot de passe.
+                  </p>
+
+                  <div class="soft" style="margin:16px auto 14px;max-width:230px;border-radius:16px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35);padding:13px 12px;text-align:center;">
+                    <div style="font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#18c7e8;margin-bottom:7px;">
+                      Code OTP
+                    </div>
+                    <div style="font-size:26px;line-height:1;font-weight:900;letter-spacing:.14em;color:#ffffff;background:linear-gradient(90deg,#a855f7,#7c3aed,#18c7e8);-webkit-background-clip:text;background-clip:text;color:transparent;">
+                      {code}
+                    </div>
+                  </div>
+
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 12px;">
+                    <tr>
+                      <td style="border-radius:13px;background:rgba(24,199,232,.08);border:1px solid rgba(24,199,232,.18);padding:9px 11px;">
+                        <p style="margin:0;color:#9ff2ff;font-size:11px;line-height:1.45;font-weight:700;">
+                          Ce code expire dans 5 minutes. Pour votre sécurité, ne le partagez avec personne.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p class="muted" style="margin:0;color:#8f98b3;font-size:11px;line-height:1.5;text-align:center;">
+                    Si vous n’avez pas demandé cette opération, ignorez simplement cet email. Votre mot de passe ne sera pas modifié.
+                  </p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="muted" style="padding:9px 10px 0;text-align:center;color:#7f89a8;font-size:10px;line-height:1.4;">
+                © SmartSEO — Analyse SEO, trafic web et recommandations.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+    return text_body, html_body
+
+
 @csrf_exempt
 @require_POST
 def api_forgot_password(request):
@@ -676,20 +777,15 @@ def api_forgot_password(request):
         otp.set_code(code)
         otp.save()
 
-        send_mail(
-            subject="Code de réinitialisation de votre mot de passe",
-            message=(
-                f"Bonjour {user.first_name or ''},\n\n"
-                f"Votre code de vérification est : {code}\n\n"
-                "Ce code est valable pendant 5 minutes.\n"
-                "Ne communiquez ce code à personne.\n\n"
-                "Si vous n’avez pas demandé cette opération, "
-                "vous pouvez ignorer ce message."
-            ),
+        text_body, html_body = build_password_reset_email(user, code)
+        email_message = EmailMultiAlternatives(
+            subject="Votre code de vérification SmartSEO",
+            body=text_body,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+            to=[user.email],
         )
+        email_message.attach_alternative(html_body, "text/html")
+        email_message.send(fail_silently=False)
 
         return JsonResponse(
             {

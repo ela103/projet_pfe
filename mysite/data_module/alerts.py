@@ -1,13 +1,16 @@
 import smtplib
 from email.mime.text import MIMEText
+
 from django.conf import settings
 
 
-def send_pipeline_error_email(error_message):
-    subject = "Alerte ETL - Échec du pipeline GA4/GSC"
-
+def send_pipeline_error_email(
+    error_message,
+    subject="Alerte ETL - Échec du pipeline GA4/GSC",
+    intro="Le pipeline automatique GA4/GSC a échoué.",
+):
     body = f"""
-Le pipeline automatique GA4/GSC a échoué.
+{intro}
 
 Détail de l'erreur :
 {error_message}

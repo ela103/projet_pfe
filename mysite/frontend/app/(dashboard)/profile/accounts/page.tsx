@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
+  KeyRound,
   Mail,
   Phone,
   Plus,
@@ -499,7 +500,7 @@ export default function AccountsPage() {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-black text-[var(--dashboard-text)]">
-                Liste des administrateurs
+                Liste des comptes administrateurs
               </p>
               <p className="mt-1 text-xs font-semibold text-[var(--dashboard-muted)]">
                 {filteredAdmins.length} compte(s) affiché(s)
@@ -550,7 +551,7 @@ export default function AccountsPage() {
 
       {showAdminModal && (
         <AdminModal
-          title="Ajouter un administrateur"
+          title="Ajouter un compte"
           description="Créer un nouveau compte administrateur."
           message={adminMessage}
           onClose={() => {
@@ -558,20 +559,26 @@ export default function AccountsPage() {
             setAdminMessage("")
           }}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             <ThemedInput
               placeholder="Prénom"
+              icon={Users}
+              label="Prénom"
               value={adminFirstName}
               onChange={setAdminFirstName}
             />
             <ThemedInput
               placeholder="Nom"
+              icon={Users}
+              label="Nom"
               value={adminLastName}
               onChange={setAdminLastName}
             />
             <ThemedInput
               type="email"
               placeholder="Adresse email"
+              icon={Mail}
+              label="Adresse email"
               value={adminEmail}
               onChange={setAdminEmail}
             />
@@ -579,6 +586,8 @@ export default function AccountsPage() {
               type="tel"
               name="phone"
               placeholder="Téléphone - 8 chiffres"
+              icon={Phone}
+              label="Téléphone"
               value={adminPhone}
               onChange={(value) =>
                 setAdminPhone(value.replace(/\D/g, "").slice(0, 8))
@@ -591,6 +600,8 @@ export default function AccountsPage() {
               type="password"
               name="new-password"
               placeholder="Mot de passe"
+              icon={KeyRound}
+              label="Mot de passe"
               value={adminPassword}
               onChange={setAdminPassword}
               autoComplete="new-password"
@@ -599,6 +610,8 @@ export default function AccountsPage() {
               type="password"
               name="confirm-password"
               placeholder="Confirmer le mot de passe"
+              icon={KeyRound}
+              label="Confirmer le mot de passe"
               value={adminConfirmPassword}
               onChange={setAdminConfirmPassword}
               autoComplete="new-password"
@@ -636,20 +649,26 @@ export default function AccountsPage() {
             setEditPassword("")
           }}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             <ThemedInput
               placeholder="Prénom"
+              icon={Users}
+              label="Prénom"
               value={editFirstName}
               onChange={setEditFirstName}
             />
             <ThemedInput
               placeholder="Nom"
+              icon={Users}
+              label="Nom"
               value={editLastName}
               onChange={setEditLastName}
             />
             <ThemedInput
               type="email"
               placeholder="Adresse email"
+              icon={Mail}
+              label="Adresse email"
               value={editEmail}
               onChange={setEditEmail}
             />
@@ -657,6 +676,8 @@ export default function AccountsPage() {
               type="tel"
               name="phone"
               placeholder="Téléphone - 8 chiffres"
+              icon={Phone}
+              label="Téléphone"
               value={editPhone}
               onChange={(value) =>
                 setEditPhone(value.replace(/\D/g, "").slice(0, 8))
@@ -789,46 +810,45 @@ function SummaryPill({
     : isSecondary
     ? "var(--brand-secondary)"
     : "var(--brand-primary)"
-  const cardBackground = isSuccess
-    ? "linear-gradient(135deg, color-mix(in srgb, #10b981 18%, var(--dashboard-card)), color-mix(in srgb, #10b981 7%, var(--dashboard-card)) 54%, var(--dashboard-card))"
-    : isSecondary
-    ? "linear-gradient(135deg, color-mix(in srgb, var(--brand-secondary) 18%, var(--dashboard-card)), color-mix(in srgb, var(--brand-tertiary) 10%, var(--dashboard-card)) 58%, var(--dashboard-card))"
-    : "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 18%, var(--dashboard-card)), color-mix(in srgb, var(--brand-secondary) 10%, var(--dashboard-card)) 58%, var(--dashboard-card))"
 
   return (
     <div
-      className="relative overflow-hidden rounded-[20px] border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[var(--dashboard-shadow)]"
+      className="relative overflow-hidden rounded-2xl border px-4 py-3 transition hover:border-[var(--brand-primary)]/40"
       style={{
-        background: cardBackground,
-        borderColor: `color-mix(in srgb, ${accent} 30%, var(--dashboard-border))`,
+        background: "var(--dashboard-card)",
+        borderColor: "var(--dashboard-border)",
+        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
       }}
     >
       <div
-        className="absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-20 blur-2xl"
+        className="absolute inset-x-0 top-0 h-1"
         style={{ background: accent }}
       />
 
-      <div className="relative flex items-center justify-between">
+      <div className="relative flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white shadow-lg"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border"
             style={{
-              background: isSuccess ? "#10b981" : "var(--brand-gradient)",
+              background: `color-mix(in srgb, ${accent} 10%, var(--dashboard-card-soft))`,
+              borderColor: `color-mix(in srgb, ${accent} 20%, var(--dashboard-border))`,
+              color: accent,
             }}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4" />
           </div>
+
           <div className="min-w-0">
-            <p className="text-sm font-black text-[var(--dashboard-text)]">
+            <p className="truncate text-sm font-bold text-[var(--dashboard-text)]">
               {label}
             </p>
-            <p className="mt-0.5 truncate text-[12px] font-bold text-[var(--dashboard-muted)]">
+            <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--dashboard-muted)]">
               {description}
             </p>
           </div>
         </div>
 
-        <p className="text-2xl font-black" style={{ color: accent }}>
+        <p className="shrink-0 text-xl font-bold tracking-tight text-[var(--dashboard-text)]">
           {value}
         </p>
       </div>
@@ -996,25 +1016,25 @@ function AdminModal({
   children: ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/75 px-4 py-8 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/65 px-4 py-8 backdrop-blur-sm">
       <div
-        className="max-h-[calc(100vh-4rem)] w-full max-w-[500px] overflow-y-auto rounded-[30px] border p-6"
+        className="max-h-[calc(100vh-4rem)] w-full max-w-[480px] overflow-y-auto rounded-3xl border p-6"
         style={{
-          background:
-            "linear-gradient(145deg, var(--dashboard-card), color-mix(in srgb, var(--brand-primary) 5%, var(--dashboard-card)))",
-          borderColor:
-            "color-mix(in srgb, var(--brand-primary) 40%, var(--dashboard-border))",
-          boxShadow:
-            "0 35px 100px rgba(0,0,0,0.52), 0 0 55px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
+          background: "var(--dashboard-card)",
+          borderColor: "var(--dashboard-border)",
+          boxShadow: "0 24px 70px rgba(0,0,0,0.42)",
         }}
       >
         <div
-          className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[29px] px-6 py-4"
-          style={{ background: "var(--brand-gradient)" }}
+          className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[23px] px-6 py-4"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 86%, #111827), color-mix(in srgb, var(--brand-secondary) 76%, #111827))",
+          }}
         >
           <div className="flex items-center gap-3">
-            <Users className="h-5 w-5 shrink-0 text-white" />
-            <h2 className="text-lg font-black text-white">
+            <Users className="h-4 w-4 shrink-0 text-white/90" />
+            <h2 className="text-base font-bold text-white">
               {title}
             </h2>
             <p className="hidden">
@@ -1025,7 +1045,7 @@ function AdminModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
             style={{
               color: "white",
             }}
@@ -1038,7 +1058,7 @@ function AdminModal({
 
         {message && (
           <p
-            className="mt-4 text-sm font-bold"
+            className="mt-4 rounded-2xl border px-4 py-3 text-sm font-bold"
             style={{
               color: message.toLowerCase().includes("succès")
                 ? "#10b981"
@@ -1056,25 +1076,44 @@ function AdminModal({
 function ThemedInput({
   value,
   onChange,
+  label,
+  icon: Icon,
   type = "text",
   ...props
 }: {
   value: string
   onChange: (value: string) => void
+  label?: string
+  icon?: LucideIcon
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
   return (
-    <input
-      {...props}
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="h-12 w-full rounded-[18px] border px-4 text-sm font-semibold outline-none transition focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/10"
-      style={{
-        background: "var(--dashboard-card-soft)",
-        borderColor: "var(--dashboard-border)",
-        color: "var(--dashboard-text)",
-      }}
-    />
+    <label className="block">
+      {label && (
+        <span className="mb-2 block text-[13px] font-bold text-[var(--dashboard-text)]">
+          {label}
+        </span>
+      )}
+      <span className="relative block">
+        {Icon && (
+          <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
+        )}
+        <input
+          {...props}
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-12 w-full rounded-2xl border py-0 pr-4 text-[14px] font-semibold outline-none transition placeholder:text-[var(--dashboard-muted)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/10 ${
+            Icon ? "pl-11" : "pl-4"
+          } ${props.className ?? ""}`}
+          style={{
+            background: "var(--dashboard-card-soft)",
+            borderColor: "var(--dashboard-border)",
+            color: "var(--dashboard-text)",
+            ...props.style,
+          }}
+        />
+      </span>
+    </label>
   )
 }
 
@@ -1094,12 +1133,12 @@ function ModalActions({
   onConfirm: () => void
 }) {
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3">
+    <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <button
         type="button"
         onClick={onCancel}
         disabled={disabled}
-        className="h-11 rounded-xl border text-sm font-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/5"
+        className="h-11 rounded-xl border px-7 text-sm font-bold transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/5"
         style={{
           borderColor: "var(--dashboard-border)",
           color: "var(--dashboard-text)",
@@ -1112,7 +1151,7 @@ function ModalActions({
         type="button"
         onClick={onConfirm}
         disabled={disabled}
-        className="h-11 rounded-xl text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-11 rounded-xl px-9 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           background: destructive ? "#ef4444" : "var(--brand-gradient)",
         }}

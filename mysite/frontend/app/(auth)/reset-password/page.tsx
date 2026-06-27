@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { AlertCircle, ArrowLeft, Eye, EyeOff, KeyRound, LockKeyhole } from "lucide-react"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -15,9 +16,11 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     setMessage("")
 
     if (!email || !code) {
@@ -41,118 +44,125 @@ export default function ResetPasswordPage() {
     }
 
     try {
-  setLoading(true)
+      setLoading(true)
 
-  const response = await fetch(
-    "http://127.0.0.1:8000/api/reset-password/",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        code,
-        new_password: newPassword,
-        confirm_password: confirmPassword,
-      }),
+      const response = await fetch("http://127.0.0.1:8000/api/reset-password/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          code,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setMessage(data.message || "Impossible de réinitialiser le mot de passe.")
+        return
+      }
+
+      setMessage("Mot de passe réinitialisé avec succès.")
+
+      setTimeout(() => {
+        router.push("/signin")
+      }, 1500)
+    } catch {
+      setMessage("Erreur de connexion au serveur.")
+    } finally {
+      setLoading(false)
     }
-  )
-
-  const data = await response.json()
-
-  if (!response.ok || !data.success) {
-    setMessage(
-      data.message ||
-        "Impossible de réinitialiser le mot de passe."
-    )
-    return
-  }
-
-  setMessage("Mot de passe réinitialisé avec succès.")
-
-  setTimeout(() => {
-    router.push("/signin")
-  }, 1500)
-} catch {
-  setMessage("Erreur de connexion au serveur.")
-} finally {
-  setLoading(false)
-}
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#120f2b]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.35),_transparent_30%),linear-gradient(180deg,#6d28d9_0%,#241a59_36%,#17153b_72%,#1b1464_100%)]" />
+    <main className="neon-login-page">
+      <div className="neon-grid" />
+      <div className="neon-orb neon-orb--one" />
+      <div className="neon-orb neon-orb--two" />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(111,66,255,0.92),rgba(59,35,138,0.92))] p-8 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-white">
-              Nouveau mot de passe
-            </h1>
-
-            <p className="mt-2 text-sm text-white/75">
-              Choisissez un nouveau mot de passe sécurisé.
-            </p>
+      <div className="neon-auth-shell">
+        <div className="neon-form-glow" />
+        <div className="neon-form-card neon-auth-card">
+          <div className="neon-auth-icon">
+            <LockKeyhole />
           </div>
 
-          <form className="grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-white/90">
-                Nouveau mot de passe
-              </label>
+          <div className="neon-form-card__heading">
+            <span className="neon-form-card__eyebrow">NOUVEAU MOT DE PASSE</span>
+            <h2>Réinitialisation</h2>
+            <p>Choisissez un mot de passe sécurisé pour votre compte.</p>
+          </div>
 
+          <form onSubmit={handleSubmit} className="neon-form">
+            <label htmlFor="new-password">Nouveau mot de passe</label>
+            <div className="neon-input">
+              <KeyRound />
               <input
-                type="password"
+                id="new-password"
+                type={showNewPassword ? "text" : "password"}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Nouveau mot de passe"
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Au moins 8 caractères"
+                autoComplete="new-password"
                 required
-                className="h-12 rounded-full border border-white/10 bg-[#1d2048]/90 px-4 text-white placeholder:text-white/40 outline-none focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20"
               />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword((value) => !value)}
+                aria-label={showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              >
+                {showNewPassword ? <EyeOff /> : <Eye />}
+              </button>
             </div>
 
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-white/90">
-                Confirmer le mot de passe
-              </label>
-
+            <label htmlFor="confirm-password">Confirmation</label>
+            <div className="neon-input">
+              <KeyRound />
               <input
-                type="password"
+                id="confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirmer le mot de passe"
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Répéter le mot de passe"
+                autoComplete="new-password"
                 required
-                className="h-12 rounded-full border border-white/10 bg-[#1d2048]/90 px-4 text-white placeholder:text-white/40 outline-none focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/20"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((value) => !value)}
+                aria-label={showConfirmPassword ? "Masquer la confirmation" : "Afficher la confirmation"}
+              >
+                {showConfirmPassword ? <EyeOff /> : <Eye />}
+              </button>
             </div>
 
             {message && (
-              <p className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white">
-                {message}
-              </p>
+              <div
+                className={`neon-form__error neon-form__error--with-icon ${
+                  message.includes("succès") ? "neon-form__success" : ""
+                }`}
+                role="alert"
+              >
+                <AlertCircle />
+                <span>{message}</span>
+              </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-12 rounded-full bg-[linear-gradient(90deg,#7c3aed,#6366f1,#60a5fa)] text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Modification..." : "Modifier le mot de passe"}
+            <button type="submit" disabled={loading} className="neon-submit">
+              <span>{loading ? "Modification..." : "Modifier le mot de passe"}</span>
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <Link
-              href="/signin"
-              className="text-sm font-medium text-cyan-200 hover:text-white hover:underline"
-            >
-              Retour à la connexion
-            </Link>
-          </div>
+          <Link href="/signin" className="neon-auth-back">
+            <ArrowLeft />
+            Retour à la connexion
+          </Link>
         </div>
       </div>
     </main>
   )
-} 
+}

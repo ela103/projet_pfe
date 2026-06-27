@@ -19,6 +19,7 @@ from io import BytesIO
 from xml.sax.saxutils import escape
 
 from django.http import HttpResponse, JsonResponse
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -28,7 +29,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
+    Flowable,
     HRFlowable,
+    Image as ReportLabImage,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -37,6 +40,81 @@ from reportlab.platypus import (
 )
 from data_module.models import Website
 from .models import AIChatMessage, AIRecommendation
+
+
+class SmartSEOLogoFlowable(Flowable):
+    def __init__(self, width=48 * mm, height=18 * mm):
+        super().__init__()
+        self.width = width
+        self.height = height
+
+    def wrap(self, available_width, available_height):
+        return self.width, self.height
+
+    def draw(self):
+        canvas = self.canv
+        canvas.saveState()
+
+        mark_x = 1.5 * mm
+        mark_y = 2.2 * mm
+        scale = self.height / (18 * mm)
+
+        ring_x = mark_x + 7.4 * mm * scale
+        ring_y = mark_y + 8.6 * mm * scale
+        ring_r = 5.3 * mm * scale
+
+        violet = colors.HexColor("#8B5CF6")
+        indigo = colors.HexColor("#315CFF")
+        cyan = colors.HexColor("#18C7E8")
+        teal = colors.HexColor("#20D6C7")
+        navy = colors.HexColor("#1A2754")
+
+        canvas.setLineCap(1)
+        canvas.setStrokeColor(violet)
+        canvas.setLineWidth(1.4 * mm * scale)
+        canvas.circle(ring_x, ring_y, ring_r, stroke=1, fill=0)
+
+        bars = [
+            (ring_x - 3.2 * mm * scale, ring_y - 3.4 * mm * scale, 2.0 * mm * scale, navy),
+            (ring_x - 1.0 * mm * scale, ring_y - 3.4 * mm * scale, 4.1 * mm * scale, indigo),
+            (ring_x + 1.2 * mm * scale, ring_y - 3.4 * mm * scale, 5.9 * mm * scale, violet),
+            (ring_x + 3.4 * mm * scale, ring_y - 3.4 * mm * scale, 7.2 * mm * scale, teal),
+        ]
+
+        for x, y, h, color in bars:
+            canvas.setStrokeColor(color)
+            canvas.setLineWidth(1.15 * mm * scale)
+            canvas.line(x, y, x, y + h)
+
+        canvas.setStrokeColor(violet)
+        canvas.setLineWidth(1.0 * mm * scale)
+        path = canvas.beginPath()
+        path.moveTo(ring_x - 4.1 * mm * scale, ring_y + 0.5 * mm * scale)
+        path.lineTo(ring_x - 1.6 * mm * scale, ring_y + 2.5 * mm * scale)
+        path.lineTo(ring_x + 0.6 * mm * scale, ring_y + 1.0 * mm * scale)
+        path.lineTo(ring_x + 3.9 * mm * scale, ring_y + 4.0 * mm * scale)
+        canvas.drawPath(path, stroke=1, fill=0)
+
+        canvas.setStrokeColor(indigo)
+        canvas.setLineWidth(1.25 * mm * scale)
+        canvas.line(
+            ring_x + 4.2 * mm * scale,
+            ring_y - 4.4 * mm * scale,
+            ring_x + 8.0 * mm * scale,
+            ring_y - 8.2 * mm * scale,
+        )
+
+        text_x = mark_x + 20 * mm * scale
+        text_y = mark_y + 5.8 * mm * scale
+
+        canvas.setFont("Helvetica-Bold", 12.5 * scale)
+        canvas.setFillColor(colors.HexColor("#172033"))
+        canvas.drawString(text_x, text_y, "Smart")
+        canvas.setFillColor(violet)
+        canvas.drawString(text_x + 17.7 * mm * scale, text_y, "SEO")
+
+        canvas.restoreState()
+
 
 def test_ai(request):
     pages = nlp_analysis()
@@ -327,7 +405,7 @@ def export_global_analysis_pdf(request):
             topMargin=top_margin,
             bottomMargin=bottom_margin,
             title="Rapport d’analyse globale SEO",
-            author="AI Insights",
+            author="SmartSEO",
             subject="Analyse globale des performances SEO",
         )
 
@@ -359,31 +437,21 @@ def export_global_analysis_pdf(request):
             name="ReportTitle",
             parent=styles["Title"],
             fontName="Helvetica-Bold",
-            fontSize=21,
-            leading=25,
+            fontSize=18,
+            leading=22,
             alignment=TA_LEFT,
             textColor=dark_text,
-            spaceAfter=2 * mm,
+            spaceAfter=1 * mm,
         )
 
         subtitle_style = ParagraphStyle(
             name="ReportSubtitle",
             parent=styles["Normal"],
-            fontName="Helvetica",
-            fontSize=9,
+            fontName="Helvetica-Bold",
+            fontSize=9.3,
             leading=13,
             alignment=TA_LEFT,
-            textColor=muted_text,
-        )
-
-        badge_style = ParagraphStyle(
-            name="Badge",
-            parent=styles["Normal"],
-            fontName="Helvetica-Bold",
-            fontSize=8.5,
-            leading=11,
-            alignment=TA_CENTER,
-            textColor=colors.white,
+            textColor=brand_secondary,
         )
 
         info_label_style = ParagraphStyle(
@@ -419,9 +487,9 @@ def export_global_analysis_pdf(request):
             name="AnalysisHeading",
             parent=styles["Heading3"],
             fontName="Helvetica-Bold",
-            fontSize=11,
+            fontSize=11.3,
             leading=15,
-            textColor=brand_primary,
+            textColor=brand_secondary,
             spaceBefore=3 * mm,
             spaceAfter=2 * mm,
             leftIndent=4 * mm,
@@ -465,79 +533,58 @@ def export_global_analysis_pdf(request):
 
         story = []
 
-        # En-tête principal
-        header_left = [
-            Paragraph("AI INSIGHTS", brand_style),
-            Paragraph(
-                "Rapport d’analyse globale",
-                title_style,
-            ),
-            Paragraph(
-                "Synthèse des performances SEO et digitales",
-                subtitle_style,
-            ),
-        ]
-
-        badge = Table(
-            [[Paragraph("RAPPORT SEO", badge_style)]],
-            colWidths=[34 * mm],
-            rowHeights=[11 * mm],
+        logo_path = os.path.join(
+            settings.BASE_DIR,
+            "static",
+            "images",
+            "smartseo-logo.png",
+        )
+        pdf_logo = (
+            ReportLabImage(logo_path, width=39 * mm, height=12.5 * mm)
+            if os.path.exists(logo_path)
+            else SmartSEOLogoFlowable(width=36 * mm, height=13 * mm)
+        )
+        # En-t?te principal
+        header_identity = Table(
+            [
+                [
+                    [
+                        Paragraph("AI INSIGHTS", brand_style),
+                        Paragraph(
+                            "Rapport d'analyse globale",
+                            title_style,
+                        ),
+                        Paragraph(
+                            "Synthèse des performances SEO et digitales",
+                            subtitle_style,
+                        ),
+                    ],
+                    pdf_logo,
+                ],
+            ],
+            colWidths=[
+                content_width - 48 * mm,
+                48 * mm,
+            ],
         )
 
-        badge.setStyle(
+        header_identity.setStyle(
             TableStyle(
                 [
-                    (
-                        "BACKGROUND",
-                        (0, 0),
-                        (-1, -1),
-                        brand_primary,
-                    ),
-                    (
-                        "VALIGN",
-                        (0, 0),
-                        (-1, -1),
-                        "MIDDLE",
-                    ),
-                    (
-                        "ALIGN",
-                        (0, 0),
-                        (-1, -1),
-                        "CENTER",
-                    ),
-                    (
-                        "LEFTPADDING",
-                        (0, 0),
-                        (-1, -1),
-                        6,
-                    ),
-                    (
-                        "RIGHTPADDING",
-                        (0, 0),
-                        (-1, -1),
-                        6,
-                    ),
-                    (
-                        "TOPPADDING",
-                        (0, 0),
-                        (-1, -1),
-                        4,
-                    ),
-                    (
-                        "BOTTOMPADDING",
-                        (0, 0),
-                        (-1, -1),
-                        4,
-                    ),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 0),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
                 ]
             )
         )
 
         header_table = Table(
-            [[header_left, badge]],
+            [[header_identity]],
             colWidths=[
-                content_width - 38 * mm,
-                38 * mm,
+                content_width,
             ],
         )
 
@@ -548,50 +595,42 @@ def export_global_analysis_pdf(request):
                         "VALIGN",
                         (0, 0),
                         (-1, -1),
-                        "TOP",
-                    ),
-                    (
-                        "ALIGN",
-                        (1, 0),
-                        (1, 0),
-                        "RIGHT",
+                        "MIDDLE",
                     ),
                     (
                         "LEFTPADDING",
                         (0, 0),
                         (-1, -1),
-                        0,
+                        10,
                     ),
                     (
                         "RIGHTPADDING",
                         (0, 0),
                         (-1, -1),
-                        0,
+                        10,
                     ),
                     (
                         "TOPPADDING",
                         (0, 0),
                         (-1, -1),
-                        0,
+                        10,
                     ),
                     (
                         "BOTTOMPADDING",
                         (0, 0),
                         (-1, -1),
-                        0,
+                        10,
                     ),
                 ]
             )
         )
 
         story.append(header_table)
-        story.append(Spacer(1, 6 * mm))
-
-        # Ligne de séparation
+        story.append(Spacer(1, 5 * mm))
         story.append(
             HRFlowable(
                 width="100%",
-                thickness=1,
+                thickness=0.7,
                 color=light_border,
                 spaceBefore=0,
                 spaceAfter=5 * mm,
@@ -891,6 +930,22 @@ def export_global_analysis_pdf(request):
                 continue
 
             # Listes à puces
+            if (
+                line.endswith(":")
+                and len(line) <= 70
+                and not line.startswith(("- ", "* "))
+                and not re.match(r"^\d+[\.\)]", line)
+            ):
+                append_paragraph()
+
+                story.append(
+                    Paragraph(
+                        format_inline_markdown(line),
+                        analysis_heading_style,
+                    )
+                )
+                continue
+
             if line.startswith("- ") or line.startswith("* "):
                 append_paragraph()
 
@@ -943,7 +998,7 @@ def export_global_analysis_pdf(request):
 
         story.append(
             Paragraph(
-                "Rapport généré automatiquement par AI Insights. "
+                "Rapport généré automatiquement par SmartSEO. "
                 "Les résultats dépendent des données GA4 et "
                 "Search Console disponibles.",
                 footer_style,
@@ -970,7 +1025,7 @@ def export_global_analysis_pdf(request):
             canvas.drawString(
                 left_margin,
                 8 * mm,
-                "AI Insights — Rapport SEO",
+                "SmartSEO — Rapport SEO",
             )
 
             canvas.drawRightString(

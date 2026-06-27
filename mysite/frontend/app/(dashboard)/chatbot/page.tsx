@@ -1,17 +1,7 @@
 "use client"
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react"
-import {
-  Bot,
-  Send,
-  Sparkles,
-  UserRound,
-} from "lucide-react"
+import { useEffect, useRef, useState, type KeyboardEvent } from "react"
+import { Bot, Send, Sparkles, UserRound } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -26,11 +16,7 @@ type ChatHistoryItem = {
   answer: string
 }
 
-export default function ChatbotPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: `Bonjour 👋 Je suis votre **assistant SEO IA**.
+const welcomeMessage = `Bonjour 👋 Je suis votre **assistant SEO IA**.
 
 Je peux vous aider concernant :
 
@@ -41,10 +27,15 @@ Je peux vous aider concernant :
 - les recommandations SEO ;
 - l’interprétation des KPI.
 
-Posez-moi votre question.`,
+Posez-moi votre question.`
+
+export default function ChatbotPage() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: welcomeMessage,
     },
   ])
-
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -111,44 +102,36 @@ Posez-moi votre question.`,
 
     if (!question || loading) return
 
-    const userMessage: Message = {
-      role: "user",
-      content: question,
-    }
-
     setMessages((previousMessages) => [
       ...previousMessages,
-      userMessage,
+      {
+        role: "user",
+        content: question,
+      },
     ])
 
     setInput("")
     setLoading(true)
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/ai/chat/",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            question,
-            website_id: localStorage.getItem("websiteId"),
-            channel: "chatbot",
-          }),
+      const response = await fetch("http://127.0.0.1:8000/ai/chat/", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
         },
-      )
+        body: JSON.stringify({
+          question,
+          website_id: localStorage.getItem("websiteId"),
+          channel: "chatbot",
+        }),
+      })
 
       if (!response.ok) {
-        throw new Error(
-          `Erreur HTTP : ${response.status}`,
-        )
+        throw new Error(`Erreur HTTP : ${response.status}`)
       }
 
       const data = await response.json()
-
       const assistantContent =
         data.response?.text ??
         data.response ??
@@ -170,8 +153,7 @@ Posez-moi votre question.`,
         ...previousMessages,
         {
           role: "assistant",
-          content:
-            "Une erreur est survenue pendant la génération de la réponse. Veuillez réessayer.",
+          content: "Une erreur est survenue pendant la génération de la réponse. Veuillez réessayer.",
         },
       ])
     } finally {
@@ -179,9 +161,7 @@ Posez-moi votre question.`,
     }
   }
 
-  function handleKeyDown(
-    event: KeyboardEvent<HTMLTextAreaElement>,
-  ) {
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
       void handleSend()
@@ -197,7 +177,6 @@ Posez-moi votre question.`,
           borderColor: "var(--dashboard-border)",
         }}
       >
-        {/* En-tête */}
         <header
           className="flex shrink-0 items-center justify-between border-b px-5 py-4 md:px-7"
           style={{
@@ -211,7 +190,7 @@ Posez-moi votre question.`,
                 style={{
                   background: "var(--brand-gradient)",
                   boxShadow:
-                    "0 12px 26px color-mix(in srgb, var(--brand-primary) 22%, transparent)",
+                    "0 12px 26px color-mix(in srgb, var(--brand-primary) 20%, transparent)",
                 }}
               >
                 <Bot className="h-6 w-6" />
@@ -242,7 +221,6 @@ Posez-moi votre question.`,
           </div>
         </header>
 
-        {/* Discussion */}
         <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
             {messages.map((message, index) => {
@@ -252,9 +230,7 @@ Posez-moi votre question.`,
                 <article
                   key={`${message.role}-${index}`}
                   className={`flex items-start gap-3 ${
-                    isUser
-                      ? "justify-end"
-                      : "justify-start"
+                    isUser ? "justify-end" : "justify-start"
                   }`}
                 >
                   {!isUser && (
@@ -263,7 +239,7 @@ Posez-moi votre question.`,
                       style={{
                         background: "var(--brand-gradient)",
                         boxShadow:
-                          "0 10px 22px color-mix(in srgb, var(--brand-primary) 20%, transparent)",
+                          "0 10px 22px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
                       }}
                     >
                       <Bot className="h-5 w-5" />
@@ -280,15 +256,12 @@ Posez-moi votre question.`,
                       isUser
                         ? undefined
                         : {
-                            borderColor:
-                              "var(--dashboard-border)",
+                            borderColor: "var(--dashboard-border)",
                           }
                     }
                   >
                     {isUser ? (
-                      <p className="whitespace-pre-wrap">
-                        {message.content}
-                      </p>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
                     ) : (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
@@ -298,63 +271,42 @@ Posez-moi votre question.`,
                               {children}
                             </h1>
                           ),
-
                           h2: ({ children }) => (
                             <h2 className="mb-3 mt-5 text-lg font-black first:mt-0">
                               {children}
                             </h2>
                           ),
-
                           h3: ({ children }) => (
                             <h3 className="mb-3 mt-4 text-base font-black first:mt-0">
                               {children}
                             </h3>
                           ),
-
-                          p: ({ children }) => (
-                            <p className="mb-4 last:mb-0">
-                              {children}
-                            </p>
-                          ),
-
+                          p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
                           strong: ({ children }) => (
                             <strong className="font-black text-[var(--brand-primary)]">
                               {children}
                             </strong>
                           ),
-
                           ul: ({ children }) => (
                             <ul className="mb-4 ml-5 list-disc space-y-1.5">
                               {children}
                             </ul>
                           ),
-
                           ol: ({ children }) => (
                             <ol className="mb-4 ml-5 list-decimal space-y-1.5">
                               {children}
                             </ol>
                           ),
-
-                          li: ({ children }) => (
-                            <li className="pl-1">
-                              {children}
-                            </li>
-                          ),
-
+                          li: ({ children }) => <li className="pl-1">{children}</li>,
                           blockquote: ({ children }) => (
                             <blockquote className="my-4 border-l-4 border-[var(--brand-primary)] pl-4 text-[var(--dashboard-muted)]">
                               {children}
                             </blockquote>
                           ),
-
-                          hr: () => (
-                            <hr className="my-5 border-[var(--dashboard-border)]" />
-                          ),
+                          hr: () => <hr className="my-5 border-[var(--dashboard-border)]" />,
                         }}
                       >
-                        {message.content
-                          .replace(/\\n/g, "\n")
-                          .trim()}
+                        {message.content.replace(/\\n/g, "\n").trim()}
                       </ReactMarkdown>
                     )}
                   </div>
@@ -375,7 +327,7 @@ Posez-moi votre question.`,
                   style={{
                     background: "var(--brand-gradient)",
                     boxShadow:
-                      "0 10px 22px color-mix(in srgb, var(--brand-primary) 20%, transparent)",
+                      "0 10px 22px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
                   }}
                 >
                   <Bot className="h-5 w-5" />
@@ -384,15 +336,12 @@ Posez-moi votre question.`,
                 <div
                   className="rounded-[24px] rounded-bl-md border bg-[var(--dashboard-card-soft)] px-5 py-4"
                   style={{
-                    borderColor:
-                      "var(--dashboard-border)",
+                    borderColor: "var(--dashboard-border)",
                   }}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--dashboard-muted)]" />
-
                     <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--dashboard-muted)] [animation-delay:150ms]" />
-
                     <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--dashboard-muted)] [animation-delay:300ms]" />
                   </div>
                 </div>
@@ -403,7 +352,6 @@ Posez-moi votre question.`,
           </div>
         </main>
 
-        {/* Zone de saisie */}
         <footer
           className="shrink-0 border-t px-4 py-4 md:px-8"
           style={{
@@ -420,9 +368,7 @@ Posez-moi votre question.`,
             >
               <textarea
                 value={input}
-                onChange={(event) =>
-                  setInput(event.target.value)
-                }
+                onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Posez une question sur le trafic ou le SEO..."
                 rows={1}

@@ -409,7 +409,7 @@ function StatCard({
   color,
   gradientId,
   hideChart = false,
-  badge = "Période",
+  badge = "Periode",
 }: {
   title: string
   value: string
@@ -425,74 +425,75 @@ function StatCard({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
-              {title}
+            {title}
           </p>
-         <h2 className="mt-1 text-[30px] font-black leading-none text-[var(--dashboard-text)]">
-             {value}
-         </h2>
-<p className="mt-2 text-[10px] font-semibold text-[var(--dashboard-muted)]">
-  {subtitle}
-</p>
+
+          <h2 className="mt-1 text-[30px] font-black leading-none text-[var(--dashboard-text)]">
+            {value}
+          </h2>
+
+          <p className="mt-2 text-[10px] font-semibold text-[var(--dashboard-muted)]">
+            {subtitle}
+          </p>
         </div>
 
         <span
-  className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-  style={{
-    backgroundColor: `color-mix(in srgb, ${color} 22%, var(--dashboard-card))`,
-    color: color,
-  }}
->
-  {badge}
-</span>
+          className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${color} 22%, var(--dashboard-card))`,
+            color,
+          }}
+        >
+          {badge}
+        </span>
       </div>
 
       <div className="mt-1 h-[55px]">
-  {data.length === 0 ? (
-  <div className="flex h-full flex-col justify-center px-2">
-    <div
-  className="h-[2px] w-full rounded-full"
-  style={{ backgroundColor: color }}
-/>
+        {data.length === 0 ? (
+          <div className="flex h-full flex-col justify-center px-2">
+            <div
+              className="h-[2px] w-full rounded-full"
+              style={{ backgroundColor: color }}
+            />
 
-    <div className="mt-2 text-right">
-      <span className="text-[10px] font-semibold text-slate-600">
-        Aucun trafic
-      </span>
-    </div>
-  </div>
-) : data.every((item) => Number(item.y || 0) === 0) ? (
-  <div className="flex h-full flex-col justify-center px-2">
-    <div className="h-[2px] w-full rounded-full bg-slate-700/70" />
+            <div className="mt-2 text-right">
+              <span className="text-[10px] font-semibold text-slate-600">
+                Aucun trafic
+              </span>
+            </div>
+          </div>
+        ) : data.every((item) => Number(item.y || 0) === 0) ? (
+          <div className="flex h-full flex-col justify-center px-2">
+            <div className="h-[2px] w-full rounded-full bg-slate-700/70" />
 
-    <div className="mt-2 text-right">
-      <span className="text-[10px] font-semibold text-slate-600">
-        Aucun trafic
-      </span>
-    </div>
-  </div>
-) : (
-  <ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={data}>
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
+            <div className="mt-2 text-right">
+              <span className="text-[10px] font-semibold text-slate-600">
+                Aucun trafic
+              </span>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-      <Area
-        type="monotone"
-        dataKey="y"
-        stroke={color}
-        strokeWidth={2.2}
-        fill={`url(#${gradientId})`}
-        dot={false}
-      />
-    </AreaChart>
-  </ResponsiveContainer>
-
-  )}
-</div>
+              <Area
+                type="monotone"
+                dataKey="y"
+                stroke={color}
+                strokeWidth={2.2}
+                fill={`url(#${gradientId})`}
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </Card>
   )
 }
@@ -940,7 +941,7 @@ function WeeklyBarsCard({
 
               <Tooltip
   cursor={{ fill: "rgba(139,92,246,0.08)" }}
-  formatter={(value: number) => [`${value} vues`, "Pages vues"]}
+  formatter={(value) => [`${Number(value ?? 0)} vues`, "Pages vues"]}
   labelFormatter={(label) => `Page : ${label}`}
   contentStyle={{
     background: "rgba(23,24,45,0.96)",
@@ -2018,12 +2019,12 @@ const userDisplayName =
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-[28px] font-black tracking-tight text-[var(--dashboard-text)]">
-  Hello, {userDisplayName}
-</h1>
+              Hello, {userDisplayName}
+            </h1>
 
-<p className="mt-1 text-[11px] font-semibold text-slate-500">
-  Suivi des performances SEO, du trafic et des mots-clés
-</p>
+            <p className="mt-1 text-[11px] font-semibold text-slate-500">
+              Suivi des performances SEO, du trafic et des mots-clés
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -2035,7 +2036,7 @@ const userDisplayName =
                 localStorage.setItem("websiteId", value)
               }}
               className="h-9 rounded-xl border bg-[var(--dashboard-card)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
-style={{ borderColor: "var(--dashboard-border)" }}
+              style={{ borderColor: "var(--dashboard-border)" }}
             >
               {loadingSites ? (
                 <option>Loading...</option>
@@ -2052,211 +2053,19 @@ style={{ borderColor: "var(--dashboard-border)" }}
           </div>
         </div>
 
-{/* ── FILTER BAR ── */}
+{/* FILTER BAR */}
 <div
+  className="mb-[18px] rounded-[18px] border p-3 shadow-[var(--dashboard-shadow)]"
   style={{
-    marginBottom: "22px",
     background: "var(--dashboard-card)",
-    border: "1px solid var(--dashboard-border)",
-    borderRadius: "20px",
-    padding: "12px",
-    backdropFilter: "none",
-    boxShadow: "var(--dashboard-shadow)",
+    borderColor: "var(--dashboard-border)",
   }}
 >
-  {/* Header row */}
-  <div
-    style={{
-      display: "none",
-      alignItems: "center",
-      gap: "12px",
-      marginBottom: "16px",
-      paddingBottom: "14px",
-      borderBottom: "1px solid var(--dashboard-line)",
-    }}
-  >
-    <div
-      style={{
-        width: 38,
-        height: 38,
-        borderRadius: "12px",
-        background: "var(--brand-gradient)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow:
-          "0 4px 12px color-mix(in srgb, var(--brand-primary) 35%, transparent)",
-        flexShrink: 0,
-      }}
-    >
-      <CalendarDays className="h-5 w-5 text-white" strokeWidth={2.4} />
-    </div>
-
-    <div>
-      <p
-        style={{
-          fontSize: "13px",
-          fontWeight: 700,
-          color: "var(--dashboard-text)",
-          margin: 0,
-        }}
-      >
-        Filtres du tableau de bord
-      </p>
-
-      <p
-        style={{
-          fontSize: "11px",
-          color: "var(--dashboard-muted)",
-          margin: 0,
-        }}
-      >
-        Sélectionnez une période 
-      </p>
-    </div>
-
-    {/* Errors */}
-    {sitesError && (
-      <p style={{ fontSize: "11px", color: "#f87171", marginLeft: "12px" }}>
-        {sitesError}
-      </p>
-    )}
-
-    {statsError && (
-      <p style={{ fontSize: "11px", color: "#f87171", marginLeft: "12px" }}>
-        {statsError}
-      </p>
-    )}
-  </div>
-
-  {/* Inputs row */}
-  <div
-    style={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "12px",
-      alignItems: "center",
-      padding: 0,
-      borderRadius: 0,
-      background: "transparent",
-      border: "none",
-      boxShadow: "none",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "9px",
-        minHeight: "42px",
-        padding: "0",
-        borderRadius: "0",
-        background: "transparent",
-        border: "none",
-        boxShadow: "none",
-      }}
-    >
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: "9px",
-          background: "var(--brand-gradient)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow:
-            "0 4px 10px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
-          flexShrink: 0,
-        }}
-      >
-        <CalendarDays className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
-      </div>
-
-      <div style={{ minWidth: "108px" }}>
-        <p
-          style={{
-            margin: 0,
-            color: "var(--dashboard-text)",
-            fontSize: "12px",
-            fontWeight: 800,
-            lineHeight: 1.1,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Période d'analyse
-        </p>
-        <p
-          style={{
-            display: "none",
-            margin: 0,
-            color: "var(--dashboard-text)",
-            fontSize: "12.5px",
-            fontWeight: 800,
-            lineHeight: 1.1,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Période
-        </p>
-        <p
-          style={{
-            display: "none",
-            margin: "4px 0 0",
-            color: "var(--dashboard-muted)",
-            fontSize: "9px",
-            fontWeight: 700,
-          }}
-        >
-          Analyse
-        </p>
-      </div>
-    </div>
-
-    {(sitesError || statsError || dateFilterError) && (
-      <div
-        style={{
-          gridColumn: "1 / -1",
-          color: "#fecaca",
-          fontSize: "11px",
-          fontWeight: 700,
-        }}
-      >
-        {sitesError || statsError || dateFilterError}
-      </div>
-    )}
-
-    {/* Date début */}
-    <div
-      style={{
-        minWidth: "220px",
-        flex: "1 1 220px",
-        height: "46px",
-        padding: "5px 13px",
-        borderRadius: "14px",
-        background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
-        border: startDate
-          ? "1px solid var(--brand-secondary)"
-          : "1px solid var(--dashboard-border)",
-        boxShadow: startDate
-          ? "0 0 0 3px color-mix(in srgb, var(--brand-secondary) 12%, transparent)"
-          : "none",
-      }}
-    >
-      <label
-        style={{
-          display: "block",
-          marginBottom: "2px",
-          fontSize: "9px",
-          fontWeight: 800,
-          textTransform: "uppercase",
-          letterSpacing: "0.09em",
-          color: "var(--dashboard-muted)",
-        }}
-      >
-        Date début
+  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_132px_40px] md:items-end">
+    <div className="min-w-0">
+      <label className="mb-1.5 block text-[9px] font-black uppercase tracking-[0.08em] text-[var(--dashboard-muted)]">
+        Date debut
       </label>
-
       <input
         type="date"
         lang="fr-FR"
@@ -2266,67 +2075,20 @@ style={{ borderColor: "var(--dashboard-border)" }}
           setStartDate(e.target.value)
           setDateFilterError("")
         }}
+        className="h-10 w-full rounded-2xl border px-3 text-[12px] font-black text-[var(--dashboard-text)] outline-none transition hover:border-[var(--brand-primary)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/15"
         style={{
-          width: "100%",
-          height: "20px",
-          background: "transparent",
-          border: "none",
-          borderRadius: "0",
-          padding: 0,
-          fontSize: "12.5px",
-          fontWeight: 700,
-          color: "var(--dashboard-text)",
-          outline: "none",
+          background:
+            "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
+          borderColor: "var(--dashboard-border)",
           colorScheme: "dark",
-          transition: "border-color 0.2s",
-          boxShadow: "none",
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = "transparent"
-        }}
-        onBlur={(e) => {
-          e.target.style.borderColor = "transparent"
         }}
       />
     </div>
 
-    <ArrowRight
-      className="hidden h-4 w-4 shrink-0 xl:block"
-      style={{ color: "var(--dashboard-muted)" }}
-      aria-hidden="true"
-    />
-
-    {/* Date fin */}
-    <div
-      style={{
-        minWidth: "220px",
-        flex: "1 1 220px",
-        height: "46px",
-        padding: "5px 13px",
-        borderRadius: "14px",
-        background: "color-mix(in srgb, var(--dashboard-card) 72%, transparent)",
-        border: endDate
-          ? "1px solid var(--brand-tertiary)"
-          : "1px solid var(--dashboard-border)",
-        boxShadow: endDate
-          ? "0 0 0 3px color-mix(in srgb, var(--brand-tertiary) 12%, transparent)"
-          : "none",
-      }}
-    >
-      <label
-        style={{
-          display: "block",
-          marginBottom: "2px",
-          fontSize: "9px",
-          fontWeight: 800,
-          textTransform: "uppercase",
-          letterSpacing: "0.09em",
-          color: "var(--dashboard-muted)",
-        }}
-      >
+    <div className="min-w-0">
+      <label className="mb-1.5 block text-[9px] font-black uppercase tracking-[0.08em] text-[var(--dashboard-muted)]">
         Date fin
       </label>
-
       <input
         type="date"
         lang="fr-FR"
@@ -2336,68 +2098,32 @@ style={{ borderColor: "var(--dashboard-border)" }}
           setEndDate(e.target.value)
           setDateFilterError("")
         }}
+        className="h-10 w-full rounded-2xl border px-3 text-[12px] font-black text-[var(--dashboard-text)] outline-none transition hover:border-[var(--brand-primary)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/15"
         style={{
-          width: "100%",
-          height: "20px",
-          background: "transparent",
-          border: "none",
-          borderRadius: "0",
-          padding: 0,
-          fontSize: "12.5px",
-          fontWeight: 700,
-          color: "var(--dashboard-text)",
-          outline: "none",
+          background:
+            "color-mix(in srgb, var(--dashboard-card-soft) 78%, transparent)",
+          borderColor: "var(--dashboard-border)",
           colorScheme: "dark",
-          transition: "border-color 0.2s",
-          boxShadow: "none",
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = "transparent"
-        }}
-        onBlur={(e) => {
-          e.target.style.borderColor = "transparent"
         }}
       />
     </div>
 
-    {/* Bouton Appliquer */}
     <button
       type="button"
       onClick={handleApplyDateFilter}
+      className="h-10 rounded-2xl px-4 text-[12px] font-black text-white transition hover:-translate-y-0.5 hover:opacity-95"
       style={{
-        height: "46px",
-        padding: "0 17px",
-        borderRadius: "13px",
-        border: "none",
         background: "var(--brand-gradient)",
-        color: "white",
-        fontSize: "12.5px",
-        fontWeight: 700,
-        cursor: "pointer",
-        whiteSpace: "nowrap",
         boxShadow:
-          "0 6px 16px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
-        transition: "opacity 0.2s, transform 0.2s",
-      }}
-      onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLElement).style.opacity = "0.88"
-        ;(e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"
-      }}
-      onMouseLeave={(e) => {
-        ;(e.currentTarget as HTMLElement).style.opacity = "1"
-        ;(e.currentTarget as HTMLElement).style.transform = "translateY(0)"
+          "0 10px 22px color-mix(in srgb, var(--brand-primary) 22%, transparent)",
       }}
     >
       Appliquer
     </button>
 
-    {/* Bouton Réinitialiser */}
     <button
       type="button"
-      aria-label="Réinitialiser la période"
-      title="Réinitialiser"
       onClick={() => {
-        
         setStartDate("")
         setEndDate("")
         setAppliedStartDate("")
@@ -2405,117 +2131,23 @@ style={{ borderColor: "var(--dashboard-border)" }}
         setSelectedCalendarDate(null)
         setDateFilterError("")
       }}
+      className="grid h-10 w-10 place-items-center rounded-2xl border text-[var(--dashboard-muted)] transition hover:border-[var(--brand-primary)] hover:text-[var(--dashboard-text)]"
       style={{
-        height: "46px",
-        width: "46px",
-        padding: 0,
-        borderRadius: "13px",
-        background: "color-mix(in srgb, var(--dashboard-card) 55%, transparent)",
-        border: "1px solid var(--dashboard-border)",
-        color: "var(--dashboard-muted)",
-        fontSize: "12px",
-        fontWeight: 700,
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        transition: "all 0.2s",
+        background:
+          "color-mix(in srgb, var(--dashboard-card-soft) 88%, transparent)",
+        borderColor: "var(--dashboard-border)",
       }}
-      onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLElement).style.color =
-          "var(--dashboard-text)"
-        ;(e.currentTarget as HTMLElement).style.borderColor =
-          "var(--brand-primary)"
-      }}
-      onMouseLeave={(e) => {
-        ;(e.currentTarget as HTMLElement).style.color =
-          "var(--dashboard-muted)"
-        ;(e.currentTarget as HTMLElement).style.borderColor =
-          "var(--dashboard-border)"
-      }}
+      aria-label="Reinitialiser la periode"
+      title="Reinitialiser"
     >
       <RotateCcw className="h-4 w-4" />
-      <span className="sr-only">Réinitialiser</span>
     </button>
   </div>
 
-  {/* Active filters badges */}
-  {(startDate || endDate) && (
-    <div
-      style={{
-        display: "flex",
-        gap: "8px",
-        flexWrap: "wrap",
-        marginTop: "14px",
-        paddingTop: "12px",
-        borderTop: "1px solid var(--dashboard-line)",
-      }}
-    >
-      <span
-        style={{
-          fontSize: "11px",
-          color: "var(--dashboard-muted)",
-          alignSelf: "center",
-        }}
-      >
-        Filtres actifs :
-      </span>
-
-      
-
-      {startDate && (
-        <span
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            padding: "3px 10px",
-            borderRadius: "99px",
-            background:
-              "color-mix(in srgb, var(--brand-secondary) 14%, transparent)",
-            color: "var(--brand-secondary)",
-            border:
-              "1px solid color-mix(in srgb, var(--brand-secondary) 28%, transparent)",
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-          }}
-        >
-          Du : {startDate}
-          <span
-            style={{ cursor: "pointer", opacity: 0.65 }}
-            onClick={() => setStartDate("")}
-          >
-            ×
-          </span>
-        </span>
-      )}
-
-      {endDate && (
-        <span
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            padding: "3px 10px",
-            borderRadius: "99px",
-            background:
-              "color-mix(in srgb, var(--brand-tertiary) 14%, transparent)",
-            color: "var(--brand-tertiary)",
-            border:
-              "1px solid color-mix(in srgb, var(--brand-tertiary) 28%, transparent)",
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-          }}
-        >
-          Au : {endDate}
-          <span
-            style={{ cursor: "pointer", opacity: 0.65 }}
-            onClick={() => setEndDate("")}
-          >
-            ×
-          </span>
-        </span>
-      )}
-    </div>
+  {(sitesError || statsError || dateFilterError) && (
+    <p className="mt-3 text-[11px] font-bold text-red-300">
+      {sitesError || statsError || dateFilterError}
+    </p>
   )}
 </div>
 
@@ -2621,6 +2253,7 @@ style={{ borderColor: "var(--dashboard-border)" }}
     }
     color="var(--brand-tertiary)"
     gradientId="bounceRateChart"
+    badge="GA4"
   />
   <EngagementCircleCard
     value={engagementRate}

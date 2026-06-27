@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from data_module.models import Website, GAMetrics, GSCMetrics, GAEvent
+from data_module.models import Website, GAMetrics, GSCMetrics, GAEvent, Notification
 from data_module.google_analytics import get_ga4_daily, get_ga4_events
 from data_module.search_console import get_gsc_daily
 from data_module.alerts import send_pipeline_error_email
@@ -105,7 +105,21 @@ class Command(BaseCommand):
                 error_message = f"Erreur pour {website.name} : {e}"
                 print(error_message)
 
+                Notification.objects.create(
+                    title="Problème partiel ETL GA4/GSC",
+                    message=error_message,
+                    level="warning",
+                    source="import_google_metrics",
+                )
+
                 try:
-                    send_pipeline_error_email(error_message)
+                    send_pipeline_error_email(
+                        error_message,
+                        subject="Alerte ETL - Problème partiel sur un site GA4/GSC",
+                        intro=(
+                            "Le pipeline ETL a continué son exécution, mais "
+                            "un site n'a pas pu être importé correctement."
+                        ),
+                    )
                 except Exception as mail_error:
                     print(f"Email d'alerte non envoyé : {mail_error}")

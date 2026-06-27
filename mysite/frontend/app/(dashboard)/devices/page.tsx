@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type InputHTMLAttributes } from "react"
 import { useRouter } from "next/navigation"
 import {
   AlertCircle,
@@ -752,7 +752,7 @@ const handleDeleteWebsite = async () => {
       </p>
 
       <h1 className="text-[32px] font-black leading-none tracking-tight text-[var(--dashboard-text)]">
-        Mes sites
+        Les sites
       </h1>
 
       <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-[var(--dashboard-muted)]">
@@ -803,7 +803,7 @@ const handleDeleteWebsite = async () => {
           setAddSiteMessage("")
           setShowAddSiteModal(true)
         }}
-        className="flex h-12 items-center justify-center gap-2 rounded-[18px] px-6 text-sm font-black text-white transition hover:opacity-90"
+        className="flex h-12 min-w-[190px] items-center justify-center gap-2 whitespace-nowrap rounded-[18px] px-7 text-sm font-black text-white transition hover:opacity-90"
         style={{
           background: "var(--brand-gradient)",
           boxShadow:
@@ -811,7 +811,7 @@ const handleDeleteWebsite = async () => {
         }}
       >
         <Plus className="h-4 w-4" />
-        Ajouter
+        Ajouter un site
       </button>
     </div>
   </div>
@@ -1237,26 +1237,26 @@ const handleDeleteWebsite = async () => {
 
       {/* MODAL AJOUT SITE */}
 {showAddSiteModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/75 px-4 py-8 backdrop-blur-md">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/65 px-4 py-8 backdrop-blur-sm">
     <div
-      className="w-full max-w-[500px] rounded-[30px] border p-6"
+      className="w-full max-w-[480px] rounded-3xl border p-6"
       style={{
-        background:
-          "linear-gradient(145deg, var(--dashboard-card), color-mix(in srgb, var(--brand-primary) 5%, var(--dashboard-card)))",
-        borderColor:
-          "color-mix(in srgb, var(--brand-primary) 40%, var(--dashboard-border))",
-        boxShadow:
-          "0 35px 100px rgba(0,0,0,0.52), 0 0 55px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
+        background: "var(--dashboard-card)",
+        borderColor: "var(--dashboard-border)",
+        boxShadow: "0 24px 70px rgba(0,0,0,0.42)",
       }}
     >
       {/* EN-TÊTE */}
       <div
-        className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[29px] px-6 py-4"
-        style={{ background: "var(--brand-gradient)" }}
+        className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[23px] px-6 py-4"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 86%, #111827), color-mix(in srgb, var(--brand-secondary) 76%, #111827))",
+        }}
       >
         <div className="flex items-center gap-3">
-          <Globe className="h-5 w-5 shrink-0 text-white" />
-          <h2 className="text-lg font-black text-white">
+          <Globe className="h-4 w-4 shrink-0 text-white/90" />
+          <h2 className="text-base font-bold text-white">
             Ajouter un site
           </h2>
 
@@ -1271,7 +1271,7 @@ const handleDeleteWebsite = async () => {
             setShowAddSiteModal(false)
             setAddSiteMessage("")
           }}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
           style={{
             color: "white",
           }}
@@ -1282,65 +1282,53 @@ const handleDeleteWebsite = async () => {
       </div>
 
       {/* CHAMPS */}
-      <div className="space-y-3">
-        <input
-  type="text"
-  placeholder="Nom du site"
-  value={siteName}
-  onChange={(e) => setSiteName(e.target.value)}
-  minLength={2}
-  maxLength={20}
-  required
-  className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
-  style={{
-    background: "var(--dashboard-card-soft)",
-    borderColor: "var(--dashboard-border)",
-    color: "var(--dashboard-text)",
-  }}
-/>
+      <div className="space-y-4">
+        <SiteModalField
+          icon={Globe}
+          label="Nom du site"
+          type="text"
+          placeholder="Nom du site"
+          value={siteName}
+          onChange={(e) => setSiteName(e.target.value)}
+          minLength={2}
+          maxLength={20}
+          required
+        />
 
-        <input
-  type="text"
-  inputMode="numeric"
-  placeholder="Identifiant GA4"
-  value={ga4PropertyId}
-  onChange={(e) => {
-    const value = e.target.value
-      .replace(/\D/g, "")
-      .slice(0, 8)
+        <SiteModalField
+          icon={BarChart3}
+          label="Identifiant GA4"
+          type="text"
+          inputMode="numeric"
+          placeholder="Identifiant GA4"
+          value={ga4PropertyId}
+          onChange={(e) => {
+            const value = e.target.value
+              .replace(/\D/g, "")
+              .slice(0, 8)
 
-    setGa4PropertyId(value)
-  }}
-  minLength={8}
-  maxLength={8}
-  required
-  className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
-  style={{
-    background: "var(--dashboard-card-soft)",
-    borderColor: "var(--dashboard-border)",
-    color: "var(--dashboard-text)",
-  }}
-/>
+            setGa4PropertyId(value)
+          }}
+          minLength={8}
+          maxLength={8}
+          required
+        />
 
-       <input
-  type="url"
-  placeholder="URL Search Console"
-  value={gscSiteUrl}
-  onChange={(e) => setGscSiteUrl(e.target.value)}
-  required
-  className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none transition focus:ring-2"
-  style={{
-    background: "var(--dashboard-card-soft)",
-    borderColor: "var(--dashboard-border)",
-    color: "var(--dashboard-text)",
-  }}
-/>
+        <SiteModalField
+          icon={Search}
+          label="URL Search Console"
+          type="url"
+          placeholder="URL Search Console"
+          value={gscSiteUrl}
+          onChange={(e) => setGscSiteUrl(e.target.value)}
+          required
+        />
       </div>
 
       {/* MESSAGE */}
       {addSiteMessage && (
         <p
-          className="mt-4 text-[13px] font-bold"
+          className="mt-4 rounded-2xl border px-4 py-3 text-[13px] font-bold"
           style={{
             color: addSiteMessage.toLowerCase().includes("succès")
               ? "#34d399"
@@ -1352,7 +1340,7 @@ const handleDeleteWebsite = async () => {
       )}
 
       {/* BOUTONS */}
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={() => {
@@ -1360,7 +1348,7 @@ const handleDeleteWebsite = async () => {
             setAddSiteMessage("")
           }}
           disabled={addSiteLoading}
-          className="h-12 rounded-[18px] border text-[14px] font-black transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 rounded-xl border px-7 text-[14px] font-bold transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             borderColor: "var(--dashboard-border)",
             color: "var(--dashboard-text)",
@@ -1373,11 +1361,11 @@ const handleDeleteWebsite = async () => {
           type="button"
           onClick={handleCreateWebsite}
           disabled={addSiteLoading}
-          className="h-12 rounded-[18px] text-[14px] font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 rounded-xl px-9 text-[14px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             background: "var(--brand-gradient)",
             boxShadow:
-              "0 10px 24px color-mix(in srgb, var(--brand-primary) 24%, transparent)",
+              "0 8px 18px color-mix(in srgb, var(--brand-primary) 18%, transparent)",
           }}
         >
           {addSiteLoading ? "Ajout..." : "Ajouter"}
@@ -1388,25 +1376,25 @@ const handleDeleteWebsite = async () => {
 )}
 {/* MODAL MODIFICATION SITE */}
 {showEditSiteModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/75 px-4 py-8 backdrop-blur-md">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#060713]/65 px-4 py-8 backdrop-blur-sm">
     <div
-      className="w-full max-w-[500px] rounded-[30px] border p-6"
+      className="w-full max-w-[480px] rounded-3xl border p-6"
       style={{
-        background:
-          "linear-gradient(145deg, var(--dashboard-card), color-mix(in srgb, var(--brand-primary) 5%, var(--dashboard-card)))",
-        borderColor:
-          "color-mix(in srgb, var(--brand-primary) 40%, var(--dashboard-border))",
-        boxShadow:
-          "0 35px 100px rgba(0,0,0,0.52), 0 0 55px color-mix(in srgb, var(--brand-primary) 16%, transparent)",
+        background: "var(--dashboard-card)",
+        borderColor: "var(--dashboard-border)",
+        boxShadow: "0 24px 70px rgba(0,0,0,0.42)",
       }}
     >
       <div
-        className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[29px] px-6 py-4"
-        style={{ background: "var(--brand-gradient)" }}
+        className="-mx-6 -mt-6 mb-6 flex items-center justify-between gap-4 rounded-t-[23px] px-6 py-4"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 86%, #111827), color-mix(in srgb, var(--brand-secondary) 76%, #111827))",
+        }}
       >
         <div className="flex items-center gap-3">
-          <Globe className="h-5 w-5 shrink-0 text-white" />
-          <h2 className="text-lg font-black text-white">
+          <Globe className="h-4 w-4 shrink-0 text-white/90" />
+          <h2 className="text-base font-bold text-white">
             Modifier le site
           </h2>
 
@@ -1422,7 +1410,7 @@ const handleDeleteWebsite = async () => {
             setSelectedSiteId(null)
             setEditSiteMessage("")
           }}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
           style={{
             color: "white",
           }}
@@ -1431,50 +1419,38 @@ const handleDeleteWebsite = async () => {
         </button>
       </div>
 
-      <div className="space-y-3">
-        <input
+      <div className="space-y-4">
+        <SiteModalField
+          icon={Globe}
+          label="Nom du site"
           type="text"
           placeholder="Nom du site"
           value={editSiteName}
           onChange={(e) => setEditSiteName(e.target.value)}
-          className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
         />
 
-        <input
+        <SiteModalField
+          icon={BarChart3}
+          label="Identifiant GA4"
           type="text"
           placeholder="Identifiant GA4"
           value={editGa4PropertyId}
           onChange={(e) => setEditGa4PropertyId(e.target.value)}
-          className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
         />
 
-        <input
+        <SiteModalField
+          icon={Search}
+          label="URL Search Console"
           type="url"
           placeholder="URL Search Console"
           value={editGscSiteUrl}
           onChange={(e) => setEditGscSiteUrl(e.target.value)}
-          className="h-12 w-full rounded-[18px] border px-4 text-[14px] font-semibold outline-none"
-          style={{
-            background: "var(--dashboard-card-soft)",
-            borderColor: "var(--dashboard-border)",
-            color: "var(--dashboard-text)",
-          }}
         />
       </div>
 
       {editSiteMessage && (
         <p
-          className="mt-4 text-[13px] font-bold"
+          className="mt-4 rounded-2xl border px-4 py-3 text-[13px] font-bold"
           style={{
             color: editSiteMessage.toLowerCase().includes("succès")
               ? "#34d399"
@@ -1485,7 +1461,7 @@ const handleDeleteWebsite = async () => {
         </p>
       )}
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={() => {
@@ -1494,7 +1470,7 @@ const handleDeleteWebsite = async () => {
             setEditSiteMessage("")
           }}
           disabled={editSiteLoading}
-          className="h-12 rounded-[18px] border text-[14px] font-black transition hover:bg-white/5 disabled:opacity-60"
+          className="h-11 rounded-xl border px-7 text-[14px] font-bold transition hover:bg-white/5 disabled:opacity-60"
           style={{
             borderColor: "var(--dashboard-border)",
             color: "var(--dashboard-text)",
@@ -1507,7 +1483,7 @@ const handleDeleteWebsite = async () => {
           type="button"
           onClick={handleUpdateWebsite}
           disabled={editSiteLoading}
-          className="h-12 rounded-[18px] text-[14px] font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-11 rounded-xl px-9 text-[14px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             background: "var(--brand-gradient)",
           }}
@@ -1605,4 +1581,35 @@ const handleDeleteWebsite = async () => {
 )}
 </section>
 )
+}
+
+function SiteModalField({
+  label,
+  icon: Icon,
+  className = "",
+  ...props
+}: {
+  label: string
+  icon: LucideIcon
+} & InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[13px] font-bold text-[var(--dashboard-text)]">
+        {label}
+      </span>
+      <span className="relative block">
+        <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
+        <input
+          {...props}
+          className={`h-12 w-full rounded-2xl border py-0 pl-11 pr-4 text-[14px] font-semibold outline-none transition placeholder:text-[var(--dashboard-muted)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/10 ${className}`}
+          style={{
+            background: "var(--dashboard-card-soft)",
+            borderColor: "var(--dashboard-border)",
+            color: "var(--dashboard-text)",
+            ...props.style,
+          }}
+        />
+      </span>
+    </label>
+  )
 }

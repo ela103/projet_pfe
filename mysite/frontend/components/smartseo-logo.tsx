@@ -30,7 +30,7 @@ function LogoMark({ compact = false }: { compact?: boolean }) {
       />
       <path
         d="M50 39V57"
-        stroke="#18C7E8"
+        stroke="#8B5CF6"
         strokeWidth="5"
         strokeLinecap="round"
       />

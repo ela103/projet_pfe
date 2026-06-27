@@ -6,9 +6,16 @@ from .rag_builder import build_rag_documents
 
 
 _RAG_CACHE = {}
+_EMBEDDING_MODEL = None
 
-# Modèle local d'embeddings
-model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def get_embedding_model():
+    global _EMBEDDING_MODEL
+
+    if _EMBEDDING_MODEL is None:
+        _EMBEDDING_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+
+    return _EMBEDDING_MODEL
 
 
 def clear_rag_cache(website_id=None):
@@ -31,7 +38,7 @@ def get_cached_documents(website_id=None):
                 "embeddings": None,
             }
         else:
-            embeddings = model.encode(texts, normalize_embeddings=True)
+            embeddings = get_embedding_model().encode(texts, normalize_embeddings=True)
 
             _RAG_CACHE[cache_key] = {
                 "documents": documents,
@@ -51,9 +58,9 @@ def retrieve_relevant_documents(question, website_id=None, top_k=5):
     if not documents or embeddings is None:
         return []
 
-    question_embedding = model.encode(
+    question_embedding = get_embedding_model().encode(
         [question],
-        normalize_embeddings=True
+        normalize_embeddings=True,
     )
 
     similarities = cosine_similarity(question_embedding, embeddings)[0]
