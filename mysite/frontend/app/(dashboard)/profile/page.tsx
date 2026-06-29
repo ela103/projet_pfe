@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { startRegistration } from "@simplewebauthn/browser"
 import {
   AlertTriangle,
   BadgeCheck,
@@ -17,7 +16,6 @@ import {
   Trash2,
   Users,
   X,
-  Fingerprint,
   type LucideIcon,
 } from "lucide-react"
 
@@ -64,9 +62,6 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [passwordMessage, setPasswordMessage] = useState("")
   const [passwordLoading, setPasswordLoading] = useState(false)
-  const [passkeyLoading, setPasskeyLoading] = useState(false)
-  const [passkeyMessage, setPasskeyMessage] = useState("")
-  const [passkeySuccess, setPasskeySuccess] = useState(false)
   const [photoLoading, setPhotoLoading] = useState(false)
   const [photoMessage, setPhotoMessage] = useState("")
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -156,88 +151,6 @@ export default function ProfilePage() {
       setPasswordLoading(false)
     }
   }
-
-const handleRegisterPasskey = async () => {
-  if (passkeyLoading) return
-
-  try {
-    setPasskeyLoading(true)
-    setPasskeyMessage("")
-    setPasskeySuccess(false)
-
-    const optionsResponse = await fetch(
-      "http://localhost:8000/api/passkeys/register/options/",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    )
-
-    const optionsData = await optionsResponse.json()
-
-    if (!optionsResponse.ok) {
-      throw new Error(
-        optionsData.message ||
-          "Impossible de préparer l’enregistrement de la passkey.",
-      )
-    }
-
-    const credential = await startRegistration({
-      optionsJSON: optionsData,
-    })
-
-    const verifyResponse = await fetch(
-      "http://localhost:8000/api/passkeys/register/verify/",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          credential,
-          device_name: "Mon appareil",
-        }),
-      },
-    )
-
-    const verifyData = await verifyResponse.json()
-
-    if (!verifyResponse.ok) {
-      throw new Error(
-        verifyData.message ||
-          "La vérification de la passkey a échoué.",
-      )
-    }
-
-    setPasskeySuccess(true)
-    setPasskeyMessage(
-      verifyData.message ||
-        "La connexion avec cet appareil est activée.",
-    )
-  } catch (error) {
-    console.error("Erreur passkey :", error)
-
-    setPasskeySuccess(false)
-
-    if (error instanceof Error && error.name === "NotAllowedError") {
-      setPasskeyMessage(
-        "L’opération a été annulée ou aucun moyen d’authentification n’est disponible.",
-      )
-    } else {
-      setPasskeyMessage(
-        error instanceof Error
-          ? error.message
-          : "Impossible d’activer la connexion avec cet appareil.",
-      )
-    }
-  } finally {
-    setPasskeyLoading(false)
-  }
-}
 
   const handlePhotoChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -519,21 +432,6 @@ const handleRegisterPasskey = async () => {
                   />
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {["SEO", "Dashboard", "Analytics", "IA"].map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full px-3 py-1 text-[11px] font-black"
-                      style={{
-                        background:
-                          "color-mix(in srgb, var(--brand-primary) 12%, transparent)",
-                        color: "var(--brand-primary)",
-                      }}
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
@@ -600,62 +498,6 @@ const handleRegisterPasskey = async () => {
   </span>
 </button>
 
-<button
-  type="button"
-  onClick={() => void handleRegisterPasskey()}
-  disabled={passkeyLoading || passkeySuccess}
-  className="relative flex w-full items-center gap-4 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-  style={{
-    background:
-      "color-mix(in srgb, var(--brand-secondary) 9%, var(--dashboard-card-soft))",
-  }}
->
-  <div
-    className="z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full text-white"
-    style={{ background: "var(--brand-secondary)" }}
-  >
-    <Fingerprint className="h-5 w-5" />
-  </div>
-
-  <div className="min-w-0 flex-1">
-    <p className="text-[14px] font-black text-[var(--dashboard-text)]">
-      Connexion avec cet appareil
-    </p>
-
-    <p className="mt-1 text-[12px] font-semibold text-[var(--dashboard-muted)]">
-      Utiliser Windows Hello, une empreinte, le visage ou un code PIN.
-    </p>
-  </div>
-
-  <span
-    className="rounded-full px-3 py-1 text-[11px] font-black"
-    style={{
-      background:
-        "color-mix(in srgb, var(--brand-secondary) 14%, transparent)",
-      color: "var(--brand-secondary)",
-    }}
-  >
-    {passkeyLoading
-      ? "Activation..."
-      : passkeySuccess
-        ? "Activée"
-        : "Activer"}
-  </span>
-</button>
-
-{passkeyMessage && (
-  <div
-    className="rounded-xl px-4 py-3 text-sm font-bold"
-    style={{
-      background: passkeySuccess
-        ? "rgba(16, 185, 129, 0.10)"
-        : "rgba(239, 68, 68, 0.10)",
-      color: passkeySuccess ? "#10b981" : "#ef4444",
-    }}
-  >
-    {passkeyMessage}
-  </div>
-)}
               {user?.is_superuser === true && (
                 <button
                   type="button"
