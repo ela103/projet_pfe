@@ -36,6 +36,14 @@ interface SidebarProps {
   onClose?: () => void
 }
 
+type UserProfile = {
+  authenticated: boolean
+  email: string
+  first_name: string
+  last_name: string
+  is_superuser: boolean
+}
+
 const sections: Section[] = [
   {
     title: "Principal",
@@ -74,6 +82,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-open")
@@ -83,6 +92,35 @@ export function Sidebar({ onClose }: SidebarProps) {
   useEffect(() => {
     localStorage.setItem("sidebar-open", open ? "1" : "0")
   }, [open])
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/me/", {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+        setUser(data)
+      } catch (error) {
+        console.error("Erreur chargement utilisateur :", error)
+      }
+    }
+
+    fetchUser()
+  }, [])
+
+  const userFullName =
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() ||
+    user?.email ||
+    "Admin"
+  const userRole = user?.is_superuser ? "Super Admin" : "Admin"
+  const userInitial =
+    (user?.first_name || user?.email || "A").trim().charAt(0).toUpperCase() ||
+    "A"
 
   return (
     <aside
@@ -251,7 +289,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 background: "var(--brand-gradient)",
               }}
             >
-              A
+              {userInitial}
             </div>
 
             <div className="min-w-0">
@@ -259,13 +297,13 @@ export function Sidebar({ onClose }: SidebarProps) {
                 className="truncate text-sm font-black"
                 style={{ color: "var(--sidebar-text)" }}
               >
-                Admin
+                {userFullName}
               </p>
               <p
                 className="truncate text-xs"
                 style={{ color: "var(--sidebar-muted)" }}
               >
-                SEO Manager
+                {userRole}
               </p>
             </div>
           </div>

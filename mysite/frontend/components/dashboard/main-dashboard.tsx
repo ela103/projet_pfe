@@ -16,7 +16,22 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { ArrowRight, Bell, CalendarDays, RotateCcw, Search } from "lucide-react"
+import {
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  Bell,
+  CalendarDays,
+  RotateCcw,
+  Search,
+} from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 type Website = {
@@ -339,6 +354,99 @@ function buildMiniTrendFromValue(value: number, points = 7) {
   })
 }
 
+function calculateTrend(data: { y: number }[]) {
+  if (data.length < 2) return null
+
+  const middle = Math.floor(data.length / 2)
+  const previous = data
+    .slice(0, middle)
+    .reduce((acc, item) => acc + Number(item.y || 0), 0)
+  const current = data
+    .slice(middle)
+    .reduce((acc, item) => acc + Number(item.y || 0), 0)
+
+  if (previous === 0) return current > 0 ? 100 : null
+
+  return Number((((current - previous) / previous) * 100).toFixed(1))
+}
+
+function formatTrend(value: number) {
+  const cappedValue = Math.max(-100, Math.min(100, value))
+  const sign = cappedValue > 0 ? "+" : ""
+  const formattedValue = Number.isInteger(cappedValue)
+    ? cappedValue.toFixed(0)
+    : cappedValue.toFixed(1)
+
+  return `${sign}${formattedValue}%`
+}
+
+function formatDateParam(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function getPreviousPeriod(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00`)
+  const end = new Date(`${endDate}T00:00:00`)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000
+  const durationDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / dayMs) + 1)
+  const previousEnd = new Date(start.getTime() - dayMs)
+  const previousStart = new Date(previousEnd.getTime() - (durationDays - 1) * dayMs)
+
+  return {
+    start: formatDateParam(previousStart),
+    end: formatDateParam(previousEnd),
+  }
+}
+
+function getCurrentWeekPeriod() {
+  const today = new Date()
+  const currentDay = today.getDay()
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay
+  const start = new Date(today)
+  start.setDate(today.getDate() + mondayOffset)
+
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+
+  return {
+    start: formatDateParam(start),
+    end: formatDateParam(end),
+  }
+}
+
+function getActiveComparisonPeriod(
+  selectedDate: string | null,
+  startDate: string,
+  endDate: string
+) {
+  if (selectedDate) {
+    return {
+      start: selectedDate,
+      end: selectedDate,
+    }
+  }
+
+  if (startDate && endDate) {
+    return {
+      start: startDate,
+      end: endDate,
+    }
+  }
+
+  return getCurrentWeekPeriod()
+}
+
+function calculatePercentChange(current: number, previous: number) {
+  if (previous === 0) return current > 0 ? 100 : null
+
+  return Number((((current - previous) / previous) * 100).toFixed(1))
+}
+
 function formatCompact(value: number) {
   if (!value) return "0"
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
@@ -410,6 +518,7 @@ function StatCard({
   gradientId,
   hideChart = false,
   badge = "Periode",
+  trend,
 }: {
   title: string
   value: string
@@ -419,14 +528,35 @@ function StatCard({
   gradientId: string
   hideChart?: boolean
   badge?: string
+  trend?: number | null
 }) {
+  const displayTrend = typeof trend === "number" ? trend : 0
+  const TrendIcon =
+    displayTrend > 0 ? ArrowUpRight : displayTrend < 0 ? ArrowDownRight : ArrowRight
+
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-bold text-[var(--dashboard-muted)]">
-            {title}
-          </p>
+          <div className="flex items-center gap-3">
+            <p
+              className={`whitespace-nowrap font-bold text-[var(--dashboard-muted)] ${
+                title.length > 18 ? "text-[10px]" : "text-[11px]"
+              }`}
+            >
+              {title}
+            </p>
+
+            <span
+              className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-black"
+              style={{
+                color,
+              }}
+            >
+              <TrendIcon className="h-3 w-3" strokeWidth={3} />
+              {formatTrend(displayTrend)}
+            </span>
+          </div>
 
           <h2 className="mt-1 text-[30px] font-black leading-none text-[var(--dashboard-text)]">
             {value}
@@ -461,6 +591,13 @@ function StatCard({
                 Aucun trafic
               </span>
             </div>
+          </div>
+        ) : data.length < 2 ? (
+          <div className="flex h-full flex-col justify-center px-2">
+            <div
+              className="h-[2px] w-full rounded-full"
+              style={{ backgroundColor: color }}
+            />
           </div>
         ) : data.every((item) => Number(item.y || 0) === 0) ? (
           <div className="flex h-full flex-col justify-center px-2">
@@ -512,6 +649,9 @@ function GaugeCard({
   target: number
 }) {
   const rotation = Math.max(12, Math.min(170, progress * 1.7))
+  const gaugeColor = value <= 0 ? "#0f172a" : "var(--brand-secondary)"
+  const gaugeTrackColor = value <= 0 ? "#0f172a" : "#2a2d4b"
+  const badgeColor = value <= 0 ? "var(--dashboard-muted)" : gaugeColor
 
   return (
     <Card className="h-[232px] p-5">
@@ -531,8 +671,8 @@ function GaugeCard({
         <span
           className="rounded-full px-2.5 py-1 text-[10px] font-bold"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--brand-primary) 22%, var(--dashboard-card))",
-            color: "var(--brand-primary)",
+            backgroundColor: `color-mix(in srgb, ${badgeColor} 18%, var(--dashboard-card))`,
+            color: badgeColor,
           }}
         >
           GSC
@@ -540,11 +680,16 @@ function GaugeCard({
       </div>
 
       <div className="relative mx-auto mt-5 h-[92px] w-[190px] overflow-hidden">
-        <div className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px] border-[#2a2d4b]" />
+        <div
+          className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px]"
+          style={{ borderColor: gaugeTrackColor }}
+        />
 
         <div
-          className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px] border-transparent border-r-[var(--brand-primary)] border-t-[var(--brand-primary)]"
+          className="absolute left-0 top-0 h-[190px] w-[190px] rounded-full border-[18px] border-transparent"
           style={{
+            borderRightColor: gaugeColor,
+            borderTopColor: gaugeColor,
             transform: `rotate(${rotation}deg)`,
           }}
         />
@@ -582,7 +727,7 @@ function EventsCard({
 
   return (
     <Card className="p-4">
-      <SectionTitle title="Événements GA4" rightText="Données réelles" />
+      <SectionTitle title="Événements GA4" rightText="GA4" />
 
       {loading ? (
         <div className="flex h-[170px] items-center justify-center">
@@ -848,7 +993,7 @@ function LevelCard({
           label="CTR moyen"
           value={`${ctr}%`}
           width={`${Math.min(100, ctr * 10)}%`}
-          color="var(--brand-primary)"
+          color="var(--brand-secondary)"
         />
 
         <LevelBar
@@ -862,7 +1007,7 @@ function LevelCard({
           label="Taux d’engagement"
           value={`${engagementRate}%`}
           width={`${Math.min(100, engagementRate)}%`}
-          color="var(--brand-tertiary)"
+          color="var(--brand-secondary)"
         />
 
         <LevelBar
@@ -1367,6 +1512,7 @@ export function MainDashboard() {
   const [sitesError, setSitesError] = useState("")
 
   const [statsData, setStatsData] = useState<StatsData | null>(null)
+  const [previousStatsData, setPreviousStatsData] = useState<StatsData | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
   const [statsError, setStatsError] = useState("")
 
@@ -1376,6 +1522,7 @@ export function MainDashboard() {
   const [appliedStartDate, setAppliedStartDate] = useState("")
   const [appliedEndDate, setAppliedEndDate] = useState("")
   const [topKeywords, setTopKeywords] = useState<TopKeyword[]>([])
+  const [previousTopKeywordsCount, setPreviousTopKeywordsCount] = useState<number | null>(null)
   const [keywordsLoading, setKeywordsLoading] = useState(false)
   const [keywordsError, setKeywordsError] = useState("")
   const [topPages, setTopPages] = useState<TopPage[]>([])
@@ -1601,6 +1748,51 @@ const currentTheme = selectedTheme
   fetchStats()
 }, [selectedWebsiteId, appliedStartDate, appliedEndDate, selectedCalendarDate])
 
+useEffect(() => {
+  if (!selectedWebsiteId) return
+
+  const fetchPreviousStats = async () => {
+    try {
+      const currentPeriod = getActiveComparisonPeriod(
+        selectedCalendarDate,
+        appliedStartDate,
+        appliedEndDate
+      )
+      const previousPeriod = getPreviousPeriod(currentPeriod.start, currentPeriod.end)
+
+      if (!previousPeriod) {
+        setPreviousStatsData(null)
+        return
+      }
+
+      const params = new URLSearchParams()
+      params.append("website_id", selectedWebsiteId)
+      params.append("start_date", previousPeriod.start)
+      params.append("end_date", previousPeriod.end)
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/data/dashboard/stats-dw/?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      if (!response.ok) {
+        setPreviousStatsData(null)
+        return
+      }
+
+      const data = await response.json()
+      setPreviousStatsData(data)
+    } catch {
+      setPreviousStatsData(null)
+    }
+  }
+
+  fetchPreviousStats()
+}, [selectedWebsiteId, appliedStartDate, appliedEndDate, selectedCalendarDate])
+
   useEffect(() => {
   if (!selectedWebsiteId) return
 
@@ -1701,11 +1893,45 @@ const currentTheme = selectedTheme
       }
 
       setTopKeywords(data.keywords || [])
+
+      const currentStartDate = selectedCalendarDate || appliedStartDate
+      const currentEndDate = selectedCalendarDate || appliedEndDate
+      const previousPeriod =
+        currentStartDate && currentEndDate
+          ? getPreviousPeriod(currentStartDate, currentEndDate)
+          : null
+
+      if (!previousPeriod) {
+        setPreviousTopKeywordsCount(null)
+        return
+      }
+
+      const previousParams = new URLSearchParams()
+      previousParams.append("website_id", selectedWebsiteId)
+      previousParams.append("start_date", previousPeriod.start)
+      previousParams.append("end_date", previousPeriod.end)
+
+      const previousResponse = await fetch(
+        `http://127.0.0.1:8000/data/top-keywords-dw/?${previousParams.toString()}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      if (!previousResponse.ok) {
+        setPreviousTopKeywordsCount(null)
+        return
+      }
+
+      const previousData = await previousResponse.json()
+      setPreviousTopKeywordsCount((previousData.keywords || []).length)
     } catch (err: any) {
       setKeywordsError(
         err.message || "Erreur lors du chargement des mots-clés."
       )
       setTopKeywords([])
+      setPreviousTopKeywordsCount(null)
     } finally {
       setKeywordsLoading(false)
     }
@@ -1790,6 +2016,27 @@ useEffect(() => {
   const totalClicks =
     statsData?.gsc_chart?.reduce((acc, item) => acc + Number(item.clicks || 0), 0) || 0
 
+  const previousTotalClicks =
+    previousStatsData?.gsc_chart?.reduce((acc, item) => acc + Number(item.clicks || 0), 0) || 0
+
+  const previousTotalSessions =
+    previousStatsData?.ga_chart?.reduce((acc, item) => acc + Number(item.sessions || 0), 0) || 0
+
+  const previousTotalPageViews =
+    previousStatsData?.ga_chart?.reduce((acc, item) => acc + Number(item.page_views || 0), 0) || 0
+
+  const organicTrafficTrend = useMemo(() => {
+    return calculatePercentChange(totalClicks, previousTotalClicks)
+  }, [totalClicks, previousTotalClicks])
+
+  const pageViewsTrend = useMemo(() => {
+    return calculatePercentChange(totalPageViews, previousTotalPageViews)
+  }, [totalPageViews, previousTotalPageViews])
+
+  const totalTrafficTrend = useMemo(() => {
+    return calculatePercentChange(totalSessions, previousTotalSessions)
+  }, [totalSessions, previousTotalSessions])
+
   const fallbackPageViewsChart = buildMiniTrendFromValue(totalPageViews, 7)
 
   const positionedKeywords = topKeywords.length
@@ -1801,6 +2048,20 @@ useEffect(() => {
         y: index % 2 === 0 ? positionedKeywords : Math.max(1, positionedKeywords / 2),
       }))
     : []
+
+  const positionedKeywordsTrend = useMemo(() => {
+    if (previousTopKeywordsCount === null) {
+      return calculateTrend(miniKeywordsChart)
+    }
+
+    if (previousTopKeywordsCount === 0) {
+      return positionedKeywords > 0 ? 100 : null
+    }
+
+    return Number(
+      (((positionedKeywords - previousTopKeywordsCount) / previousTopKeywordsCount) * 100).toFixed(1)
+    )
+  }, [miniKeywordsChart, positionedKeywords, previousTopKeywordsCount])
 
   const totalImpressions =
     statsData?.gsc_chart?.reduce((acc, item) => acc + Number(item.impressions || 0), 0) || 0
@@ -2028,28 +2289,53 @@ const userDisplayName =
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <select
-              value={selectedWebsiteId}
-              onChange={(e) => {
-                const value = e.target.value
+            <Select
+              value={selectedWebsiteId || undefined}
+              disabled={loadingSites || websites.length === 0}
+              onValueChange={(value) => {
                 setSelectedWebsiteId(value)
                 localStorage.setItem("websiteId", value)
               }}
-              className="h-9 rounded-xl border bg-[var(--dashboard-card)] px-3 text-[12px] font-semibold text-[var(--dashboard-text)] outline-none"
-              style={{ borderColor: "var(--dashboard-border)" }}
             >
-              {loadingSites ? (
-                <option>Loading...</option>
-              ) : websites.length === 0 ? (
-                <option>No website</option>
-              ) : (
-                websites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.name}
-                  </option>
-                ))
-              )}
-            </select>
+              <SelectTrigger
+                className="h-9 w-full min-w-[200px] rounded-xl border px-3 text-[12px] font-black text-[var(--dashboard-text)] shadow-[var(--dashboard-shadow)] transition hover:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:cursor-not-allowed disabled:opacity-70 sm:w-[220px]"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--dashboard-card) 88%, var(--dashboard-card-soft))",
+                  borderColor: "var(--dashboard-border)",
+                }}
+              >
+                <SelectValue
+                  placeholder={
+                    loadingSites
+                      ? "Chargement..."
+                      : websites.length === 0
+                        ? "Aucun site"
+                        : "Selectionner un site"
+                  }
+                />
+              </SelectTrigger>
+
+              <SelectContent
+                align="end"
+                className="z-[80] max-h-[190px] overflow-y-auto rounded-xl border p-1 text-[var(--dashboard-text)] shadow-[0_18px_45px_rgba(0,0,0,0.22)]"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--dashboard-card) 94%, var(--dashboard-card-soft))",
+                  borderColor: "var(--dashboard-border)",
+                }}
+              >
+                {websites.map((site) => (
+                  <SelectItem
+                    key={site.id}
+                    value={String(site.id)}
+                    className="min-h-8 cursor-pointer rounded-lg px-3 py-1.5 text-[12px] font-bold text-[var(--dashboard-text)] outline-none transition focus:bg-[color-mix(in_srgb,var(--brand-primary)_18%,var(--dashboard-card-soft))] focus:text-[var(--dashboard-text)] data-[state=checked]:bg-[color-mix(in_srgb,var(--brand-primary)_24%,var(--dashboard-card-soft))] data-[state=checked]:text-[var(--dashboard-text)]"
+                  >
+                    <span className="truncate">{site.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -2164,6 +2450,7 @@ const userDisplayName =
   color="var(--brand-secondary)"
   gradientId="organicTrafficChart"
   badge="GSC"
+  trend={organicTrafficTrend}
 />
 <StatCard
   title="Pages consultées"
@@ -2177,6 +2464,7 @@ const userDisplayName =
   color="var(--brand-primary)"
   gradientId="pageViewsChart"
   badge="GA4"
+  trend={pageViewsTrend}
 />
 <StatCard
   title="Trafic total"
@@ -2185,19 +2473,12 @@ const userDisplayName =
   data={
   miniChartTwo.length > 0
     ? miniChartTwo
-    : [
-          { x: "1", y: 30 },
-          { x: "2", y: 19 },
-          { x: "3", y: 33 },
-          { x: "4", y: 26 },
-          { x: "5", y: 42 },
-          { x: "6", y: 36 },
-          { x: "7", y: 49 },
-        ]
+    : []
   }
   color="var(--brand-secondary)"
   gradientId="sessionsChart"
   badge="GA4"
+  trend={totalTrafficTrend}
 />
 <StatCard
   title="Mots-clés positionnés"
@@ -2207,6 +2488,7 @@ const userDisplayName =
   color="var(--brand-primary)"
   gradientId="keywordsChart"
   badge="GSC"
+  trend={positionedKeywordsTrend}
 />
 
 
@@ -2251,7 +2533,7 @@ const userDisplayName =
             { x: "7", y: 30 },
           ]
     }
-    color="var(--brand-tertiary)"
+    color="var(--brand-secondary)"
     gradientId="bounceRateChart"
     badge="GA4"
   />

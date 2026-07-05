@@ -30,10 +30,10 @@ const THEMES = [
   {
     key: "rose-green",
     label: "Rose Green",
-    primary: "#F05BD8",
+    primary: "#8B5CF6",
     secondary: "#8EECC8",
     tertiary: "#18C7E8",
-    gradient: "linear-gradient(135deg, #F05BD8, #8EECC8, #18C7E8)",
+    gradient: "linear-gradient(135deg, #8B5CF6, #8EECC8, #18C7E8)",
   },
   {
     key: "mint",

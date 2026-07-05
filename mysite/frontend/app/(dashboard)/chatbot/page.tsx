@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
-import { Bot, Send, Sparkles, UserRound } from "lucide-react"
+import { Bot, Send, UserRound } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -215,8 +215,7 @@ export default function ChatbotPage() {
             </div>
           </div>
 
-          <div className="hidden items-center gap-2 rounded-full bg-[var(--dashboard-card-soft)] px-4 py-2 text-xs font-black text-[var(--dashboard-muted)] sm:flex">
-            <Sparkles className="h-4 w-4 text-[var(--brand-primary)]" />
+          <div className="hidden">
             Propulsé par l’IA
           </div>
         </header>
@@ -392,7 +391,7 @@ export default function ChatbotPage() {
             </button>
           </div>
 
-          <p className="mx-auto mt-2 max-w-5xl text-center text-[10px] font-semibold text-[var(--dashboard-muted)]">
+          <p className="hidden">
             Entrée pour envoyer · Maj + Entrée pour revenir à la ligne
           </p>
         </footer>

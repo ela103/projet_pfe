@@ -471,10 +471,10 @@
     rgba(49, 92, 255, 0.16),
     rgba(123, 92, 255, 0.14)
   );
-  --brand-primary: #18c7e8;
+  --brand-primary:#0ea5c6;
   --brand-secondary: #315cff;
   --brand-tertiary: #7b5cff;
-  --sidebar-gradient: linear-gradient(180deg, #071827 0%, #0b1735 55%, #15143a 100%);
+  --sidebar-gradient: linear-gradient(90deg, #061b2a 0%, #071b2b 58%, #15143a 100%);
 }
 
 [data-brand="violet"] {
@@ -500,17 +500,17 @@
 }
 
 [data-brand="rose-green"] {
-  --brand-gradient: linear-gradient(135deg, #f05bd8, #8eecc8, #18c7e8);
+  --brand-gradient: linear-gradient(135deg, #8b5cf6, #8eecc8, #18c7e8);
   --brand-gradient-soft: linear-gradient(
     135deg,
-    rgba(240, 91, 216, 0.18),
+    rgba(139, 92, 246, 0.18),
     rgba(142, 236, 200, 0.16),
     rgba(24, 199, 232, 0.14)
   );
-  --brand-primary: #f05bd8;
+  --brand-primary: #8b5cf6;
   --brand-secondary: #8eecc8;
   --brand-tertiary: #18c7e8;
-  --sidebar-gradient: linear-gradient(180deg, #241326 0%, #17312b 55%, #102a2d 100%);
+  --sidebar-gradient: linear-gradient(180deg, #17122d 0%, #17312b 55%, #102a2d 100%);
 }
 [data-brand="mint"] {
   --brand-gradient: linear-gradient(135deg, #14b8a6, #18c7e8, #315cff);
@@ -561,7 +561,7 @@
   --dashboard-text: #0f172a;
   --dashboard-muted: #64748b;
   --dashboard-line: rgba(15, 23, 42, 0.10);
-  --dashboard-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+  --dashboard-shadow: none;
 }
 
 .dark {
@@ -572,7 +572,7 @@
   --dashboard-text: #ffffff;
   --dashboard-muted: #7b8aa5;
   --dashboard-line: rgba(255, 255, 255, 0.06);
-  --dashboard-shadow: 0 18px 40px rgba(0, 0, 0, 0.20);
+  --dashboard-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
 }
 @keyframes blob {
   0% {

@@ -145,7 +145,7 @@ def ai_chat(request):
         print("website_id reçu :", website_id)
         print("period reçu :", period)
 
-        result = ask_ai(question, website_id, period)
+        result = ask_ai(question, website_id, period, channel=channel)
 
         saved_recommendation_id = None
         recommendation_save_reason = ""
@@ -331,13 +331,22 @@ def ai_recommendations_history(request):
 
 
 
-@csrf_exempt
-@require_POST
-def export_global_analysis_pdf(request):
+def _export_ai_text_pdf(
+    request,
+    *,
+    content_key,
+    empty_message,
+    document_title,
+    document_subject,
+    report_title,
+    report_subtitle,
+    section_title,
+    filename,
+):
     try:
         data = json.loads(request.body.decode("utf-8"))
 
-        analysis = str(data.get("analysis", "")).strip()
+        analysis = str(data.get(content_key, data.get("analysis", ""))).strip()
         website_name = str(
             data.get("website_name", "Site sélectionné")
         ).strip()
@@ -353,7 +362,7 @@ def export_global_analysis_pdf(request):
 
         if not analysis:
             return JsonResponse(
-                {"error": "Aucune analyse à exporter."},
+                {"error": empty_message},
                 status=400,
             )
 
@@ -404,9 +413,9 @@ def export_global_analysis_pdf(request):
             rightMargin=right_margin,
             topMargin=top_margin,
             bottomMargin=bottom_margin,
-            title="Rapport d’analyse globale SEO",
+            title=document_title,
             author="SmartSEO",
-            subject="Analyse globale des performances SEO",
+            subject=document_subject,
         )
 
         styles = getSampleStyleSheet()
@@ -551,11 +560,11 @@ def export_global_analysis_pdf(request):
                     [
                         Paragraph("AI INSIGHTS", brand_style),
                         Paragraph(
-                            "Rapport d'analyse globale",
+                            report_title,
                             title_style,
                         ),
                         Paragraph(
-                            "Synthèse des performances SEO et digitales",
+                            report_subtitle,
                             subtitle_style,
                         ),
                     ],
@@ -747,7 +756,7 @@ def export_global_analysis_pdf(request):
                 [
                     "",
                     Paragraph(
-                        "Analyse globale",
+                        section_title,
                         section_title_style,
                     ),
                 ]
@@ -1052,7 +1061,7 @@ def export_global_analysis_pdf(request):
 
         response["Content-Disposition"] = (
             'attachment; '
-            'filename="analyse-globale-seo.pdf"'
+            f'filename="{filename}"'
         )
 
         return response
@@ -1075,6 +1084,38 @@ def export_global_analysis_pdf(request):
             },
             status=500,
         )
+
+
+@csrf_exempt
+@require_POST
+def export_global_analysis_pdf(request):
+    return _export_ai_text_pdf(
+        request,
+        content_key="analysis",
+        empty_message="Aucune analyse à exporter.",
+        document_title="Rapport d'analyse globale SEO",
+        document_subject="Analyse globale des performances SEO",
+        report_title="Rapport d'analyse globale",
+        report_subtitle="Synthèse des performances SEO et digitales",
+        section_title="Analyse globale",
+        filename="analyse-globale-seo.pdf",
+    )
+
+
+@csrf_exempt
+@require_POST
+def export_recommendations_pdf(request):
+    return _export_ai_text_pdf(
+        request,
+        content_key="recommendations",
+        empty_message="Aucune recommandation à exporter.",
+        document_title="Rapport de recommandations SEO",
+        document_subject="Recommandations SEO prioritaires",
+        report_title="Rapport de recommandations SEO",
+        report_subtitle="Actions prioritaires pour améliorer la performance SEO",
+        section_title="Recommandations SEO",
+        filename="recommandations-seo.pdf",
+    )
 @require_GET
 def weekly_seo_summary(request):
     website_id = request.GET.get("website_id")

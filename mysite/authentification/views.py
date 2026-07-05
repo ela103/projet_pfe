@@ -130,6 +130,7 @@ def api_login(request):
         data = json.loads(request.body)
         email = data.get("email", "").strip()
         password = data.get("password", "")
+        remember_me = bool(data.get("remember_me", False))
     except json.JSONDecodeError:
         return JsonResponse(
             {
@@ -168,6 +169,8 @@ def api_login(request):
 
     # Crée aussi les jetons JWT
     refresh = RefreshToken.for_user(user)
+    if remember_me:
+        refresh.set_exp(lifetime=timedelta(days=7))
 
     return JsonResponse(
         {

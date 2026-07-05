@@ -140,6 +140,24 @@ function getScoreColor(score: number) {
   return "#ef4444"
 }
 
+async function getPdfExportErrorMessage(response: Response) {
+  const contentType = response.headers.get("content-type") || ""
+
+  if (contentType.includes("application/json")) {
+    const data = await response.json()
+
+    return data.error || "Erreur pendant la génération du PDF."
+  }
+
+  const text = await response.text()
+
+  if (text.trim().startsWith("<!DOCTYPE")) {
+    return "La route d'export PDF est introuvable ou le serveur backend doit etre redemarre."
+  }
+
+  return text || "Erreur pendant la génération du PDF."
+}
+
 function AIInsightTimeFilter({
   value,
   onChange,
@@ -297,6 +315,7 @@ const [refreshKey, setRefreshKey] = useState(0)
          website_id: websiteId,
          period: appliedPeriod,
          tool,
+         channel: "ai_insights",
        }),
         })
 
@@ -414,12 +433,7 @@ const [refreshKey, setRefreshKey] = useState(0)
       )
 
       if (!response.ok) {
-        const errorData = await response.json()
-
-        throw new Error(
-          errorData.error ||
-            "Erreur pendant la génération du PDF.",
-        )
+        throw new Error(await getPdfExportErrorMessage(response))
       }
 
       const pdfBlob = await response.blob()
@@ -429,6 +443,67 @@ const [refreshKey, setRefreshKey] = useState(0)
 
       downloadLink.href = pdfUrl
       downloadLink.download = "analyse-globale-seo.pdf"
+
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      downloadLink.remove()
+
+      window.URL.revokeObjectURL(pdfUrl)
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Impossible de générer le PDF.",
+      )
+    }
+  }
+
+  async function handleExportRecommendationsPdf() {
+    if (!responseText.trim()) {
+      setError("Aucune recommandation à exporter.")
+      return
+    }
+
+    try {
+      setError("")
+
+      const websiteId =
+        localStorage.getItem("websiteId") ||
+        localStorage.getItem("selectedWebsiteId")
+
+      const websiteName =
+        localStorage.getItem("websiteName") ||
+        localStorage.getItem("selectedWebsiteName") ||
+      "Site sélectionné"
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/ai/export-recommendations-pdf/",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recommendations: responseText,
+          website_name: websiteName,
+          website_id: websiteId,
+          period: appliedPeriod,
+        }),
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error(await getPdfExportErrorMessage(response))
+      }
+
+      const pdfBlob = await response.blob()
+      const pdfUrl = window.URL.createObjectURL(pdfBlob)
+
+      const downloadLink = document.createElement("a")
+
+      downloadLink.href = pdfUrl
+      downloadLink.download = "recommandations-seo.pdf"
 
       document.body.appendChild(downloadLink)
       downloadLink.click()
@@ -644,11 +719,15 @@ const [refreshKey, setRefreshKey] = useState(0)
             </div>
           ) : (
   <div className="space-y-4">
-    {tool === "global-analysis" && responseText.trim() && (
+    {(tool === "global-analysis" || tool === "recommendations") && responseText.trim() && (
       <div className="flex justify-end">
         <button
           type="button"
-          onClick={() => void handleExportGlobalAnalysisPdf()}
+          onClick={() =>
+            void (tool === "recommendations"
+              ? handleExportRecommendationsPdf()
+              : handleExportGlobalAnalysisPdf())
+          }
           className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition hover:-translate-y-0.5 hover:shadow-md"
           style={{
             background: "var(--dashboard-card)",

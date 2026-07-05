@@ -104,6 +104,31 @@ function formatSeconds(value: number) {
   return `${minutes}m ${seconds}s`
 }
 
+function calculateTrend(data: { value: number }[]) {
+  if (data.length < 2) return null
+
+  const middle = Math.floor(data.length / 2)
+  const previous = data
+    .slice(0, middle)
+    .reduce((acc, item) => acc + Number(item.value || 0), 0)
+  const current = data
+    .slice(middle)
+    .reduce((acc, item) => acc + Number(item.value || 0), 0)
+
+  if (previous === 0) return current > 0 ? 100 : null
+
+  return Number((((current - previous) / previous) * 100).toFixed(1))
+}
+
+function formatTrend(value: number) {
+  const cappedValue = Math.max(-100, Math.min(100, value))
+  const sign = cappedValue > 0 ? "+" : ""
+  const formattedValue = Number.isInteger(cappedValue)
+    ? cappedValue.toFixed(0)
+    : cappedValue.toFixed(1)
+  return `${sign}${formattedValue}%`
+}
+
 function StatCard({
   title,
   value,
@@ -112,6 +137,7 @@ function StatCard({
   data,
   color,
   gradientId,
+  trend,
 }: {
   title: string
   value: string
@@ -120,14 +146,34 @@ function StatCard({
   data: { name: string; value: number }[]
   color: string
   gradientId: string
+  trend?: number | null
 }) {
+  const hasTrend = typeof trend === "number"
+  const isPositiveTrend = hasTrend && trend >= 0
+
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--dashboard-muted)]">
-            {title}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--dashboard-muted)]">
+              {title}
+            </p>
+
+            {hasTrend ? (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-black"
+                style={{
+                  background: isPositiveTrend
+                    ? "color-mix(in srgb, #10b981 12%, transparent)"
+                    : "color-mix(in srgb, #ef4444 12%, transparent)",
+                  color: isPositiveTrend ? "#10b981" : "#ef4444",
+                }}
+              >
+                {formatTrend(trend)}
+              </span>
+            ) : null}
+          </div>
 
           <h2 className="mt-2 text-[30px] font-black leading-none text-[var(--dashboard-text)]">
             {value}
@@ -334,20 +380,36 @@ const normalizePercent = (value: number) => {
     value: item.users,
   }))
 
+  const usersTrend = useMemo(() => {
+    return calculateTrend(miniUsers)
+  }, [miniUsers])
+
   const miniSessions = chartData.map((item) => ({
     name: item.name,
     value: item.sessions,
   }))
+
+  const sessionsTrend = useMemo(() => {
+    return calculateTrend(miniSessions)
+  }, [miniSessions])
 
   const miniPageViews = chartData.map((item) => ({
     name: item.name,
     value: item.pageViews,
   }))
 
+  const pageViewsTrend = useMemo(() => {
+    return calculateTrend(miniPageViews)
+  }, [miniPageViews])
+
   const miniEngagement = chartData.map((item) => ({
     name: item.name,
     value: item.engagementRate,
   }))
+
+  const engagementTrend = useMemo(() => {
+    return calculateTrend(miniEngagement)
+  }, [miniEngagement])
 
   const eventDistribution = useMemo(() => {
     const grouped: Record<string, number> = {}
@@ -560,6 +622,7 @@ if (eventName === "first_visit") {
             data={miniUsers}
             color="var(--brand-primary)"
             gradientId="usersGradient"
+            trend={usersTrend}
           />
 
           <StatCard
@@ -570,6 +633,7 @@ if (eventName === "first_visit") {
             data={miniSessions}
             color="var(--brand-secondary)"
             gradientId="sessionsGradient"
+            trend={sessionsTrend}
           />
 
           <StatCard
@@ -580,6 +644,7 @@ if (eventName === "first_visit") {
             data={miniPageViews}
             color="var(--brand-tertiary)"
             gradientId="pageViewsGradient"
+            trend={pageViewsTrend}
           />
 
           <StatCard
@@ -590,6 +655,7 @@ if (eventName === "first_visit") {
             data={miniEngagement}
             color="var(--brand-primary)"
             gradientId="engagementGradient"
+            trend={engagementTrend}
           />
         </div>
 
@@ -700,7 +766,7 @@ if (eventName === "first_visit") {
           <Card className="p-5">
             <SectionTitle title="Qualité des sessions" rightText="Engagement" />
 
-            <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="mb-4 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-3">
                 <p className="text-[10px] font-bold text-[var(--dashboard-muted)]">
                   Engagement
@@ -710,18 +776,18 @@ if (eventName === "first_visit") {
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-3">
+              <div className="hidden">
                 <p className="text-[10px] font-bold text-[var(--dashboard-muted)]">
                   Durée
                 </p>
                 <p className="mt-1 text-xl font-black">
-                  {formatSeconds(averageDuration)}
+                  {false && formatSeconds(averageDuration)}
                 </p>
               </div>
 
               <div className="rounded-2xl bg-[var(--dashboard-card-soft)] p-3">
                 <p className="text-[10px] font-bold text-[var(--dashboard-muted)]">
-                  Pages / user
+                  Pages par utilisateur
                 </p>
                 <p className="mt-1 text-xl font-black">
                   {pagesPerUser.toFixed(1)}

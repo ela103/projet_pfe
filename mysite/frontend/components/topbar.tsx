@@ -1,7 +1,7 @@
 "use client"
 
 import { Bell, Search, Settings, User, Menu } from "lucide-react"
-import { useEffect, useState,useRef } from "react"
+import { useEffect, useMemo, useState,useRef } from "react"
 import { useRouter } from "next/navigation"
 import {
   DropdownMenu,
@@ -39,9 +39,130 @@ type AppNotification = {
   created_at: string
 }
 
+type Website = {
+  id: number
+  name: string
+  gsc_site_url?: string | null
+  ga4_property_id?: string | null
+}
+
+type SearchResult = {
+  type: "Page" | "Indicateur" | "Site"
+  label: string
+  description: string
+  href: string
+  website?: Website
+  keywords: string[]
+}
+
+const navigationResults: SearchResult[] = [
+  {
+    type: "Page",
+    label: "Dashboard",
+    description: "Vue globale des performances",
+    href: "/dashboard",
+    keywords: ["dashboard", "accueil", "tableau", "bord", "global"],
+  },
+  {
+    type: "Page",
+    label: "AI Insights",
+    description: "Analyses IA et recommandations",
+    href: "/ai-insights",
+    keywords: ["ai", "insights", "ia", "analyse", "recommandations"],
+  },
+  {
+    type: "Page",
+    label: "Assistant IA",
+    description: "Chatbot SEO",
+    href: "/chatbot",
+    keywords: ["chatbot", "assistant", "ia", "chat"],
+  },
+  {
+    type: "Page",
+    label: "Google Analytics",
+    description: "Sessions, utilisateurs et pages vues",
+    href: "/analytics",
+    keywords: ["analytics", "ga", "sessions", "utilisateurs", "visiteurs"],
+  },
+  {
+    type: "Page",
+    label: "Search Console",
+    description: "Clics, impressions, CTR et position",
+    href: "/search-console",
+    keywords: ["search", "console", "gsc", "clics", "impressions", "ctr", "position"],
+  },
+  {
+    type: "Page",
+    label: "Gestion des sites",
+    description: "Sites connectes et configuration",
+    href: "/devices",
+    keywords: ["sites", "site", "devices", "gestion", "connexion"],
+  },
+  {
+    type: "Page",
+    label: "Notifications",
+    description: "Alertes et activites recentes",
+    href: "/notifications",
+    keywords: ["notifications", "alertes", "alerte"],
+  },
+  {
+    type: "Page",
+    label: "Profil",
+    description: "Informations du compte",
+    href: "/profile",
+    keywords: ["profil", "profile", "compte", "utilisateur"],
+  },
+]
+
+const indicatorResults: SearchResult[] = [
+  {
+    type: "Indicateur",
+    label: "Clics",
+    description: "Voir les clics dans Search Console",
+    href: "/search-console",
+    keywords: ["clic", "clics", "click", "clicks"],
+  },
+  {
+    type: "Indicateur",
+    label: "CTR moyen",
+    description: "Voir le CTR dans Search Console",
+    href: "/search-console",
+    keywords: ["ctr", "taux", "clic"],
+  },
+  {
+    type: "Indicateur",
+    label: "Position moyenne",
+    description: "Voir la position Google moyenne",
+    href: "/search-console",
+    keywords: ["position", "moyenne", "ranking", "google"],
+  },
+  {
+    type: "Indicateur",
+    label: "Sessions",
+    description: "Voir les sessions dans Google Analytics",
+    href: "/analytics",
+    keywords: ["session", "sessions", "trafic", "traffic"],
+  },
+  {
+    type: "Indicateur",
+    label: "Pages vues",
+    description: "Voir les pages vues dans Google Analytics",
+    href: "/analytics",
+    keywords: ["pages", "vues", "views", "pageviews"],
+  },
+]
+
+const normalizeSearchText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
 export function Topbar({ onMenuClick }: TopbarProps) {
   const [q, setQ] = useState("")
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [websites, setWebsites] = useState<Website[]>([])
+  const [searchFocused, setSearchFocused] = useState(false)
   const router = useRouter()
   
   const knownNotificationIds = useRef<Set<number>>(new Set())
@@ -75,6 +196,27 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     fetchUser()
   }, [])
 
+  useEffect(() => {
+    const fetchWebsites = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/data/websites/", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+        setWebsites(data.websites || [])
+      } catch (error) {
+        console.error("Erreur chargement sites :", error)
+      }
+    }
+
+    fetchWebsites()
+  }, [])
+
   const handleLogout = async () => {
     try {
       const response = await fetch("http://127.0.0.1:8000/api/logout/", {
@@ -99,6 +241,46 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   const signedInName =
     `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Utilisateur"
+
+  const searchResults = useMemo(() => {
+    const term = normalizeSearchText(q.trim())
+    if (term.length < 2) return []
+
+    const siteResults: SearchResult[] = websites.map((website) => ({
+      type: "Site",
+      label: website.name,
+      description: website.gsc_site_url || "Ouvrir ce site",
+      href: "/devices",
+      website,
+      keywords: [
+        website.name,
+        website.gsc_site_url || "",
+        website.ga4_property_id || "",
+        "site",
+      ],
+    }))
+
+    return [...navigationResults, ...indicatorResults, ...siteResults]
+      .filter((result) =>
+        normalizeSearchText(
+          `${result.label} ${result.description} ${result.keywords.join(" ")}`
+        ).includes(term)
+      )
+      .slice(0, 7)
+  }, [q, websites])
+
+  const showSearchResults = searchFocused && q.trim().length >= 2
+
+  const openSearchResult = (result: SearchResult) => {
+    if (result.website) {
+      localStorage.setItem("websiteId", String(result.website.id))
+      localStorage.setItem("websiteName", result.website.name)
+    }
+
+    setQ("")
+    setSearchFocused(false)
+    router.push(result.href)
+  }
 
 
 useEffect(() => {
@@ -258,19 +440,73 @@ const openNotification = async (
       </button>
 
       {/* Search */}
-      <div className="w-full max-w-[520px]">
+      <div className="relative w-full max-w-[520px]">
         <label className="relative block">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--dashboard-muted)]" />
 
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && searchResults[0]) {
+                openSearchResult(searchResults[0])
+              }
+
+              if (event.key === "Escape") {
+                setSearchFocused(false)
+              }
+            }}
             placeholder="Rechercher un site, une page ou un indicateur..."
             className="h-12 w-full rounded-2xl border bg-[var(--dashboard-card)] pl-11 pr-4 text-sm font-semibold text-[var(--dashboard-text)] outline-none transition placeholder:text-[var(--dashboard-muted)] focus:border-[var(--brand-primary)]"
             style={{ borderColor: "var(--dashboard-border)" }}
             aria-label="Search"
           />
         </label>
+
+        {showSearchResults && (
+          <div
+            className="absolute left-0 right-0 top-14 z-50 overflow-hidden rounded-2xl border bg-[var(--dashboard-card)] p-2 shadow-2xl"
+            style={{ borderColor: "var(--dashboard-border)" }}
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            {searchResults.length > 0 ? (
+              searchResults.map((result) => (
+                <button
+                  key={`${result.type}-${result.label}-${result.href}`}
+                  type="button"
+                  onClick={() => openSearchResult(result)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-[var(--dashboard-card-soft)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-black text-[var(--dashboard-text)]">
+                      {result.label}
+                    </span>
+                    <span className="block truncate text-xs font-semibold text-[var(--dashboard-muted)]">
+                      {result.description}
+                    </span>
+                  </span>
+
+                  <span
+                    className="shrink-0 rounded-full px-2 py-1 text-[10px] font-black"
+                    style={{
+                      background:
+                        "color-mix(in srgb, var(--brand-primary) 12%, transparent)",
+                      color: "var(--brand-primary)",
+                    }}
+                  >
+                    {result.type}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-3 text-sm font-semibold text-[var(--dashboard-muted)]">
+                Aucun resultat trouve.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -417,10 +653,10 @@ const openNotification = async (
             <DropdownMenuItem asChild>
               <button
                 type="button"
-                onClick={() => router.push("/api-connections")}
+                onClick={() => router.push("/devices")}
                 className="w-full rounded-xl px-2 py-2 text-left text-sm font-semibold"
               >
-                Connexions API
+                Gestion des sites
               </button>
             </DropdownMenuItem>
 

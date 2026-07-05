@@ -174,10 +174,23 @@ Recommandations trafic / visibilité :
 Priorité :
 ...
 """
-def build_chatbot_prompt(question, context):
+def build_chatbot_prompt(question, context, response_mode="detailed"):
     periode = context.get("periode_analyse", "all")
     context_structure = context.get("context_structuré")
     documents_rag = context.get("documents_rag")
+    compact_rules = ""
+
+    if response_mode == "compact":
+        compact_rules = """
+MODE CHATBOT COMPACT :
+- Réponds de façon courte et conversationnelle.
+- Maximum 5 à 8 lignes au total.
+- Pour une analyse globale, donne seulement : 1 résumé court, 3 constats clés, 1 conclusion.
+- Pour des recommandations, donne maximum 3 actions prioritaires.
+- Évite les longs rapports, les longues listes et les sous-sections nombreuses.
+- Ne répète pas toutes les données disponibles ; cite seulement les chiffres vraiment utiles.
+- En mode compact, les structures détaillées ci-dessous sont seulement indicatives : privilégie toujours la version courte.
+"""
 
     return f"""
 Tu es un assistant SEO intelligent connecté aux données réelles d'un dashboard web analytics.
@@ -221,6 +234,7 @@ LOGIQUE D'ANALYSE :
 
 STYLE DE RÉPONSE :
 Réponds en français, avec une structure claire.
+{compact_rules}
 
 Si la question concerne une analyse globale, utilise cette structure :
 

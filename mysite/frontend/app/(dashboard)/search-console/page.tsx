@@ -94,6 +94,34 @@ function normalizePercent(value: number) {
   return value
 }
 
+function calculateTrend(data: { value: number }[], lowerIsBetter = false) {
+  if (data.length < 2) return null
+
+  const middle = Math.floor(data.length / 2)
+  const previous = data
+    .slice(0, middle)
+    .reduce((acc, item) => acc + Number(item.value || 0), 0)
+  const current = data
+    .slice(middle)
+    .reduce((acc, item) => acc + Number(item.value || 0), 0)
+
+  if (previous === 0) return current > 0 ? 100 : null
+
+  const trend = ((current - previous) / previous) * 100
+  const adjustedTrend = lowerIsBetter ? trend * -1 : trend
+
+  return Number(adjustedTrend.toFixed(1))
+}
+
+function formatTrend(value: number) {
+  const cappedValue = Math.max(-100, Math.min(100, value))
+  const sign = cappedValue > 0 ? "+" : ""
+  const formattedValue = Number.isInteger(cappedValue)
+    ? cappedValue.toFixed(0)
+    : cappedValue.toFixed(1)
+  return `${sign}${formattedValue}%`
+}
+
 function StatCard({
   title,
   value,
@@ -102,6 +130,7 @@ function StatCard({
   data,
   color,
   gradientId,
+  trend,
 }: {
   title: string
   value: string
@@ -110,14 +139,34 @@ function StatCard({
   data: { name: string; value: number }[]
   color: string
   gradientId: string
+  trend?: number | null
 }) {
+  const hasTrend = typeof trend === "number"
+  const isPositiveTrend = hasTrend && trend >= 0
+
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--dashboard-muted)]">
-            {title}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--dashboard-muted)]">
+              {title}
+            </p>
+
+            {hasTrend ? (
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-black"
+                style={{
+                  background: isPositiveTrend
+                    ? "color-mix(in srgb, #10b981 12%, transparent)"
+                    : "color-mix(in srgb, #ef4444 12%, transparent)",
+                  color: isPositiveTrend ? "#10b981" : "#ef4444",
+                }}
+              >
+                {formatTrend(trend)}
+              </span>
+            ) : null}
+          </div>
 
           <h2 className="mt-2 text-[30px] font-black leading-none text-[var(--dashboard-text)]">
             {value}
@@ -303,20 +352,36 @@ export default function SearchConsolePage() {
     value: item.clicks,
   }))
 
+  const clicksTrend = useMemo(() => {
+    return calculateTrend(miniClicks)
+  }, [miniClicks])
+
   const miniImpressions = chartData.map((item) => ({
     name: item.name,
     value: item.impressions,
   }))
+
+  const impressionsTrend = useMemo(() => {
+    return calculateTrend(miniImpressions)
+  }, [miniImpressions])
 
   const miniCtr = chartData.map((item) => ({
     name: item.name,
     value: item.ctr,
   }))
 
+  const ctrTrend = useMemo(() => {
+    return calculateTrend(miniCtr)
+  }, [miniCtr])
+
   const miniPosition = chartData.map((item) => ({
     name: item.name,
     value: item.position,
   }))
+
+  const positionTrend = useMemo(() => {
+    return calculateTrend(miniPosition, true)
+  }, [miniPosition])
 
   const ctrPositionData = chartData.map((item) => ({
     name: item.name,
@@ -478,6 +543,7 @@ const pieColors = [
             data={miniClicks}
             color="var(--brand-primary)"
             gradientId="gscClicksGradient"
+            trend={clicksTrend}
           />
 
           <StatCard
@@ -488,6 +554,7 @@ const pieColors = [
             data={miniImpressions}
             color="var(--brand-secondary)"
             gradientId="gscImpressionsGradient"
+            trend={impressionsTrend}
           />
 
           <StatCard
@@ -498,6 +565,7 @@ const pieColors = [
             data={miniCtr}
             color="var(--brand-tertiary)"
             gradientId="gscCtrGradient"
+            trend={ctrTrend}
           />
 
           <StatCard
@@ -508,6 +576,7 @@ const pieColors = [
             data={miniPosition}
             color="var(--brand-primary)"
             gradientId="gscPositionGradient"
+            trend={positionTrend}
           />
         </div>
 <Card className="p-5">

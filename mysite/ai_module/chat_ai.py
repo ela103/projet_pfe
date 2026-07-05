@@ -1,4 +1,5 @@
 import random
+import unicodedata
 import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -159,6 +160,91 @@ for _intent, _examples in INTENT_EXAMPLES.items():
 _vectorizer = TfidfVectorizer()
 _X_matrix = _vectorizer.fit_transform(_all_sentences)
 
+DATA_REQUIRED_INTENTS = {
+    "kpi",
+    "metric_clicks",
+    "metric_impressions",
+    "metric_ctr",
+    "metric_position",
+    "metric_sessions",
+    "metric_total_traffic",
+    "metric_users",
+    "metric_page_views",
+    "ga",
+    "gsc",
+    "scraping",
+    "prediction",
+    "recommendations",
+    "traffic_diagnosis",
+    "nlp",
+    "anomalies",
+    "pages_faibles",
+    "page_detail",
+    "full_analysis",
+}
+
+
+def normalize_text(value: str) -> str:
+    value = unicodedata.normalize("NFKD", str(value or ""))
+    value = "".join(char for char in value if not unicodedata.combining(char))
+    return " ".join(value.lower().split())
+
+
+def get_selected_website(website_id):
+    if not website_id:
+        return None
+
+    try:
+        return Website.objects.get(id=website_id)
+    except Exception:
+        return None
+
+
+def find_mentioned_other_website(question: str, selected_website):
+    question_value = normalize_text(question)
+
+    for website in Website.objects.all():
+        if selected_website and website.id == selected_website.id:
+            continue
+
+        website_name = normalize_text(website.name)
+
+        if len(website_name) >= 3 and website_name in question_value:
+            return website
+
+    return None
+
+
+def no_selected_website_response(intent: str) -> dict:
+    return {
+        "intent": intent,
+        "text": (
+            "Aucun site n'est selectionne pour le moment. "
+            "Selectionnez d'abord un site dans le dashboard ou dans Gestion des sites, "
+            "puis relancez la demande."
+        ),
+        "data": None,
+        "source": "guard",
+        "used_rag": False,
+        "retrieved_documents_count": 0,
+    }
+
+
+def different_website_response(intent: str, mentioned_website, selected_website) -> dict:
+    return {
+        "intent": intent,
+        "text": (
+            f"Le site **{mentioned_website.name}** n'est pas le site actuellement selectionne. "
+            f"Le site actif est **{selected_website.name}**. "
+            "Selectionnez d'abord le site voulu dans Gestion des sites ou dans la liste du dashboard, "
+            "puis relancez l'analyse."
+        ),
+        "data": None,
+        "source": "guard",
+        "used_rag": False,
+        "retrieved_documents_count": 0,
+    }
+
 
 # ============================================================
 # DÉTECTION D'INTENTION
@@ -167,12 +253,158 @@ def detect_intent_nlp(question: str) -> str:
     q = question.lower().strip()
 
     # Normalisation pronoms
-    q = q.replace("son", "le").replace("sa", "la").replace("ses", "les")
+    pronouns = {"son": "le", "sa": "la", "ses": "les"}
+    q = " ".join(pronouns.get(word, word) for word in q.split())
+
+    asks_why = "pourquoi" in q or "cause" in q or "causes" in q
+    asks_recommendation = any(
+        word in q
+        for word in [
+            "recommandation",
+            "conseil",
+            "optimiser",
+            "optimisation",
+            "améliorer",
+            "ameliorer",
+            "augmenter",
+            "actions",
+            "action",
+            "priorité",
+            "priorite",
+            "prioritaires",
+            "stratégie",
+            "strategie",
+            "plan d action",
+            "plan d'action",
+        ]
+    )
+    asks_analysis = any(
+        word in q
+        for word in [
+            "analyse",
+            "analysez",
+            "analyser",
+            "audit",
+            "diagnostic",
+            "bilan",
+            "interprète",
+            "interprete",
+            "explique",
+            "signifie",
+            "performe",
+            "performant",
+            "penses-tu",
+            "pense tu",
+            "avis",
+            "bon",
+            "bons",
+            "progresser",
+            "progression",
+            "problème",
+            "probleme",
+            "faible",
+            "faibles",
+            "baisse",
+            "baissent",
+            "mauvais",
+            "mauvaise",
+            "comportement",
+        ]
+    )
+    metric_topic = any(
+        word in q
+        for word in [
+            "trafic",
+            "clic",
+            "click",
+            "impression",
+            "ctr",
+            "position",
+            "session",
+            "utilisateur",
+            "visiteur",
+            "pages vues",
+            "page vue",
+            "engagement",
+            "visibilité",
+            "visibilite",
+            "search console",
+            "organique",
+            "organiques",
+            "performance",
+            "performances",
+            "google analytics",
+            "ga4",
+        ]
+    )
+
+    if "diagnostic global" in q or "bilan complet" in q or "audit complet" in q:
+        return "full_analysis"
+    if asks_recommendation:
+        return "recommendations"
+    if asks_why and metric_topic:
+        return "traffic_diagnosis"
+    if asks_analysis and metric_topic:
+        return "traffic_diagnosis"
+    if asks_analysis and "site" in q:
+        return "full_analysis"
+
+    wants_value = any(
+        phrase in q
+        for phrase in [
+            "combien",
+            "nombre",
+            "total",
+            "donne moi",
+            "donne-moi",
+            "montre moi",
+            "montre-moi",
+            "je veux connaitre",
+            "je veux connaître",
+            "je veux savoir",
+            "affiche",
+            "mes",
+            "mon",
+            "ma",
+        ]
+    )
+
+    if wants_value and ("clic" in q or "click" in q):
+        return "metric_clicks"
+    if wants_value and "impression" in q:
+        return "metric_impressions"
+    if ("ctr" in q or "taux de clic" in q) and "position" not in q:
+        return "metric_ctr"
+    if "position moyenne" in q or ("position" in q and "google" in q):
+        return "metric_position"
+    if wants_value and "session" in q:
+        return "metric_sessions"
+    if "trafic total" in q or "traffic total" in q:
+        return "metric_total_traffic"
+    if wants_value and ("utilisateur" in q or "user" in q or "visiteur" in q):
+        return "metric_users"
+    if wants_value and ("pages vues" in q or "page vue" in q):
+        return "metric_page_views"
 
     # ── Règles prioritaires (mots-clés explicites) ──────────
     if "analyse globale" in q or "audit complet" in q:
         return "full_analysis"
     if "analyse complète" in q and "page" not in q:
+        return "full_analysis"
+    if (
+        any(word in q for word in ["analyse", "analysez", "analyser", "audit", "diagnostic"])
+        and any(
+            site_word in q
+            for site_word in [
+                "site actuel",
+                "site courant",
+                "site sélectionné",
+                "site selectionne",
+                "mon site",
+            ]
+        )
+        and "page" not in q
+    ):
         return "full_analysis"
     if "priorité" in q or "priorites" in q:
         return "full_analysis"
@@ -220,7 +452,7 @@ def detect_intent_nlp(question: str) -> str:
 
     if "audit seo" in q or "analyse technique" in q or "diagnostic" in q \
             or "analyse mon site" in q or "analyse du site" in q:
-        return "scraping"
+        return "full_analysis"
 
     # ── Fallback TF-IDF (vectorizer déjà prêt) ──────────────
     q_vec = _vectorizer.transform([q])
@@ -231,7 +463,12 @@ def detect_intent_nlp(question: str) -> str:
     if best_score < 0.15:
         return "unknown"
 
-    return _labels[best_index]
+    best_label = _labels[best_index]
+
+    if best_label == "scraping":
+        return "full_analysis"
+
+    return best_label
 
 
 # ============================================================
@@ -277,6 +514,35 @@ def polite_intro(intent: str) -> str:
 # CORRECTION 2 — format_response avec ga/gsc + ZeroDivision
 # ============================================================
 def format_response(intent: str, data) -> str:
+
+    if intent.startswith("metric_"):
+        seo = data.get("seo", {})
+        traffic = data.get("traffic", {})
+
+        if intent == "metric_clicks":
+            return f"Votre site a **{seo.get('total_clicks', 0)} clics** depuis Google Search Console."
+
+        if intent == "metric_impressions":
+            return f"Votre site a **{seo.get('total_impressions', 0)} impressions** dans Google Search Console."
+
+        if intent == "metric_ctr":
+            ctr = float(seo.get("avg_ctr", 0) or 0) * 100
+            return f"Le CTR moyen de votre site est de **{ctr:.2f}%**."
+
+        if intent == "metric_position":
+            return f"La position moyenne Google de votre site est **{seo.get('avg_position', 0)}**."
+
+        if intent == "metric_sessions":
+            return f"Votre site a **{traffic.get('total_sessions', 0)} sessions** dans Google Analytics."
+
+        if intent == "metric_total_traffic":
+            return f"Le trafic total de votre site est de **{traffic.get('total_sessions', 0)} sessions**."
+
+        if intent == "metric_users":
+            return f"Votre site a **{traffic.get('total_active_users', 0)} utilisateurs actifs**."
+
+        if intent == "metric_page_views":
+            return f"Votre site a **{traffic.get('total_page_views', 0)} pages vues**."
 
     # ── GA ──────────────────────────────────────────────────
     if intent == "ga":
@@ -533,7 +799,7 @@ def build_chatbot_context(website_id=None, intent=None, period="all"):
 # ============================================================
 # FONCTION PRINCIPALE
 # ============================================================
-def ask_ai(question: str, website_id=None, period="all") -> dict:
+def ask_ai(question: str, website_id=None, period="all", channel="") -> dict:
 
     # Salutations / au revoir
     special = chat_greetings_farewells(question)
@@ -551,6 +817,26 @@ def ask_ai(question: str, website_id=None, period="all") -> dict:
         }
 
     intent = detect_intent_nlp(question)
+    selected_website = get_selected_website(website_id)
+
+    if intent == "site_info" and not selected_website:
+        return no_selected_website_response(intent)
+
+    if intent in DATA_REQUIRED_INTENTS:
+        if not selected_website:
+            return no_selected_website_response(intent)
+
+        mentioned_website = find_mentioned_other_website(question, selected_website)
+
+        if mentioned_website:
+            return different_website_response(
+                intent,
+                mentioned_website,
+                selected_website,
+            )
+
+        website_id = selected_website.id
+
     if intent in [
         "traffic_diagnosis",
         "full_analysis",
@@ -569,7 +855,8 @@ def ask_ai(question: str, website_id=None, period="all") -> dict:
         "periode_analyse": period,
         "context_structuré": context,
         "documents_rag": rag_docs,
-    }
+    },
+    response_mode="compact" if channel == "chatbot" else "detailed",
 )
         try:
             gemini = GeminiService()
@@ -588,7 +875,10 @@ def ask_ai(question: str, website_id=None, period="all") -> dict:
         except Exception as e:
             print("Erreur Gemini RAG :", e)
     # CORRECTION 4 — tous les intents sont gérés, y compris ga et gsc
-    if intent == "kpi":
+    if intent.startswith("metric_"):
+        data = analyse_data(website_id, period)
+
+    elif intent == "kpi":
         data = analyse_data(website_id, period)
 
     elif intent == "ga":
@@ -654,8 +944,11 @@ def ask_ai(question: str, website_id=None, period="all") -> dict:
             "data": None,
         }
 
-    intro = polite_intro(intent)
-    text = f"{intro}\n\n{format_response(intent, data)}"
+    if intent.startswith("metric_"):
+        text = format_response(intent, data)
+    else:
+        intro = polite_intro(intent)
+        text = f"{intro}\n\n{format_response(intent, data)}"
 
     return {
     "intent": intent,
